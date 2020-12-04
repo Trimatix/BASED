@@ -3,7 +3,7 @@ BASED is a template project for creating advanced discord bots using python.
 
 BASED includes complete implementations for task scheduling, object and database saving with JSON, per-guild command prefixing, and custom access level-based commands handling with help command auto-generation.
 
-BASED also includes a handy and extraordinarily versatile reaction menu implementation, allowing per-menu type saving implementations, advanced per-option menu behaviour, and implementation styles for both 'inline' and 'passive' calling styles.
+BASED also includes a handy and extraordinarily versatile reaction menu implementation, allowing per-menu type saving implementations, advanced per-option menu behaviour, and support for both 'inline' and 'passive' calling styles.
 
 Much more to come, including a game-specific fork with pre-written item and inventory classes.
 
