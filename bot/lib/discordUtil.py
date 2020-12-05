@@ -3,9 +3,9 @@ from typing import Union, TYPE_CHECKING, Tuple
 if TYPE_CHECKING:
     from discord import Member, Guild, Message
 
-from . import stringTyping
+from . import stringTyping, emojis, exceptions
 from .. import botState
-from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, Reaction, User
+from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, Reaction, User, DMChannel, GroupChannel, TextChannel
 import random
 from ..cfg import cfg
 
@@ -95,38 +95,61 @@ def randomColour():
     return Colour.from_rgb(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
 
 
-async def rawReactionPayloadToReaction(payload : RawReactionActionEvent) -> Tuple[Reaction, Union[User, Member]]:
+async def reactionFromRaw(payload : RawReactionActionEvent) -> Tuple[Message, Union[User, Member],  emojis.BasedEmoji]:
     """Retrieve complete Reaction and user info from a RawReactionActionEvent payload.
 
     :param RawReactionActionEvent payload: Payload describing the reaction action
-    :return: The current state of the reaction, and the user who completed the action.
-    :rtype: Tuple[Reaction, Union[User, Member]]
+    :return: The message whose reactions changed, the user who completed the action, and the emoji that changed.
+    :rtype: Tuple[Message, Union[User, Member], BasedEmoji]
     """
-    if payload.guild_id is None:
-        message = await botState.client.get_channel(payload.channel_id).fetch_message(payload.message_id)
+    emoji = None
+    user = None
+    message = None
+
+    if payload.member is None:
+        # Get the channel containing the reacted message
+        if payload.guild_id is None:
+            channel = botState.client.get_channel(payload.channel_id)
+        else:
+            guild = botState.client.get_guild(payload.guild_id)
+            if guild is None:
+                return None, None, None
+            channel = guild.get_channel(payload.channel_id)
+        
+        # Individual handling for each channel type for efficiency
+        if isinstance(channel, DMChannel):
+            if channel.recipient.id == payload.user_id:
+                user = channel.recipient
+            else:
+                user = channel.me
+        elif isinstance(channel, GroupChannel):
+            # Group channels should be small and far between, so iteration is fine here.
+            for currentUser in channel.recipients:
+                if currentUser.id == payload.user_id:
+                    user = currentUser
+                if user is None:
+                    user = channel.me
+        # Guild text channels
+        elif isinstance(channel, TextChannel):
+            user = channel.guild.get_member(payload.user_id)
+        else:
+            return None, None, None
+        
+        # Fetch the reacted message (api call)
+        message = await channel.fetch_message(payload.message_id)
+    
+    # If a reacting member was given, the guild can be inferred from the member.
     else:
-        message = botState.client.get_guild(payload.guild_id).get_channel(payload.channel_id).fetch_message(payload.message_id)
+        user = payload.member
+        message = await payload.member.guild.get_channel(payload.channel_id).fetch_message(payload.message_id)
     
     if message is None:
-        return None, None
+        return None, None, None
 
-    react = None
-    for currentReact in message.reactions:
-        if currentReact.emoji == payload.emoji:
-            react = currentReact
-            break
+    # Convert reacted emoji to BasedEmoji
+    try:
+        emoji = emojis.BasedEmoji.fromPartial(payload.emoji, rejectInvalid=True)
+    except exceptions.UnrecognisedCustomEmoji:
+        return None, None, None
 
-    if react is None:
-        return None, None
-
-    reactingMember = payload.member
-    if payload.member is None:
-        async for currentUser in react.users():
-            if currentUser.id == payload.user_id:
-                reactingMember = currentUser
-                break
-    
-    if reactingMember is None:
-        return None, None
-
-    return react, reactingMember
+    return message, user, emoji

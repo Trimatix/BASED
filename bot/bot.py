@@ -324,15 +324,13 @@ async def on_raw_reaction_add(payload : discord.RawReactionActionEvent):
     :param discord.RawReactionActionEvent payload: An event describing the message and the reaction added
     """
     if payload.user_id != botState.client.user.id:
-        react, user = await lib.discordUtil.rawReactionPayloadToReaction(payload)
-        if react is None or user is None:
+        _, user, emoji = await lib.discordUtil.reactionFromRaw(payload)
+        if None in [user, emoji]:
             return
 
-        emoji = lib.emojis.BasedEmoji.fromReaction(react.emoji)
-
-        if react.message.id in botState.reactionMenusDB and \
-                botState.reactionMenusDB[react.message.id].hasEmojiRegistered(emoji):
-            await botState.reactionMenusDB[react.message.id].reactionAdded(emoji, user)
+        if payload.message_id in botState.reactionMenusDB and \
+                botState.reactionMenusDB[payload.message_id].hasEmojiRegistered(emoji):
+            await botState.reactionMenusDB[payload.message_id].reactionAdded(emoji, user)
 
 
 @botState.client.event
@@ -343,15 +341,13 @@ async def on_raw_reaction_remove(payload : discord.RawReactionActionEvent):
     :param discord.RawReactionActionEvent payload: An event describing the message and the reaction removed
     """
     if payload.user_id != botState.client.user.id:
-        react, user = await lib.discordUtil.rawReactionPayloadToReaction(payload)
-        if react is None or user is None:
+        _, user, emoji = await lib.discordUtil.reactionFromRaw(payload)
+        if None in [user, emoji]:
             return
 
-        emoji = lib.emojis.BasedEmoji.fromReaction(react.emoji)
-
-        if react.message.id in botState.reactionMenusDB and \
-                botState.reactionMenusDB[react.message.id].hasEmojiRegistered(emoji):
-            await botState.reactionMenusDB[react.message.id].reactionRemoved(emoji, user)
+        if payload.message_id in botState.reactionMenusDB and \
+                botState.reactionMenusDB[payload.message_id].hasEmojiRegistered(emoji):
+            await botState.reactionMenusDB[payload.message_id].reactionRemoved(emoji, user)
 
 
 @botState.client.event
