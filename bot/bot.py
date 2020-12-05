@@ -206,7 +206,7 @@ async def on_ready():
                 setattr(cfg, varName, lib.emojis.BasedEmoji.fromDict(uninitEmoji))
             # Unrecognised uninitialized value
             else:
-                raise ValueError("Unrecognised UninitializedBasedEmoji value type. Expecting int, str or dict, given '" + uninitEmoji.__class__.__name__ + "'")
+                raise ValueError("Unrecognised UninitializedBasedEmoji value type. Expecting int, str or dict, given '" + type(uninitEmoji).__name__ + "'")
     
     # Ensure all emojis have been initialized
     for varName, varValue in vars(cfg).items():
@@ -264,26 +264,23 @@ async def on_message(message : discord.Message):
     if message.author.bot:
         return
 
-    # Chek whether the command was requested in DMs
-    isDM = message.channel.type in [
-        discord.ChannelType.private, discord.ChannelType.group]
+    # Check whether the command was requested in DMs
+    isDM = message.channel.type in [discord.ChannelType.private, discord.ChannelType.group]
 
     if isDM:
         commandPrefix = cfg.defaultCommandPrefix
     else:
         commandPrefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
 
-    # For any messages beginning with bbConfig.commandPrefix
+    # For any messages beginning with commandPrefix
     if message.content.startswith(commandPrefix) and len(message.content) > len(commandPrefix):
         # replace special apostraphe characters with the universal '
         msgContent = message.content.replace("‘", "'").replace("’", "'")
 
         # split the message into command and arguments
         if len(msgContent[len(commandPrefix):]) > 0:
-            command = msgContent[len(commandPrefix):].split(" ")[
-                0]
-            args = msgContent[len(
-                commandPrefix) + len(command) + 1:]
+            command = msgContent[len(commandPrefix):].split(" ")[0]
+            args = msgContent[len(commandPrefix) + len(command) + 1:]
 
         # if no command is given, ignore the message
         else:
@@ -300,13 +297,17 @@ async def on_message(message : discord.Message):
         try:
             # Call the requested command
             commandFound = await botCommands.call(command, message, args, accessLevel, isDM=isDM)
+        
+        # If a non-DMable command was called from DMs, send an error message 
         except lib.exceptions.IncorrectCommandCallContext:
             await err_nodm(message, "", isDM)
             return
+
+        # If the command threw an exception, print a user friendly error and log the exception as misc.
         except Exception as e:
             await message.channel.send("An unexpected error occured when calling this command. The error has been logged.\nThis command probably won't work until we've looked into it.")
             botState.logger.log("Main", "on_message", "An unexpected error occured when calling command '" +
-                            command + "' with args '" + args + "': " + e.__class__.__name__, trace=traceback.format_exc())
+                            command + "' with args '" + args + "': " + type(e).__name__, trace=traceback.format_exc())
             print(traceback.format_exc())
             commandFound = True
 
@@ -323,28 +324,15 @@ async def on_raw_reaction_add(payload : discord.RawReactionActionEvent):
     :param discord.RawReactionActionEvent payload: An event describing the message and the reaction added
     """
     if payload.user_id != botState.client.user.id:
-        emoji = lib.emojis.BasedEmoji.fromPartial(payload.emoji)
-        if emoji.sendable is None:
+        react, user = await lib.discordUtil.rawReactionPayloadToReaction(payload)
+        if react is None or user is None:
             return
 
-        guild = botState.client.get_guild(payload.guild_id)
-        if guild is None:
-            message = await botState.client.get_channel(payload.channel_id).fetch_message(payload.message_id)
-        else:
-            message = await guild.get_channel(payload.channel_id).fetch_message(payload.message_id)
-        if message is None:
-            return
-        
-        if guild is None:
-            member = botState.client.get_user(payload.user_id)
-        else:
-            member = payload.member
-        if member is None:
-            return
+        emoji = lib.emojis.BasedEmoji.fromReaction(react.emoji)
 
-        if message.id in botState.reactionMenusDB and \
-                botState.reactionMenusDB[message.id].hasEmojiRegistered(emoji):
-            await botState.reactionMenusDB[message.id].reactionAdded(emoji, member)
+        if react.message.id in botState.reactionMenusDB and \
+                botState.reactionMenusDB[react.message.id].hasEmojiRegistered(emoji):
+            await botState.reactionMenusDB[react.message.id].reactionAdded(emoji, user)
 
 
 @botState.client.event
@@ -355,28 +343,15 @@ async def on_raw_reaction_remove(payload : discord.RawReactionActionEvent):
     :param discord.RawReactionActionEvent payload: An event describing the message and the reaction removed
     """
     if payload.user_id != botState.client.user.id:
-        emoji = lib.emojis.BasedEmoji.fromPartial(payload.emoji)
-        if emoji.sendable is None:
+        react, user = await lib.discordUtil.rawReactionPayloadToReaction(payload)
+        if react is None or user is None:
             return
 
-        guild = botState.client.get_guild(payload.guild_id)
-        if guild is None:
-            message = await botState.client.get_channel(payload.channel_id).fetch_message(payload.message_id)
-        else:
-            message = await guild.get_channel(payload.channel_id).fetch_message(payload.message_id)
-        if message is None:
-            return
-        
-        if guild is None:
-            member = botState.client.get_user(payload.user_id)
-        else:
-            member = message.guild.get_member(payload.user_id)
-        if member is None:
-            return
+        emoji = lib.emojis.BasedEmoji.fromReaction(react.emoji)
 
-        if message.id in botState.reactionMenusDB and \
-                botState.reactionMenusDB[message.id].hasEmojiRegistered(emoji):
-            await botState.reactionMenusDB[message.id].reactionRemoved(emoji, member)
+        if react.message.id in botState.reactionMenusDB and \
+                botState.reactionMenusDB[react.message.id].hasEmojiRegistered(emoji):
+            await botState.reactionMenusDB[react.message.id].reactionRemoved(emoji, user)
 
 
 @botState.client.event

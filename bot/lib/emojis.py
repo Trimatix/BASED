@@ -35,6 +35,7 @@ class BasedEmoji(serializable.Serializable):
     """
     EMPTY = None
 
+
     def __init__(self, id : int = -1, unicode : str = ""):
         """
         :param int id: The ID of the custom emoji that this object should represent.

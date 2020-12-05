@@ -1,11 +1,11 @@
 from __future__ import annotations
-from typing import Union, List, Dict, TYPE_CHECKING
+from typing import Union, TYPE_CHECKING, Tuple
 if TYPE_CHECKING:
     from discord import Member, Guild, Message
 
 from . import stringTyping
 from .. import botState
-from discord import Embed, Colour, HTTPException, Forbidden
+from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, Reaction, User
 import random
 from ..cfg import cfg
 
@@ -93,3 +93,40 @@ def randomColour():
     :rtype: discord.Colour
     """
     return Colour.from_rgb(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+
+
+async def rawReactionPayloadToReaction(payload : RawReactionActionEvent) -> Tuple[Reaction, Union[User, Member]]:
+    """Retrieve complete Reaction and user info from a RawReactionActionEvent payload.
+
+    :param RawReactionActionEvent payload: Payload describing the reaction action
+    :return: The current state of the reaction, and the user who completed the action.
+    :rtype: Tuple[Reaction, Union[User, Member]]
+    """
+    if payload.guild_id is None:
+        message = await botState.client.get_channel(payload.channel_id).fetch_message(payload.message_id)
+    else:
+        message = botState.client.get_guild(payload.guild_id).get_channel(payload.channel_id).fetch_message(payload.message_id)
+    
+    if message is None:
+        return None, None
+
+    react = None
+    for currentReact in message.reactions:
+        if currentReact.emoji == payload.emoji:
+            react = currentReact
+            break
+
+    if react is None:
+        return None, None
+
+    reactingMember = payload.member
+    if payload.member is None:
+        async for currentUser in react.users():
+            if currentUser.id == payload.user_id:
+                reactingMember = currentUser
+                break
+    
+    if reactingMember is None:
+        return None, None
+
+    return react, reactingMember
