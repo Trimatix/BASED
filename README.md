@@ -1,4 +1,5 @@
-# Bot Advanced Schematic - Easy Discord! (BASED)
+![BASED Banner](https://dl.dropboxusercontent.com/s/chs2lkestx3ap8j/BASED%20cover.png)
+
 BASED is a template project for creating advanced discord bots using python.
 
 BASED includes complete implementations for task scheduling, object and database saving with JSON, per-guild command prefixing, and custom access level-based commands handling with help command auto-generation.
