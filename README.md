@@ -1,4 +1,4 @@
-![BASED Banner](https://dl.dropboxusercontent.com/s/chs2lkestx3ap8j/BASED%20cover.png)
+![BASED Banner](https://i.imgur.com/a/8lwkDZt.png)
 
 BASED is a template project for creating advanced discord bots using python.
 
