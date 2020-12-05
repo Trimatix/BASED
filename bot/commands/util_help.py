@@ -1,6 +1,6 @@
 import discord
 
-from . import commandsDB as bbCommands
+from . import commandsDB as botCommands
 from .. import botState, lib
 from ..cfg import cfg
 from ..reactionMenus import PagedReactionMenu, expiryFunctions
@@ -8,7 +8,7 @@ from ..scheduling import TimedTask
 
 
 async def util_autohelp(message : discord.Message, args : str, isDM : bool, userAccessLevel : int):
-    """Print the help strings defined in bbData as an embed.
+    """Print command help strings for the given access level as an embed.
     If a command is provided in args, the associated help string for just that command is printed.
 
     :param discord.Message message: the discord message calling the command
@@ -26,72 +26,72 @@ async def util_autohelp(message : discord.Message, args : str, isDM : bool, user
         sendDM = False
 
     if lib.stringTyping.isInt(args):
-        if int(args) < 1 or int(args) > len(bbCommands.helpSectionEmbeds[userAccessLevel]):
-            await message.channel.send(":x: Section number must be between 1 and " + str(len(bbCommands.helpSectionEmbeds[userAccessLevel])) + "!")
+        if int(args) < 1 or int(args) > len(botCommands.helpSectionEmbeds[userAccessLevel]):
+            await message.channel.send(":x: Section number must be between 1 and " + str(len(botCommands.helpSectionEmbeds[userAccessLevel])) + "!")
             return
-        args = list(bbCommands.helpSectionEmbeds[userAccessLevel].keys())[int(args) - 1]
+        args = list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[int(args) - 1]
     elif args == "misc":
         args = "miscellaneous"
 
     try:
         if args == "":
-            owningBBUser = botState.usersDB.getOrAddID(message.author.id)
-            if owningBBUser.helpMenuOwned:
+            owningUser = botState.usersDB.getOrAddID(message.author.id)
+            if owningUser.helpMenuOwned:
                 await message.channel.send(":x: Please close your existing help menu before making a new one!\nIn case you can't find it, help menus auto exire after **" + lib.timeUtil.td_format_noYM(lib.timeUtil.timeDeltaFromDict(cfg.helpEmbedTimeout)) + "**.")
                 return
-            owningBBUser.helpMenuOwned = True
+            owningUser.helpMenuOwned = True
             menuMsg = await sendChannel.send("‎")
             helpTT = TimedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(cfg.helpEmbedTimeout), expiryFunction=expiryFunctions.expireHelpMenu, expiryFunctionArgs=menuMsg.id)
             botState.reactionMenusTTDB.scheduleTask(helpTT)
-            indexEmbed = lib.discordUtil.makeEmbed(titleTxt="BB "+ cfg.userAccessLevels[userAccessLevel] + " Commands", desc="Select " + cfg.defaultNextEmoji.sendable + " to go to page one.", thumb=botState.client.user.avatar_url_as(size=64), footerTxt="This menu will expire in " + lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
+            indexEmbed = lib.discordUtil.makeEmbed(titleTxt=cfg.userAccessLevels[userAccessLevel] + " Commands", desc="Select " + cfg.defaultNextEmoji.sendable + " to go to page one.", thumb=botState.client.user.avatar_url_as(size=64), footerTxt="This menu will expire in " + lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
             sectionsStr = ""
             pages = {indexEmbed: {}}
-            for sectionNum in range(len(bbCommands.helpSectionEmbeds[userAccessLevel])):
-                sectionsStr += "\n" + str(sectionNum + 1) + ") " + list(bbCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title()
-                # sectionsStr += "\n" + bbConfig.defaultMenuEmojis[sectionNum + 1].sendable + " : " + list(bbCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title()
-                # pages[indexEmbed][bbConfig.defaultMenuEmojis[sectionNum + 1]] = ReactionMenu.NonSaveableReactionMenuOption(list(bbCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title(), bbConfig.defaultMenuEmojis[sectionNum + 1], addFunc=PagedReactionMenu.menuJumpToPage, addArgs={"menuID": menuMsg.id, "pageNum": sectionNum})
+            for sectionNum in range(len(botCommands.helpSectionEmbeds[userAccessLevel])):
+                sectionsStr += "\n" + str(sectionNum + 1) + ") " + list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title()
+                # sectionsStr += "\n" + cfg.defaultMenuEmojis[sectionNum + 1].sendable + " : " + list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title()
+                # pages[indexEmbed][cfg.defaultMenuEmojis[sectionNum + 1]] = ReactionMenu.NonSaveableReactionMenuOption(list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title(), cfg.defaultMenuEmojis[sectionNum + 1], addFunc=PagedReactionMenu.menuJumpToPage, addArgs={"menuID": menuMsg.id, "pageNum": sectionNum})
             indexEmbed.add_field(name="Contents",value=sectionsStr)
             pageNum = 0
-            for helpSectionEmbedList in bbCommands.helpSectionEmbeds[userAccessLevel].values():
+            for helpSectionEmbedList in botCommands.helpSectionEmbeds[userAccessLevel].values():
                 for helpEmbed in helpSectionEmbedList:
                     pageNum += 1
                     newEmbed = helpEmbed.copy()
-                    newEmbed.set_footer(text="Page " + str(pageNum) + " of " + str(bbCommands.totalEmbeds[userAccessLevel]) + " | This menu will expire in " + lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
+                    newEmbed.set_footer(text="Page " + str(pageNum) + " of " + str(botCommands.totalEmbeds[userAccessLevel]) + " | This menu will expire in " + lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
                     pages[newEmbed] = {}
-            helpMenu = PagedReactionMenu.PagedReactionMenu(menuMsg, pages, timeout=helpTT, targetMember=message.author, owningBBUser=owningBBUser)
+            helpMenu = PagedReactionMenu.PagedReactionMenu(menuMsg, pages, timeout=helpTT, targetMember=message.author, owningBasedUser=owningUser)
             await helpMenu.updateMessage()
             botState.reactionMenusDB[menuMsg.id] = helpMenu
 
-        elif args in bbCommands.helpSectionEmbeds[userAccessLevel]:
-            if len(bbCommands.helpSectionEmbeds[userAccessLevel][args]) == 1:
-                await sendChannel.send(embed=bbCommands.helpSectionEmbeds[userAccessLevel][args][0])
+        elif args in botCommands.helpSectionEmbeds[userAccessLevel]:
+            if len(botCommands.helpSectionEmbeds[userAccessLevel][args]) == 1:
+                await sendChannel.send(embed=botCommands.helpSectionEmbeds[userAccessLevel][args][0])
             else:
-                owningBBUser = botState.usersDB.getOrAddID(message.author.id)
-                if owningBBUser.helpMenuOwned:
+                owningUser = botState.usersDB.getOrAddID(message.author.id)
+                if owningUser.helpMenuOwned:
                     await message.channel.send(":x: Please close your existing help menu before making a new one!\nIn case you can't find it, help menus auto exire after **" + lib.timeUtil.td_format_noYM(lib.timeUtil.timeDeltaFromDict(cfg.helpEmbedTimeout)) + "**.")
                     return
-                owningBBUser.helpMenuOwned = True
+                owningUser.helpMenuOwned = True
                 menuMsg = await sendChannel.send("‎")
                 helpTT = TimedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(cfg.helpEmbedTimeout), expiryFunction=expiryFunctions.expireHelpMenu, expiryFunctionArgs=menuMsg.id)
                 botState.reactionMenusTTDB.scheduleTask(helpTT)
                 pages = {}
-                for helpEmbed in bbCommands.helpSectionEmbeds[userAccessLevel][args]:
+                for helpEmbed in botCommands.helpSectionEmbeds[userAccessLevel][args]:
                     newEmbed = helpEmbed.copy()
                     newEmbed.set_footer(text=helpEmbed.footer.text + " | This menu will expire in " + lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
                     pages[newEmbed] = {}
-                helpMenu = PagedReactionMenu.PagedReactionMenu(menuMsg, pages, timeout=helpTT, targetMember=message.author, owningBBUser=owningBBUser)
+                helpMenu = PagedReactionMenu.PagedReactionMenu(menuMsg, pages, timeout=helpTT, targetMember=message.author, owningBasedUser=owningUser)
                 await helpMenu.updateMessage()
                 botState.reactionMenusDB[menuMsg.id] = helpMenu
 
-        elif args in bbCommands.commands[userAccessLevel] and bbCommands.commands[userAccessLevel][args].allowHelp:
-            helpEmbed = lib.discordUtil.makeEmbed(titleTxt="BB " + cfg.userAccessLevels[userAccessLevel] + " Commands", desc=cfg.helpIntro + "\n__" + bbCommands.commands[userAccessLevel][args].helpSection.title() + "__", col=discord.Colour.blue(), thumb=botState.client.user.avatar_url_as(size=64))
-            helpEmbed.add_field(name=bbCommands.commands[userAccessLevel][args].signatureStr, value=bbCommands.commands[userAccessLevel][args].longHelp, inline=False)
-            helpEmbed.add_field(name="DMable", value="Yes" if bbCommands.commands[userAccessLevel][args].allowDM else "No")
-            if bbCommands.commands[userAccessLevel][args].aliases:
+        elif args in botCommands.commands[userAccessLevel] and botCommands.commands[userAccessLevel][args].allowHelp:
+            helpEmbed = lib.discordUtil.makeEmbed(titleTxt=cfg.userAccessLevels[userAccessLevel] + " Commands", desc=cfg.helpIntro + "\n__" + botCommands.commands[userAccessLevel][args].helpSection.title() + "__", col=discord.Colour.blue(), thumb=botState.client.user.avatar_url_as(size=64))
+            helpEmbed.add_field(name=botCommands.commands[userAccessLevel][args].signatureStr, value=botCommands.commands[userAccessLevel][args].longHelp, inline=False)
+            helpEmbed.add_field(name="DMable", value="Yes" if botCommands.commands[userAccessLevel][args].allowDM else "No")
+            if botCommands.commands[userAccessLevel][args].aliases:
                 aliasesStr = ""
-                for alias in bbCommands.commands[userAccessLevel][args].aliases[:-1]:
+                for alias in botCommands.commands[userAccessLevel][args].aliases[:-1]:
                     aliasesStr += alias + ", "
-                aliasesStr += bbCommands.commands[userAccessLevel][args].aliases[-1]
+                aliasesStr += botCommands.commands[userAccessLevel][args].aliases[-1]
                 helpEmbed.add_field(name="Alaises", value=aliasesStr)
             await message.channel.send(embed=helpEmbed)
 

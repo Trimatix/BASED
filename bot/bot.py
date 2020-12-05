@@ -105,7 +105,7 @@ def loadUsersDB(filePath : str) -> userDB.UserDB:
     """Build a UserDB from the specified JSON file.
 
     :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
-    :return: a bbUserDB as described by the dictionary-serialized representation stored in the file located in filePath.
+    :return: a UserDB as described by the dictionary-serialized representation stored in the file located in filePath.
     """
     if os.path.isfile(filePath):
         return userDB.UserDB.fromDict(lib.jsonHandler.readJSON(filePath))
@@ -116,7 +116,7 @@ def loadGuildsDB(filePath : str, dbReload : bool = False) -> guildDB.GuildDB:
     """Build a GuildDB from the specified JSON file.
 
     :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
-    :return: a bbGuildDB as described by the dictionary-serialized representation stored in the file located in filePath.
+    :return: a GuildDB as described by the dictionary-serialized representation stored in the file located in filePath.
     """
     if os.path.isfile(filePath):
         return guildDB.GuildDB.fromDict(lib.jsonHandler.readJSON(filePath))
@@ -240,10 +240,10 @@ async def on_ready():
 
     await botState.client.change_presence(activity=discord.Game("BASED APP"))
     # bot is now logged in
-    botState.client.bb_loggedIn = True
+    botState.client.loggedIn = True
 
     # execute regular tasks while the bot is logged in
-    while botState.client.bb_loggedIn:
+    while botState.client.loggedIn:
         if cfg.timedTaskCheckingType == "fixed":
             await asyncio.sleep(cfg.timedTaskLatenessThresholdSeconds)
         # elif cfg.timedTaskCheckingType == "dynamic":

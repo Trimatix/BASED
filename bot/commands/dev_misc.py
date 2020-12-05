@@ -2,14 +2,14 @@ import discord
 import traceback
 from datetime import datetime
 
-from . import commandsDB as bbCommands
+from . import commandsDB as botCommands
 from .. import botState, lib
 
 from . import util_help
 
 
 async def dev_cmd_dev_help(message : discord.Message, args : str, isDM : bool):
-    """dev command printing help strings for dev commands as defined in bbData
+    """dev command printing help strings for dev commands
 
     :param discord.Message message: the discord message calling the command
     :param str args: ignored
@@ -17,7 +17,7 @@ async def dev_cmd_dev_help(message : discord.Message, args : str, isDM : bool):
     """
     await util_help.util_autohelp(message, args, isDM, 3)
 
-bbCommands.register("dev-help", dev_cmd_dev_help, 3, signatureStr="**dev-help** *[page number, section or command]*", shortHelp="Display information about developer-only commands.\nGive a specific command for detailed info about it, or give a page number or give a section name for brief info.", longHelp="Display information about developer-only commands.\nGive a specific command for detailed info about it, or give a page number or give a section name for brief info about a set of commands. These are the currently valid section names:\n- Bounties\n- Miscellaneous\n- Items\n- Channels\n- Skins")
+botCommands.register("dev-help", dev_cmd_dev_help, 3, signatureStr="**dev-help** *[page number, section or command]*", shortHelp="Display information about developer-only commands.\nGive a specific command for detailed info about it, or give a page number or give a section name for brief info.", longHelp="Display information about developer-only commands.\nGive a specific command for detailed info about it, or give a page number or give a section name for brief info about a set of commands. These are the currently valid section names:\n- Bounties\n- Miscellaneous\n- Items\n- Channels\n- Skins")
 
 
 
@@ -31,7 +31,7 @@ async def dev_cmd_sleep(message : discord.Message, args : str, isDM : bool):
     await message.channel.send("shutting down.")
     await botState.client.shutdown()
 
-bbCommands.register("sleep", dev_cmd_sleep, 3, allowDM=True, useDoc=True)
+botCommands.register("sleep", dev_cmd_sleep, 3, allowDM=True, useDoc=True)
 
 
 async def dev_cmd_save(message : discord.Message, args : str, isDM : bool):
@@ -42,7 +42,7 @@ async def dev_cmd_save(message : discord.Message, args : str, isDM : bool):
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     try:
-        botState.client.bb_saveAllDBs()
+        botState.client.saveAllDBs()
     except Exception as e:
         print("SAVING ERROR", e.__class__.__name__)
         print(traceback.format_exc())
@@ -51,7 +51,7 @@ async def dev_cmd_save(message : discord.Message, args : str, isDM : bool):
     print(datetime.now().strftime("%H:%M:%S: Data saved manually!"))
     await message.channel.send("saved!")
 
-bbCommands.register("save", dev_cmd_save, 3, allowDM=True, useDoc=True)
+botCommands.register("save", dev_cmd_save, 3, allowDM=True, useDoc=True)
 
 
 async def dev_cmd_say(message : discord.Message, args : str, isDM : bool):
@@ -177,4 +177,4 @@ async def dev_cmd_say(message : discord.Message, args : str, isDM : bool):
 
         await message.channel.send(msgText, embed=broadcastEmbed)
 
-bbCommands.register("say", dev_cmd_say, 3, forceKeepArgsCasing=True, allowDM=True, useDoc=True)
+botCommands.register("say", dev_cmd_say, 3, forceKeepArgsCasing=True, allowDM=True, useDoc=True)

@@ -25,7 +25,7 @@ class HeirarchicalCommandsDB:
         self.numAccessLevels = numAccessLevels
         self.clear()
         self.helpSections = [{"miscellaneous" : []} for accessLevel in range(self.numAccessLevels)]
-        self.helpSectionEmbeds = [{"miscellaneous" : [Embed(title="BB " + cfg.userAccessLevels[accessLevel] + " Commands", description=cfg.helpIntro + "\n__Miscellaneous__", colour=Colour.blue())]} for accessLevel in range(self.numAccessLevels)]
+        self.helpSectionEmbeds = [{"miscellaneous" : [Embed(title=cfg.userAccessLevels[accessLevel] + " Commands", description=cfg.helpIntro + "\n__Miscellaneous__", colour=Colour.blue())]} for accessLevel in range(self.numAccessLevels)]
         self.helpSectionEmbeds[0]["miscellaneous"][0].set_footer(text="Page 1 of 1")
         self.totalEmbeds = [1 for level in range(numAccessLevels)]
         
@@ -115,7 +115,7 @@ class HeirarchicalCommandsDB:
 
             if len(self.helpSectionEmbeds[accessLevel][helpSection][-1]) > 6000 or len(self.helpSectionEmbeds[accessLevel][helpSection][-1].fields) > cfg.maxCommandsPerHelpPage:
                 self.helpSectionEmbeds[accessLevel][helpSection][-1].remove_field(-1)
-                self.helpSectionEmbeds[accessLevel][helpSection].append(Embed(title="BB " + cfg.userAccessLevels[accessLevel] + " Commands", description=cfg.helpIntro + "\n__" + helpSection.title() + "__", colour=Colour.blue()))
+                self.helpSectionEmbeds[accessLevel][helpSection].append(Embed(title=cfg.userAccessLevels[accessLevel] + " Commands", description=cfg.helpIntro + "\n__" + helpSection.title() + "__", colour=Colour.blue()))
                 self.helpSectionEmbeds[accessLevel][helpSection][-1].add_field(name=signatureStr, value=newRegistry.shortHelp, inline=False)
                 for pageNum in range(len(self.helpSectionEmbeds[accessLevel][helpSection])):
                     self.helpSectionEmbeds[accessLevel][helpSection][pageNum].set_footer(text="Page " + str(pageNum+1) + " of " + str(len(self.helpSectionEmbeds[accessLevel][helpSection])))
@@ -167,7 +167,7 @@ class HeirarchicalCommandsDB:
             raise ValueError("The given section name already exists in this DB '" + sectionName + "'")
 
         self.helpSections[accessLevel][sectionName] = []
-        self.helpSectionEmbeds[accessLevel][sectionName] = [Embed(title="BB " + cfg.userAccessLevels[accessLevel] + " Commands", description=cfg.helpIntro + "\n__" + sectionName.title() + "__")]
+        self.helpSectionEmbeds[accessLevel][sectionName] = [Embed(title=cfg.userAccessLevels[accessLevel] + " Commands", description=cfg.helpIntro + "\n__" + sectionName.title() + "__")]
         self.helpSectionEmbeds[accessLevel][sectionName][0].set_footer(text="Page 1 of 1")
         self.totalEmbeds[accessLevel] += 1
 

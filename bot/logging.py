@@ -74,7 +74,7 @@ class Logger:
 
     def save(self):
         """Save all currently stored logs to separate text files, named after categories.
-        Log files are saved to the directory specified in bbConfig.loggingFolderPath.
+        Log files are saved to the directory specified in cfg.loggingFolderPath.
         Logs are sorted by the time they were added to the logger prior to saving.
         After saving, the logger is cleared of logs.
         If category-named text files do not exist, they are created.

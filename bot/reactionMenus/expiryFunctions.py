@@ -77,5 +77,5 @@ async def expireHelpMenu(menuID: int):
     Reset the owning user's helpMenuOwned tracker.
     """
     menu = botState.reactionMenusDB[menuID]
-    menu.owningBBUser.helpMenuOwned = False
+    menu.owningBasedUser.helpMenuOwned = False
     await markExpiredMenuAndRemoveOptions(menuID)

@@ -210,7 +210,7 @@ class ReactionMenu(serializable.Serializable):
     2. (optional) Create a TimedTask that will call a menu deleting function (e.g deleteReactionMenu) with your new message ID on expiry TODO: add a constructor flag and TimedTask config data class to ReactionMenu constructor for autoscheduling menu expiry on menu creation
     3. Pass your new message and TimedTask to the ReactionMenu constructor, also specifying a dictionary of menu options
     4. Call updateMessage on your new ReactionMenu instance
-    5. Use discord's client events of either on_reaction_add and on_reaction_remove or on_raw_reaction_add and on_raw_reaction_remove to call your new menu's reactionAdded and reactionRemoved methods (bountybot.py has this behaviour already) TODO: Make reactionAdded and reactionRemoved ignore emoji that are not options in the menu
+    5. Use discord's client events of either on_reaction_add and on_reaction_remove or on_raw_reaction_add and on_raw_reaction_remove to call your new menu's reactionAdded and reactionRemoved methods (bot.py has this behaviour already) TODO: Make reactionAdded and reactionRemoved ignore emoji that are not options in the menu
 
     The real power of this class can be harnessed by binding function calls to individual menu option reactions when creating your options dictionary.
     A great example of this is in ReactionRolePicker, which actually has no extra behaviour added over ReactionMenu. It acts more as a ReactionMenu preset,

@@ -17,7 +17,7 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
     saveable = False
     
     def __init__(self, msg : Message, pages : Dict[Embed, Dict[lib.emojis.BasedEmoji, ReactionMenu.ReactionMenuOption]] = {}, 
-                    timeout : TimedTask.TimedTask = None, targetMember : Member = None, targetRole : Role = None, owningBBUser : basedUser.BasedUser = None):
+                    timeout : TimedTask.TimedTask = None, targetMember : Member = None, targetRole : Role = None, owningBasedUser : basedUser.BasedUser = None):
         """
         :param discord.Message msg: the message where this menu is embedded
         :param pages: A dictionary associating embeds with pages, where each page is a dictionary storing all options on that page and their behaviour (Default {})
@@ -25,7 +25,7 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
         :param TimedTask timeout: The TimedTask responsible for expiring this menu (Default None)
         :param discord.Member targetMember: The only discord.Member that is able to interact with this menu. All other reactions are ignored (Default None)
         :param discord.Role targetRole: In order to interact with this menu, users must possess this role. All other reactions are ignored (Default None)
-        :param bbUser owningBBUser: The user who initiated this menu. No built in behaviour. (Default None)
+        :param BasedUser owningBasedUser: The user who initiated this menu. No built in behaviour. (Default None)
         """
 
         self.pages = pages
@@ -36,7 +36,7 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
         self.timeout = timeout
         self.targetMember = targetMember
         self.targetRole = targetRole
-        self.owningBBUser = owningBBUser
+        self.owningBasedUser = owningBasedUser
 
         nextOption = ReactionMenu.NonSaveableReactionMenuOption("Next Page", cfg.defaultNextEmoji, self.nextPage, None)
         prevOption = ReactionMenu.NonSaveableReactionMenuOption("Previous Page", cfg.defaultPreviousEmoji, self.previousPage, None)
