@@ -38,7 +38,7 @@ def getMemberFromRef(uRef : str, dcGuild : Guild) -> Union[Member, None]:
     return dcGuild.get_member_named(uRef)
 
 
-def makeEmbed(titleTxt : str = "", desc : str = "", col : Colour = Colour.blue(), footerTxt : str = "",
+def makeEmbed(titleTxt : str = "", desc : str = "", col : Colour = Colour.blue(), footerTxt : str = "", footerIcon : str = "",
         img : str = "", thumb : str = "", authorName : str = "", icon : str = "") -> Embed:
     """Factory function building a simple discord embed from the provided arguments.
 
@@ -46,6 +46,7 @@ def makeEmbed(titleTxt : str = "", desc : str = "", col : Colour = Colour.blue()
     :param str desc: The description of the embed; appears at the top below the title (Default "")
     :param discord.Colour col: The colour of the side strip of the embed (Default discord.Colour.blue())
     :param str footerTxt: Secondary description appearing at the bottom of the embed (Default "")
+    :param str footerIcon: small Image appearing to the left of the footer text (Default "")
     :param str img: Large icon appearing as the content of the embed, left aligned like a field (Default "")
     :param str thumb: larger image appearing to the right of the title (Default "")
     :param str authorName: Secondary title for the embed (Default "")
@@ -55,7 +56,7 @@ def makeEmbed(titleTxt : str = "", desc : str = "", col : Colour = Colour.blue()
     """
     embed = Embed(title=titleTxt, description=desc, colour=col)
     if footerTxt != "":
-        embed.set_footer(text=footerTxt)
+        embed.set_footer(text=footerTxt, icon_url=footerIcon)
     embed.set_image(url=img)
     if thumb != "":
         embed.set_thumbnail(url=thumb)

@@ -1,8 +1,12 @@
+from bot import botState
+from bot.cfg import versionInfo
 import discord
+from datetime import datetime
 
 from . import commandsDB as botCommands
 from . import util_help
 from .. import lib
+from ..cfg import versionInfo
 
 
 async def cmd_help(message : discord.Message, args : str, isDM : bool):
@@ -28,13 +32,21 @@ async def cmd_source(message : discord.Message, args : str, isDM : bool):
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    srcEmbed = lib.discordUtil.makeEmbed(authorName="Bot Source Code", desc="I am written using the rewrite branch of discord's python API.\n",
-                         col=discord.Colour.purple(), footerTxt="Bot Source", icon="https://image.flaticon.com/icons/png/512/25/25231.png")
-    srcEmbed.add_field(name="__GitHub Repository__",
-                       value="My source code is public, and open to community contribution.\n[Click here](https://github.com/Trimatix/GOF2BountyBot/) to view my GitHub repo - please note, the project's readme file has not been written yet!", inline=False)
-    srcEmbed.add_field(name="__Upcoming Features__",
-                       value="To see a list of upcoming goodies, take a look at the [todo list](https://github.com/Trimatix/GOF2BountyBot/projects/1).\nIf you would like to make a feature request or suggestion, please ping or DM `Trimatix#2244`.\nIf you would like to help contribute to BountyBot, the todo list is a solid place to start!", inline=False)
-    srcEmbed.add_field(name="__Special Thanks__", value=" • **DeepSilver FishLabs**, for building the fantastic game franchise that this bot is dedicated to. I don't own any Galaxy on Fire assets intellectual property, nor rights to any assets the bot references.\n • **The BountyBot testing team** who have all been lovely and supportive since the beginning, and who will *always* find a way to break things ;)\n • **NovahKiin22**, for his upcoming major feature release, along with minor bug fixes and *brilliant* insight throughout development\n • **Poisonwasp**, for another minor bug fix, but mostly for his continuous support\n • **You!** The community is what makes developing this bot so fun :)", inline=False)
+    srcEmbed = lib.discordUtil.makeEmbed(authorName="Source Code",
+                         col=discord.Colour.purple(), icon="https://image.flaticon.com/icons/png/512/25/25231.png",
+                         footerTxt="Bot Source", footerIcon="https://i.imgur.com/7SMgF0t.png")
+    srcEmbed.add_field(name="Uptime",
+                       value=lib.timeUtil.td_format_noYM(datetime.utcnow() - botState.client.launchTime))
+    srcEmbed.add_field(name="Author",
+                       value="Trimatix#2244")
+    srcEmbed.add_field(name="API",
+                       value="[Discord.py " + discord.__version__ + "](https://github.com/Rapptz/discord.py/)")
+    srcEmbed.add_field(name="BASED",
+                       value="[BASED " + versionInfo.BASED_VERSION + "](https://github.com/Trimatix/BASED)")
+    srcEmbed.add_field(name="GitHub",
+                       value="Please ask the bot developer to post their GitHub repository here!")
+    srcEmbed.add_field(name="Invite",
+                       value="Please ask the bot developer to post the bot's invite link here!")
     await message.channel.send(embed=srcEmbed)
 
-botCommands.register("source", cmd_source, 0, allowDM=True, signatureStr="**source**", shortHelp="Show links to the project's GitHub page and todo list, and some information about the people behind BountyBot.")
+botCommands.register("source", cmd_source, 0, allowDM=True, signatureStr="**source**", shortHelp="Show links to the project's GitHub page.")

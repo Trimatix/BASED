@@ -44,6 +44,7 @@ class BasedClient(ClientBaseClass):
         self.storeGuilds = storeGuilds
         self.storeMenus = storeMenus
         self.storeNone = not(storeUsers or storeGuilds or storeMenus)
+        self.launchTime = datetime.utcnow()
 
     
     def saveAllDBs(self):
