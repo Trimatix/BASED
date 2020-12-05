@@ -135,7 +135,7 @@ async def err_nodm(message : discord.Message, args : str, isDM : bool):
     :param str args: ignored
     :param bool isDM: ignored
     """
-    await message.channel.send(":x: This command can only be used from inside of a server!")
+    await message.channel.send("This command can only be used from inside of a server.")
 
 
 ####### MAIN FUNCTIONS #######
@@ -393,7 +393,7 @@ async def on_raw_bulk_message_delete(payload : discord.RawBulkMessageDeleteEvent
             await botState.reactionMenusDB[msgID].delete()
 
 
-for varName in ["BASED_DC_TOKEN", "BASED_GH_TOKEN"]:
+for varName in ["BASED_DC_TOKEN"]:
     if varName not in os.environ:
         raise KeyError("required environment variable " + varName + " not set.")
 
