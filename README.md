@@ -11,12 +11,9 @@ Much more to come, including a game-specific fork with pre-written item and inve
 To make use of BASED, fork this repository and build your bot directly over BASED.
 BASED is *not* a library, it is a *template* to be used as a starting point for your project.
 
-Before your bot can be used, you will need to create the following two environment variables:
+Before your bot can be used, you will need to create an environment variable named `BASED_DC_TOKEN`, containing your discord bot's token.
 
-* `BASED_DC_TOKEN` - creating your discord bot's token, used for launching the bot
-* `BASED_GH_TOKEN` - a personal access token for your GitHub account, which can be created here: https://github.com/settings/tokens
-
-In the future, these variable names will be configurable.
+In the future, this variable name will be configurable.
 
 # How to Update Your BASED Fork
 When new versions of BASED are released, assuming you have update checking enabled in `cfg.BASED_checkForUpdates`, you will be notified via console.
