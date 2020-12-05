@@ -539,7 +539,7 @@ class SingleUserReactionMenu(ReactionMenu):
 
 
     def reactionClosesMenu(self, reactPL):
-        return (reactPL.message_id == self.msg.id and reactPL.user_id == self.targetMember.id) and (not self.returnTriggers or lib.emojis.BasedEmojiFromPartial(reactPL.emoji) in self.returnTriggers)
+        return (reactPL.message_id == self.msg.id and reactPL.user_id == self.targetMember.id) and (not self.returnTriggers or lib.emojis.BasedEmoji.fromPartial(reactPL.emoji) in self.returnTriggers)
 
 
     async def doMenu(self):

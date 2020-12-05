@@ -27,7 +27,7 @@ def checkForUpdates():
     if BASED_versionCheck.updatesChecked and not BASED_versionCheck.upToDate:
         print("⚠ New BASED update " + BASED_versionCheck.latestVersion + " now available! See " + versionInfo.BASED_REPO_URL + " for instructions on how to update your BASED fork.")
 
-        
+
 class BasedClient(ClientBaseClass):
     """A minor extension to discord.ext.commands.Bot to include database saving and extended shutdown procedures.
 
@@ -201,9 +201,9 @@ async def on_ready():
             if isinstance(uninitEmoji, int):
                 setattr(cfg, varName, lib.emojis.BasedEmoji(id=uninitEmoji))
             elif isinstance(uninitEmoji, str):
-                setattr(cfg, varName, lib.emojis.BasedEmojiFromStr(uninitEmoji))
+                setattr(cfg, varName, lib.emojis.BasedEmoji.fromStr(uninitEmoji))
             elif isinstance(uninitEmoji, dict):
-                setattr(cfg, varName, lib.emojis.BasedEmojiFromDict(uninitEmoji))
+                setattr(cfg, varName, lib.emojis.BasedEmoji.fromDict(uninitEmoji))
             # Unrecognised uninitialized value
             else:
                 raise ValueError("Unrecognised UninitializedBasedEmoji value type. Expecting int, str or dict, given '" + uninitEmoji.__class__.__name__ + "'")
