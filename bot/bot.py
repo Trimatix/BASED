@@ -20,6 +20,14 @@ from .scheduling import TimedTaskHeap, TimedTask
 from .cfg import cfg, versionInfo
 
 
+def checkForUpdates():
+    """Check if any new BASED versions are available, and print a message to console if one is found.
+    """
+    BASED_versionCheck = versionInfo.checkForUpdates()
+    if BASED_versionCheck.updatesChecked and not BASED_versionCheck.upToDate:
+        print("⚠ New BASED update " + BASED_versionCheck.latestVersion + " now available! See " + versionInfo.BASED_REPO_URL + " for instructions on how to update your BASED fork.")
+
+        
 class BasedClient(ClientBaseClass):
     """A minor extension to discord.ext.commands.Bot to include database saving and extended shutdown procedures.
 
@@ -54,6 +62,7 @@ class BasedClient(ClientBaseClass):
         botState.logger.save()
         if not self.storeNone:
             print(datetime.now().strftime("%H:%M:%S: Data saved!"))
+        checkForUpdates()
 
 
     async def shutdown(self):
@@ -140,6 +149,8 @@ async def err_nodm(message : discord.Message, args : str, isDM : bool):
 
 ####### MAIN FUNCTIONS #######
 
+
+
 @botState.client.event
 async def on_guild_join(guild : discord.Guild):
     """Create a database entry for new guilds when one is joined.
@@ -225,9 +236,7 @@ async def on_ready():
     botState.dbSaveTT = TimedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(cfg.savePeriod), autoReschedule=True, expiryFunction=botState.client.saveAllDBs)
 
     print("BASED " + versionInfo.BASED_VERSION + " loaded.\nClient logged in as {0.user}".format(botState.client))
-    BASED_versionCheck = versionInfo.checkForUpdates()
-    if BASED_versionCheck.updatesChecked and not BASED_versionCheck.upToDate:
-        print("⚠ New BASED update " + BASED_versionCheck.latestVersion + " now available! See https://github.com/Trimatix/BASED/ for instructions on how to update your BASED fork.")
+    checkForUpdates()
 
     await botState.client.change_presence(activity=discord.Game("BASED APP"))
     # bot is now logged in
