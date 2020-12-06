@@ -163,7 +163,7 @@ async def on_guild_join(guild : discord.Guild):
         guildExists = True
         if not botState.guildsDB.idExists(guild.id):
             guildExists = False
-            botState.guildsDB.addGuildID(guild.id)
+            botState.guildsDB.addID(guild.id)
         botState.logger.log("Main", "guild_join", "I joined a new guild! " + guild.name + "#" + str(guild.id) + ("\n -- The guild was added to botState.guildsDB" if not guildExists else ""),
                     category="guildsDB", eventType="NW_GLD")
 
@@ -179,7 +179,7 @@ async def on_guild_remove(guild : discord.Guild):
         guildExists = False
         if botState.guildsDB.idExists(guild.id):
             guildExists = True
-            botState.guildsDB.removeGuildId(guild.id)
+            botState.guildsDB.removeID(guild.id)
         botState.logger.log("Main", "guild_remove", "I left a guild! " + guild.name + "#" + str(guild.id) + ("\n -- The guild was removed from botState.guildsDB" if guildExists else ""),
                     category="guildsDB", eventType="NW_GLD")
 
