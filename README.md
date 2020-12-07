@@ -9,7 +9,7 @@ BASED also includes a handy and extraordinarily versatile reaction menu implemen
 Much more to come, including a game-specific fork with pre-written item and inventory classes.
 
 # How to Make a BASED App
-To make use of BASED, fork this repository and build your bot directly over BASED.
+To make use of BASED, fork this repository and build your bot directly over BASED, using `bot.bot` as your "main" file. This file is already working as is, with a connected client instance, dynamic commands importing and calling, scheduler and database initialization, and reactionMenu interaction using client events.
 BASED is *not* a library, it is a *template* to be used as a starting point for your project.
 
 Before your bot can be used, you will need to create an environment variable named `BASED_DC_TOKEN`, containing your discord bot's token.
