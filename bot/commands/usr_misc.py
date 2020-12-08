@@ -21,7 +21,7 @@ async def cmd_help(message : discord.Message, args : str, isDM : bool):
 
 botCommands.register("help", cmd_help, 0, allowDM=True, signatureStr="**help** *[page number, section or command]*",
     shortHelp="Show usage information for available commands.\nGive a specific command for detailed info about it, or give a page number or give a section name for brief info.",
-    longHelp="Show usage information for available commands.\nGive a specific command for detailed info about it, or give a page number or give a section name for brief info about a set of commands. These are the currently valid section names:\n- Bounties\n- Economy\n- GOF2 Info\n- Home Servers\n- Loadout\n- Miscellaneous",
+    longHelp="Show usage information for available commands.\nGive a specific command for detailed info about it, or give a page number or give a section name for brief info about a set of commands. These are the currently valid section names:\n- Miscellaneous",
     useDoc=False)
 
 

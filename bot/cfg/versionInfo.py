@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Dict, Union
 
 # Path to the BASED version json descriptor file. File also contains the timestamp of the next scheduled version check.
-BASED_VERSIONFILE = 'bot\\cfg\\version\\BASED_version.json'
+BASED_VERSIONFILE = 'bot/cfg/version/BASED_version.json'
 # Pointer to the BASED repository. Do not change this.
 BASED_REPO_URL = "https://github.com/Trimatix/BASED.git"
 
