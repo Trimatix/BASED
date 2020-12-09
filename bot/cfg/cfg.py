@@ -6,7 +6,7 @@ helpIntro = "Here are my commands!"
 maxCommandsPerHelpPage = 5
 
 # List of module names from the ommands package to import
-includedCommandModules = (  "usr_misc",
+includedCommandModules = (  "usr_misc", "usr_deck",
                             "admn_misc",
                             "dev_misc")
 
