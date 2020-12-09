@@ -53,3 +53,5 @@ reactionMenusDBPath = "saveData/reactionMenus.json"
 
 # path to folder to save log txts to
 loggingFolderPath = "saveData/logs"
+
+gameJoinMenuTimout = {"minutes": 5}

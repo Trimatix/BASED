@@ -5,6 +5,8 @@ from discord import Guild
 from .. import botState, lib
 from ..baseClasses import serializable
 from ..cfg import cfg
+from ..game import sdbGame
+from ..reactionMenus import SDBSignupMenu
 
 
 class BasedGuild(serializable.Serializable):
@@ -16,7 +18,7 @@ class BasedGuild(serializable.Serializable):
     :vartype dcGuild: discord.Guild
     """
 
-    def __init__(self, id : int, dcGuild: Guild, commandPrefix : str = cfg.defaultCommandPrefix):
+    def __init__(self, id : int, dcGuild: Guild, commandPrefix : str = cfg.defaultCommandPrefix, runningGames = {}, decks = {}):
         """
         :param int id: The ID of the guild, directly corresponding to a discord guild's ID.
         :param discord.Guild guild: This guild's corresponding discord.Guild object
@@ -30,6 +32,26 @@ class BasedGuild(serializable.Serializable):
         if not commandPrefix:
             raise ValueError("Empty command prefix provided")
         self.commandPrefix = commandPrefix
+        self.runningGames = runningGames
+        self.decks = decks
+
+
+    async def startGame(self, owner, channel, deckName, expansionNames):
+        if deckName not in self.decks:
+            raise NameError("Unknown deck name: " + deckName)
+
+        if channel.guild.id != self.id:
+            raise RuntimeError("Attempted to start a game in a channel not owned by this guild: " + channel.name + "#" + str(channel.id))
+
+        if channel in self.runningGames:
+            raise ValueError("Attempted to start a game in a channel which aleady contains a running game: " + channel.name + "#" + str(channel.id))
+
+        self.runningGames[channel] = sdbGame.SDBGame(owner, self.decks[deckName]["meta_url"], expansionNames)
+
+        signupMsg = await channel.send("​")
+        signupMenu = SDBSignupMenu.SDBSignupMenu(signupMsg, self.runningGames[channel], lib.timeUtil.timeDeltaFromDict(cfg.gameJoinMenuTimout))
+        await signupMenu.updateMessage()
+
 
 
     def toDict(self, **kwargs) -> dict:
