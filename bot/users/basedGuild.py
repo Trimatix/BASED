@@ -53,7 +53,6 @@ class BasedGuild(serializable.Serializable):
         await signupMenu.updateMessage()
 
 
-
     def toDict(self, **kwargs) -> dict:
         """Serialize this BasedGuild into dictionary format to be saved to file.
 

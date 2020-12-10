@@ -2,6 +2,7 @@ from urllib import request
 import json
 from .. import botState
 from typing import Dict, Union
+from ..reactionMenus import expiryFunctions
 
 class SDBGame:
     def __init__(self, owner, meta_url, expansionNames):
@@ -24,4 +25,8 @@ async def startGameFromExpansionMenu(gameCfg : Dict[str, Union[str, int]]):
         if menu.selectedOptions[option]:
             expansionNames.append(option.name)
 
-    await callingBGuild.startGame(menu.msg.author, menu.msg.channel, gameCfg["deckName"], expansionNames)
+    del callingBGuild.runningGames[menu.msg.channel]
+    playChannel = menu.msg.channel
+
+    await expiryFunctions.deleteReactionMenu(menu.msg.id)
+    await callingBGuild.startGame(menu.targetMember, playChannel, gameCfg["deckName"], expansionNames)
