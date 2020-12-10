@@ -55,3 +55,5 @@ reactionMenusDBPath = "saveData/reactionMenus.json"
 loggingFolderPath = "saveData/logs"
 
 gameJoinMenuTimout = {"minutes": 5}
+
+expansionPickerTimeout = {"minutes": 5}
