@@ -60,7 +60,7 @@ class BasedGuild(serializable.Serializable):
         :return: A dictionary containing all information needed to reconstruct this BasedGuild
         :rtype: dict
         """
-        return {"commandPrefix" : self.commandPrefix}
+        return {"commandPrefix" : self.commandPrefix, "decks": self.decks}
 
 
     @classmethod
@@ -81,5 +81,5 @@ class BasedGuild(serializable.Serializable):
             raise lib.exceptions.NoneDCGuildObj("Could not get guild object for id " + str(id))
         
         if "commandPrefix" in guildDict:
-            return BasedGuild(id, dcGuild, commandPrefix=guildDict["commandPrefix"])
-        return BasedGuild(id, dcGuild)
+            return BasedGuild(id, dcGuild, commandPrefix=guildDict["commandPrefix"], decks=guildDict["decks"] if "decks" in guildDict else {})
+        return BasedGuild(id, dcGuild, decks=guildDict["decks"] if "decks" in guildDict else {})
