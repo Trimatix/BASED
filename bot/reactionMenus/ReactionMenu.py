@@ -196,6 +196,19 @@ class DummyReactionMenuOption(ReactionMenuOption):
         return super(DummyReactionMenuOption, self).toDict(**kwargs)
 
 
+async def ToggleSelectorMenuOption(args : Dict[str, Union["NonSaveableSelecterMenuOption", int]]):
+    menu = botState.reactionMenusDB[args["menuID"]]
+    menuOption = args["option"]
+    menu.selectedOptions[menuOption] = not menu.selectedOptions[menuOption]
+    await menu.updateSelectionsField()
+
+
+class NonSaveableSelecterMenuOption(NonSaveableReactionMenuOption):
+    def __init__(self, name : str, emoji : lib.emojis.BasedEmoji, menuID : int):
+        self.menuID = menuID
+        super().__init__(name, emoji, addFunc=ToggleSelectorMenuOption, addArgs={"option": self, "menuID": self.menuID}, removeFunc=ToggleSelectorMenuOption, removeArgs={"option": self, "menuID": self.menuID})
+
+
 class ReactionMenu(serializable.Serializable):
     """A versatile class implementing emoji reaction menus.
     This class can be used as-is, to create unsaveable reaction menus of any type, with vast possibilities for behaviour.
@@ -555,3 +568,21 @@ class SingleUserReactionMenu(ReactionMenu):
         else:
             updatedMsg = await self.msg.channel.fetch_message(self.msg.id)
             return [lib.emojis.BasedEmojiFromReaction(react.emoji) for react in updatedMsg.reactions if self.targetMember in await react.users().flatten() and lib.emojis.BasedEmojiFromReaction(react.emoji) in self.options]
+
+
+class SelectorMenu(ReactionMenu):
+    pass
+
+
+async def selectorSelectAllOptions(menuID: int):
+    menu = botState.reactionMenusDB[menuID]
+    for option in menu.selectedOptions:
+        menu.selectedOptions[option] = True
+    await menu.updateSelectionsField()
+
+
+async def selectorDeselectAllOptions(menuID: int):
+    menu = botState.reactionMenusDB[menuID]
+    for option in menu.selectedOptions:
+        menu.selectedOptions[option] = False
+    await menu.updateSelectionsField()
