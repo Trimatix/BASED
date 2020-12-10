@@ -1,5 +1,5 @@
 from ..users import basedUser
-from .import ReactionMenu
+from . import ReactionMenu, expiryFunctions
 from discord import Message, Member, Role, Embed
 from .. import lib, botState
 from typing import Dict
@@ -17,7 +17,8 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
     saveable = False
     
     def __init__(self, msg : Message, pages : Dict[Embed, Dict[lib.emojis.BasedEmoji, ReactionMenu.ReactionMenuOption]] = {}, 
-                    timeout : TimedTask.TimedTask = None, targetMember : Member = None, targetRole : Role = None, owningBasedUser : basedUser.BasedUser = None):
+                    timeout : TimedTask.TimedTask = None, targetMember : Member = None, targetRole : Role = None, owningBasedUser : basedUser.BasedUser = None,
+                    noCancel : bool = False):
         """
         :param discord.Message msg: the message where this menu is embedded
         :param pages: A dictionary associating embeds with pages, where each page is a dictionary storing all options on that page and their behaviour (Default {})
@@ -40,19 +41,20 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
 
         nextOption = ReactionMenu.NonSaveableReactionMenuOption("Next Page", cfg.defaultNextEmoji, self.nextPage, None)
         prevOption = ReactionMenu.NonSaveableReactionMenuOption("Previous Page", cfg.defaultPreviousEmoji, self.previousPage, None)
-        cancelOption = ReactionMenu.NonSaveableReactionMenuOption("Close Menu", cfg.defaultCancelEmoji, self.delete, None)
 
-        self.firstPageControls = {  cfg.defaultCancelEmoji:    cancelOption,
-                                    cfg.defaultNextEmoji:      nextOption}
+        self.firstPageControls = {  cfg.defaultNextEmoji:      nextOption}
 
-        self.midPageControls = {    cfg.defaultCancelEmoji:    cancelOption,
-                                    cfg.defaultNextEmoji:      nextOption,
+        self.midPageControls = {    cfg.defaultNextEmoji:      nextOption,
                                     cfg.defaultPreviousEmoji:  prevOption}
 
-        self.lastPageControls = {   cfg.defaultCancelEmoji:    cancelOption,
-                                    cfg.defaultPreviousEmoji:  prevOption}
+        self.lastPageControls = {   cfg.defaultPreviousEmoji:  prevOption}
 
-        self.onePageControls = {    cfg.defaultCancelEmoji:    cancelOption}
+        self.onePageControls = {}
+
+        if not noCancel:
+            cancelOption = ReactionMenu.NonSaveableReactionMenuOption("Close Menu", cfg.defaultCancelEmoji, self.delete, None)
+            for optionsDict in [self.firstPageControls, self.midPageControls, self.lastPageControls, self.onePageControls]:
+                optionsDict[cfg.defaultCancelEmoji] = cancelOption
 
         if len(self.pages) == 1:
             self.currentPageControls = self.onePageControls
@@ -125,3 +127,41 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
                     await self.msg.remove_reaction(cfg.defaultPreviousEmoji.sendable, botState.client.user)
                 if self.currentPageNum != len(self.pages) - 1:
                     await self.msg.add_reaction(cfg.defaultNextEmoji.sendable)
+
+
+class MultiPageOptionPicker(PagedReactionMenu):
+    def __init__(self, msg : Message, pages : Dict[Embed, Dict[lib.emojis.BasedEmoji, ReactionMenu.NonSaveableSelecterMenuOption]] = {}, 
+                    timeout : TimedTask.TimedTask = None, targetMember : Member = None, targetRole : Role = None, owningBasedUser : basedUser.BasedUser = None):
+        
+        self.selectedOptions = {}
+        for pageOptions in pages.values():
+            for option in pageOptions.values():
+                self.selectedOptions[option] = False
+
+        for pageEmbed in pages:
+            if cfg.defaultAcceptEmoji not in pages[pageEmbed]:
+                pages[pageEmbed][cfg.defaultAcceptEmoji] = ReactionMenu.NonSaveableReactionMenuOption("Submit", cfg.defaultAcceptEmoji, self.delete, None)
+
+            if cfg.defaultCancelEmoji not in pages[pageEmbed]:
+                pages[pageEmbed][cfg.defaultCancelEmoji] = ReactionMenu.NonSaveableReactionMenuOption("Cancel Game", cfg.defaultCancelEmoji, expiryFunctions.deleteReactionMenu, msg.id)
+
+            if cfg.spiralEmoji not in pages[pageEmbed]:
+                pages[pageEmbed][cfg.spiralEmoji] = ReactionMenu.NonSaveableReactionMenuOption("Toggle All", cfg.spiralEmoji,
+                                                                                                addFunc=ReactionMenu.selectorSelectAllOptions, addArgs=msg.id,
+                                                                                                removeFunc=ReactionMenu.selectorDeselectAllOptions, removeArgs=msg.id)
+
+        super().__init__(msg, pages=pages, timeout=timeout, targetMember=targetMember, targetRole=targetRole, owningBasedUser=owningBasedUser, noCancel=True)
+
+
+    async def updateSelectionsField(self):
+        newSelectedStr = ", ".join(option.name for option in self.selectedOptions if self.selectedOptions[option])
+        newSelectedStr = newSelectedStr if newSelectedStr else "​"
+
+        for pageEmbed in self.pages:
+            for fieldIndex in range(len(pageEmbed.fields)):
+                field = pageEmbed.fields[fieldIndex]
+                if field.name == "Currently selected:":
+                    pageEmbed.set_field_at(fieldIndex, name=field.name, value=newSelectedStr)
+                break
+
+        await self.updateMessage(noRefreshOptions=True)
