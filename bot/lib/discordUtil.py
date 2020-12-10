@@ -123,6 +123,7 @@ async def reactionFromRaw(payload : RawReactionActionEvent) -> Tuple[Message, Un
                 user = channel.recipient
             else:
                 user = channel.me
+
         elif isinstance(channel, GroupChannel):
             # Group channels should be small and far between, so iteration is fine here.
             for currentUser in channel.recipients:
@@ -130,9 +131,15 @@ async def reactionFromRaw(payload : RawReactionActionEvent) -> Tuple[Message, Un
                     user = currentUser
                 if user is None:
                     user = channel.me
+
         # Guild text channels
         elif isinstance(channel, TextChannel):
             user = channel.guild.get_member(payload.user_id)
+            if user is None:
+                user = await channel.guild.fetch_member(payload.user_id)
+                if user is None:
+                    return None, None, None
+
         else:
             return None, None, None
         
