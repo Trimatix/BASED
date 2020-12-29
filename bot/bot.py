@@ -374,9 +374,9 @@ async def on_raw_bulk_message_delete(payload : discord.RawBulkMessageDeleteEvent
             await botState.reactionMenusDB[msgID].delete()
 
 
-for varName in ["BASED_DC_TOKEN"]:
+for varName in ["SDB_DC_TOKEN"]:
     if varName not in os.environ:
         raise KeyError("required environment variable " + varName + " not set.")
 
 # Launch the bot!! 🤘🚀
-botState.client.run(os.environ["BASED_DC_TOKEN"])
+botState.client.run(os.environ["SDB_DC_TOKEN"])
