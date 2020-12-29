@@ -39,6 +39,8 @@ defaultCommandPrefix = "."
 
 developers = [188618589102669826]
 
+cardsPerHand = 7
+
 
 
 ##### SAVING #####
