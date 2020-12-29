@@ -203,6 +203,22 @@ async def ToggleSelectorMenuOption(args : Dict[str, Union["NonSaveableSelecterMe
     await menu.updateSelectionsField()
 
 
+async def SetSelectorMenuOption(args : Dict[str, Union["NonSaveableSelecterMenuOption", int]]):
+    menu = botState.reactionMenusDB[args["menuID"]]
+    menuOption = args["option"]
+    if not menu.selectedOptions[menuOption]:
+        menu.selectedOptions[menuOption] = True
+        await menu.updateSelectionsField()
+
+
+async def UnsetSelectorMenuOption(args : Dict[str, Union["NonSaveableSelecterMenuOption", int]]):
+    menu = botState.reactionMenusDB[args["menuID"]]
+    menuOption = args["option"]
+    if menu.selectedOptions[menuOption]:
+        menu.selectedOptions[menuOption] = False
+        await menu.updateSelectionsField()
+
+
 class NonSaveableSelecterMenuOption(NonSaveableReactionMenuOption):
     def __init__(self, name : str, emoji : lib.emojis.BasedEmoji, menuID : int):
         self.menuID = menuID

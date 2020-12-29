@@ -50,6 +50,7 @@ class BasedGuild(serializable.Serializable):
 
         signupMsg = await channel.send("​")
         signupMenu = SDBSignupMenu.SDBSignupMenu(signupMsg, self.runningGames[channel], lib.timeUtil.timeDeltaFromDict(cfg.gameJoinMenuTimout))
+        botState.reactionMenusDB[signupMsg.id] = signupMenu
         await signupMenu.updateMessage()
 
 
