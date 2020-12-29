@@ -20,9 +20,27 @@ class SDBGame:
         self.expansionNames = expansionNames
         self.deckName = deckMeta["deck_name"]
         self.gamePhase = gamePhase
+        self.players = []
         self.expansions = {}
         for expansionName in expansionNames:
             self.expansions[expansionName] = deckMeta["expansions"][expansionName]
+
+
+    async def dealCards(self):
+
+
+
+    async def advanceGame(self):
+        if self.gamePhase == GamePhase.setup:
+
+            await self.dealCards()
+            await self.doGameIntro()
+        elif self.gamePhase == GamePhase.playRound:
+            await self.pickWinningCards()
+        elif self.gamePhase == GamePhase.postRound:
+            await self.dealCards()
+        elif self.gamePhase == GamePhase.gameOver:
+            await self.showLeaderboard()
 
 
 async def startGameFromExpansionMenu(gameCfg : Dict[str, Union[str, int]]):
@@ -35,4 +53,4 @@ async def startGameFromExpansionMenu(gameCfg : Dict[str, Union[str, int]]):
     playChannel = menu.msg.channel
 
     await expiryFunctions.deleteReactionMenu(menu.msg.id)
-    await callingBGuild.startGame(menu.targetMember, playChannel, gameCfg["deckName"], expansionNames)
+    await callingBGuild.startGameSignups(menu.targetMember, playChannel, gameCfg["deckName"], expansionNames)
