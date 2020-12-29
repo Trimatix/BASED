@@ -4,6 +4,8 @@ from .. import botState
 from typing import Dict, Union
 from ..reactionMenus import expiryFunctions
 from ..baseClasses.enum import Enum
+from ..cfg import cfg
+import random
 
 class GamePhase(Enum):
     setup = -1
@@ -27,12 +29,13 @@ class SDBGame:
 
 
     async def dealCards(self):
-
+        for player in self.players:
+            for missingCardNum in range(cfg.cardsPerHand - len(player.hand)):
+                player.hand.append(random.choice(self.expansions[random.choice(self.expansionNames)]))
 
 
     async def advanceGame(self):
         if self.gamePhase == GamePhase.setup:
-
             await self.dealCards()
             await self.doGameIntro()
         elif self.gamePhase == GamePhase.playRound:
