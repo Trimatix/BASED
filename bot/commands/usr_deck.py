@@ -2,6 +2,7 @@ import discord
 from urllib import request
 import json
 from datetime import datetime
+import asyncio
 
 from . import commandsDB as botCommands
 from .. import botState, lib
@@ -68,7 +69,11 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
         pages=optionPages, timeout=menuTT, owningBasedUser=botState.usersDB.getOrAddID(message.author.id), targetMember=message.author)
 
     botState.reactionMenusDB[expansionPickerMsg.id] = expansionSelectorMenu
-    await expansionSelectorMenu.updateMessage()
+    try:
+        await expansionSelectorMenu.updateMessage()
+    except discord.NotFound:
+        await asyncio.sleep(2)
+        await expansionSelectorMenu.updateMessage()
 
 botCommands.register("start-game", cmd_start_game, 0, allowDM=False, useDoc=True, helpSection="decks")
 
