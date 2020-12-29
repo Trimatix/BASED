@@ -36,7 +36,7 @@ class BasedGuild(serializable.Serializable):
         self.decks = decks
 
 
-    async def startGame(self, owner, channel, deckName, expansionNames):
+    async def startGameSignups(self, owner, channel, deckName, expansionNames):
         if deckName not in self.decks:
             raise NameError("Unknown deck name: " + deckName)
 
