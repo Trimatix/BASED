@@ -1,13 +1,14 @@
 from ..lib.emojis import BasedEmoji, UninitializedBasedEmoji
 
 longProcessEmoji = BasedEmoji(unicode="⏳")
+loadingEmoji = UninitializedBasedEmoji(793467306507763713)
 userAccessLevels = ["user", "mod", "admin", "dev"]
 helpIntro = "Here are my commands!"
 maxCommandsPerHelpPage = 5
 
 # List of module names from the ommands package to import
 includedCommandModules = (  "usr_misc", "usr_deck",
-                            "admn_misc",
+                            "admn_misc", "admin_deck",
                             "dev_misc")
 
 helpEmbedTimeout = {"minutes": 3}
@@ -40,6 +41,17 @@ defaultCommandPrefix = "."
 developers = [188618589102669826]
 
 cardsPerHand = 7
+
+emptyWhiteCard = "https://cdn.discordapp.com/attachments/793470493197729853/793470535039320084/emptyCard.png"
+emptyBlackCard = emptyWhiteCard
+submittedWhiteCard = emptyWhiteCard
+
+# Number of seconds to wait inbetween each check for complete submissions
+submissionWaitingPeriod = 10
+
+submissionsReviewMenuTimeout = 1800
+
+keepPlayingConfirmMenuTimeout = 600
 
 
 
