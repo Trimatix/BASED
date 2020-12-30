@@ -1,10 +1,12 @@
+from datetime import datetime
 from ..users import basedUser
 from . import ReactionMenu, expiryFunctions
 from discord import Message, Member, Role, Embed
 from .. import lib, botState
-from typing import Dict
+from typing import Dict, List
 from ..scheduling import TimedTask
 from ..cfg import cfg
+import asyncio
 
 
 async def menuJumpToPage(data : dict):
@@ -165,3 +167,93 @@ class MultiPageOptionPicker(PagedReactionMenu):
                 break
 
         await self.updateMessage(noRefreshOptions=True)
+
+
+class InlinePagedReactionMenu(PagedReactionMenu):
+    """A reaction menu that, instead of taking a list of options, takes a list of pages of options.
+    """
+    saveable = False
+    
+    def __init__(self, msg : Message, timeoutSeconds : int, pages : Dict[Embed, Dict[lib.emojis.BasedEmoji, ReactionMenu.ReactionMenuOption]] = {}, 
+                    targetMember : Member = None, targetRole : Role = None, owningBasedUser : basedUser.BasedUser = None,
+                    noCancel : bool = False, returnTriggers : List[lib.emojis.BasedEmoji] = []):
+        """
+        :param discord.Message msg: the message where this menu is embedded
+        :param int timeoutSeconds: The number of seconds until this menu expires
+        :param returnTriggers: List of menu options that trigger the returning of the menu (default [])
+        :type returnTriggers: List[ReactionMenu.ReactionMenuOption]
+        :param pages: A dictionary associating embeds with pages, where each page is a dictionary storing all options on that page and their behaviour (Default {})
+        :type pages: dict[Embed, dict[lib.emojis.BasedEmoji, ReactionMenuOption]]
+        :param discord.Member targetMember: The only discord.Member that is able to interact with this menu. All other reactions are ignored (Default None)
+        :param discord.Role targetRole: In order to interact with this menu, users must possess this role. All other reactions are ignored (Default None)
+        :param BasedUser owningBasedUser: The user who initiated this menu. No built in behaviour. (Default None)
+        """
+        super().__init__(msg, pages=pages, timeout=None, targetMember=targetMember, targetRole=targetRole, owningBasedUser=owningBasedUser, noCancel=noCancel)
+        self.menuActive = True
+        self.timeoutSeconds = timeoutSeconds
+        self.returnTriggers = returnTriggers
+
+
+    def reactionClosesMenu(self, reactPL):
+        _, user, emoji = lib.discordUtil.reactionFromRaw(reactPL)
+        if user is None:
+            botState.logger.log(type(self).__name__, "reactionClosesMenu", "Failed to get user #" + reactPL.user_id, category="reactionMenus", eventType="REACTFROMRAW_USRFAIL")
+        if emoji is None:
+            botState.logger.log(type(self).__name__, "reactionClosesMenu", "Failed to get emoji: " + str(reactPL.emoji), category="reactionMenus", eventType="REACTFROMRAW_EMOJIFAIL")
+        
+
+        if emoji not in self.pages[self.currentPage]:
+            return False
+
+        if self.targetMember is not None and reactPL.user_id != self.targetMember.id:
+            return False
+
+        if self.targetRole is not None:
+            if None in [reactPL.guild_id, user] or self.targetRole not in user.roles:
+                return False
+        
+        return self.pages[self.currentPage][emoji] in self.returnTriggers
+
+
+    def reactionValid(self, reactPL):
+        _, user, emoji = lib.discordUtil.reactionFromRaw(reactPL)
+        if user is None:
+            botState.logger.log(type(self).__name__, "reactionValid", "Failed to get user #" + reactPL.user_id, category="reactionMenus", eventType="REACTFROMRAW_USRFAIL")
+        if emoji is None:
+            botState.logger.log(type(self).__name__, "reactionValid", "Failed to get emoji: " + str(reactPL.emoji), category="reactionMenus", eventType="REACTFROMRAW_EMOJIFAIL")
+
+        if emoji not in self.pages[self.currentPage]:
+            return False
+
+        if self.targetMember is not None and reactPL.user_id != self.targetMember.id:
+            return False
+
+        if self.targetRole is not None:
+            if None in [reactPL.guild_id, user] or self.targetRole not in user.roles:
+                return False
+        
+        if reactPL.event_type == "REACTION_ADD":
+            return self.reactionAdded(self.pages[self.currentPage][emoji])
+        else:
+            return self.reactionRemoved(self.pages[self.currentPage][emoji])
+
+
+    async def doMenu(self):
+        await self.updateMessage()
+        timeoutLeft = self.timeoutSeconds
+        
+        while self.menuActive:
+            try:
+                prev = datetime.utcnow()
+                reactPL = await lib.discordUtil.checkableClientMultiWaitFor(["raw_reaction_add", "raw_reaction_remove"], self.reactionValid, timeoutLeft)
+                timeoutLeft -= (datetime.utcnow() - prev).seconds
+
+                if self.reactionClosesMenu(reactPL):
+                    currentEmbed = self.currentPage
+                    currentEmbed.set_footer(text="This menu has now expired.")
+                    await self.msg.edit(embed=currentEmbed)
+                    return [self.pages[self.currentPage][lib.emojis.BasedEmoji.fromReaction(reactPL.emoji)]]
+
+            except asyncio.TimeoutError:
+                await self.msg.edit(content="This menu has now expired. Please try the command again.")
+                return []

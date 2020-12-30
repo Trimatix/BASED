@@ -8,6 +8,7 @@ from .. import botState
 from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, Reaction, User, DMChannel, GroupChannel, TextChannel
 import random
 from ..cfg import cfg
+import asyncio
 
 
 def getMemberFromRef(uRef : str, dcGuild : Guild) -> Union[Member, None]:
@@ -161,3 +162,63 @@ async def reactionFromRaw(payload : RawReactionActionEvent) -> Tuple[Message, Un
         return None, None, None
 
     return message, user, emoji
+
+
+async def sendDM(text, user, owningMsg, exceptOnFail=False, reactOnDM=True, embed=None):
+    sendChannel = None
+    sendDM = True
+
+    if user.dm_channel is None:
+        await user.create_dm()
+    sendChannel = user.dm_channel
+    
+    if owningMsg is not None and sendChannel == owningMsg.channel:
+        sendDM = False
+    
+    dmMsg = None
+    
+    try:
+        dmMsg = await sendChannel.send(text, embed=embed)
+
+    except Forbidden as e:
+        if exceptOnFail:
+            raise e
+        await owningMsg.channel.send(":x: I can't DM you, " + user.display_name + "! Please enable DMs from users who are not friends.")
+    else:
+        if sendDM and reactOnDM:
+            await owningMsg.add_reaction(cfg.dmSentEmoji.sendable)
+
+    return dmMsg
+
+
+async def clientMultiWaitFor(eventTypes, timeout):
+    done, pending = await asyncio.wait([
+                    botState.client.wait_for(eventType) for eventType in eventTypes
+                ], return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
+
+    stuff = None
+    
+    try:
+        stuff = done.pop().result()
+    except Exception as e:
+        raise e
+        # If the first finished task died for any reason,
+        # the exception will be replayed here.
+    for future in done:
+        # If any exception happened in any other done tasks
+        # we don't care about the exception, but don't want the noise of
+        # non-retrieved exceptions
+        future.exception()
+
+    for future in pending:
+        future.cancel()  # we don't need these anymore
+
+    return stuff
+
+
+async def checkableClientMultiWaitFor(eventTypes, check, timeout):
+    stuff = await clientMultiWaitFor(eventTypes, timeout)
+    while not check(stuff):
+        stuff = await clientMultiWaitFor(eventTypes, timeout)
+    
+    return stuff

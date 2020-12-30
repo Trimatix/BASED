@@ -5,7 +5,7 @@ from discord import Guild
 from .. import botState, lib
 from ..baseClasses import serializable
 from ..cfg import cfg
-from ..game import sdbGame
+from ..game import sdbGame, sdbDeck
 from ..reactionMenus import SDBSignupMenu
 
 
@@ -34,6 +34,7 @@ class BasedGuild(serializable.Serializable):
         self.commandPrefix = commandPrefix
         self.runningGames = runningGames
         self.decks = decks
+        self.activeDecks = {}
 
 
     async def startGameSignups(self, owner, channel, deckName, expansionNames):
@@ -46,7 +47,12 @@ class BasedGuild(serializable.Serializable):
         if channel in self.runningGames:
             raise ValueError("Attempted to start a game in a channel which aleady contains a running game: " + channel.name + "#" + str(channel.id))
 
-        self.runningGames[channel] = sdbGame.SDBGame(owner, self.decks[deckName]["meta_url"], expansionNames)
+        if deckName in self.activeDecks:
+            gameDeck = self.activeDecks[deckName]
+        else:
+            gameDeck = sdbDeck.SDBDeck(self.decks[deckName]["meta_url"])
+
+        self.runningGames[channel] = sdbGame.SDBGame(owner, gameDeck, expansionNames, channel)
 
         signupMsg = await channel.send("​")
         signupMenu = SDBSignupMenu.SDBSignupMenu(signupMsg, self.runningGames[channel], lib.timeUtil.timeDeltaFromDict(cfg.gameJoinMenuTimout))

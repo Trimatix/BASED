@@ -1,59 +1,176 @@
-from urllib import request
-import json
-from .. import botState
+from discord.embeds import Embed
+from .. import botState, lib
 from typing import Dict, Union
 from ..reactionMenus import expiryFunctions
 from ..baseClasses.enum import Enum
 from ..cfg import cfg
-import random
+from . import sdbPlayer, sdbDeck
+import asyncio
+from ..reactionMenus.SDBSubmissionsReviewMenu import InlineSDBSubmissionsReviewMenu
+from..reactionMenus.ConfirmationReactionMenu import InlineConfirmationMenu
+
 
 class GamePhase(Enum):
     setup = -1
     playRound = 0
-    postRound = 1
+    # postRound = 1
     gameOver = 2
 
 
 class SDBGame:
-    def __init__(self, owner, meta_url, expansionNames, gamePhase=GamePhase.setup):
+    def __init__(self, owner, deck, activeExpansions, channel, gamePhase=GamePhase.setup):
         self.owner = owner
-        self.meta_url = meta_url
-        deckMeta = json.load(request.urlopen(meta_url))
-        self.expansionNames = expansionNames
-        self.deckName = deckMeta["deck_name"]
+        self.channel = channel
+        self.deck = deck
+        self.expansionNames = activeExpansions
         self.gamePhase = gamePhase
         self.players = []
-        self.expansions = {}
-        for expansionName in expansionNames:
-            self.expansions[expansionName] = deckMeta["expansions"][expansionName]
+        self.currentBlackCard = None
+        self.shutdownOverride = False
+
+
+    def allPlayersSubmitted(self):
+        for player in self.players:
+            if not player.hasSubmitted:
+                return False
+        return True
+
+
+    async def doGameIntro(self):
+        await self.channel.send("")
+
+
+    async def setupPlayerHands(self):
+        for player in self.players:
+            await lib.discordUtil.sendDM("```yaml\n" + self.owner.name + "'s game```\n<#" + str(self.channel.id) + ">\n\n__Your Hand__", player.dcUser, None, reactOnDM=False, exceptOnFail=True)
+            for _ in range(cfg.cardsPerHand):
+                cardSlotMsg = await player.dcUser.dm_channel.send("​")
+                player.hand.append(sdbPlayer.SDBCardSlot(sdbDeck.WhiteCard.EMPTY_CARD, cardSlotMsg))
 
 
     async def dealCards(self):
         for player in self.players:
-            for missingCardNum in range(cfg.cardsPerHand - len(player.hand)):
-                player.hand.append(random.choice(self.expansions[random.choice(self.expansionNames)]))
+            for cardSlot in player.hand:
+                if cardSlot.isEmpty():
+                    await cardSlot.setCard(self.deck.randomWhite(self.expansionNames))
+
+
+    async def doGameIntro(self):
+        await self.channel.send("Welcome to Super Deck Breaker!")
+
+
+    async def pickNewBlackCard(self):
+        await self.currentBlackCard.setCard(self.deck.randomBlack(self.expansionNames))
+
+
+    async def waitForSubmissions(self):
+        waitingMsg = await self.channel.send("Waiting for submissions...")
+        while not self.allPlayersSubmitted():
+            await asyncio.sleep(cfg.submissionWaitingPeriod)
+        await waitingMsg.delete()
+
+
+    async def pickWinningCards(self):
+        submissionsMenuMsg = await self.channel.send("The submissions are in! But who wins?")
+        menu = InlineSDBSubmissionsReviewMenu(submissionsMenuMsg, self.players,
+                                                cfg.submissionsReviewMenuTimeout,
+                                                self.currentBlackCard.requiredWhiteCards > 1,
+                                                self.owner)
+        winningOption = await menu.doMenu()
+        if len(winningOption) != 1:
+            raise RuntimeError("given selected options array of length " + str(len(winningOption)) + " but should be length 1")
+        winningOption[0].player.points += 1
+
+
+    async def showLeaderboard(self):
+        leaderboardEmbed = Embed()
+        for player in self.players:
+            leaderboardEmbed.add_field(name=player.dcUser.display_name, value=str(player.points))
+        await self.channel.send(embed=leaderboardEmbed)
+
+
+    async def checkKeepPlaying(self):
+        confirmMsg = await self.channel.send("Play another round?")
+        keepPlaying = await InlineConfirmationMenu(confirmMsg, self.owner, cfg.keepPlayingConfirmMenuTimeout).doMenu()
+        return cfg.defaultAcceptEmoji in keepPlaying
+
+
+    async def endGame(self):
+        winningplayers = [self.players[0]]
+        for player in self.players[1:]:
+            if player.points > winningplayers[0].points:
+                winningplayers = [player]
+            elif player.points == winningplayers[0].points:
+                winningplayers.append(player)
+        resultsEmbed = lib.discordUtil.makeEmbed(titleTxt="Thanks For Playing!",
+                                                    desc="Congats to the winner" + ("" if len(winningplayers) == 1 else "s") +
+                                                    ", with " + str(winningplayers[0].points) + "point" +
+                                                    (("" if winningplayers.points == 1 else "s")) +
+                                                    (("" if len(winningplayers) == 1 else " each") + "!"))
+        resultsEmbed.add_field(name="Winner" + ("" if len(winningplayers) == 1 else "s"), value=", ".join(player.dcUser.mention for player in winningplayers))
+        await self.channel.send(embed=resultsEmbed)
+
+
+    async def playPhase(self):
+        keepPlaying = True
+
+        if self.gamePhase == GamePhase.setup:
+            setupMsg = await self.channel.send(cfg.loadingEmoji.sendable + " Dealing cards...")
+            await self.dealCards()
+            await setupMsg.delete()
+            await self.pickNewBlackCard()
+            
+        elif self.gamePhase == GamePhase.playRound:
+            await self.waitForSubmissions()
+            await self.pickWinningCards()
+
+        # elif self.gamePhase == GamePhase.postRound:
+        #     await self.dealCards()
+
+        elif self.gamePhase == GamePhase.gameOver:
+            await self.showLeaderboard()
+            keepPlaying = await self.checkKeepPlaying()
+
+        if keepPlaying and not self.shutdownOverride:
+            await self.advanceGame()
+        else:
+            await self.endGame()
 
 
     async def advanceGame(self):
         if self.gamePhase == GamePhase.setup:
-            await self.dealCards()
-            await self.doGameIntro()
+            self.gamePhase = GamePhase.playRound
+
         elif self.gamePhase == GamePhase.playRound:
-            await self.pickWinningCards()
-        elif self.gamePhase == GamePhase.postRound:
-            await self.dealCards()
+            self.gamePhase = GamePhase.gameOver
+
+        # elif self.gamePhase == GamePhase.postRound:
+        #     self.gamePhase = GamePhase.setup
+
         elif self.gamePhase == GamePhase.gameOver:
-            await self.showLeaderboard()
+            self.gamePhase = GamePhase.setup
+
+        await self.playPhase()
+
+
+    async def startGame(self):
+        await self.setupPlayerHands()
+        await self.doGameIntro()
+        self.currentBlackCard = sdbPlayer.SDBCardSlot(sdbDeck.BlackCard.EMPTY_CARD, await self.channel.send("​"))
+        await self.playPhase()
 
 
 async def startGameFromExpansionMenu(gameCfg : Dict[str, Union[str, int]]):
     menu = botState.reactionMenusDB[gameCfg["menuID"]]
     callingBGuild = botState.guildsDB.getGuild(menu.msg.guild.id)
-
-    expansionNames = [option.name for option in menu.selectedOptions if menu.selectedOptions[option]]
-
-    del callingBGuild.runningGames[menu.msg.channel]
     playChannel = menu.msg.channel
 
+    expansionNames = [option.name for option in menu.selectedOptions if menu.selectedOptions[option]]
+    if not expansionNames:
+        await playChannel.send(":x: You didn't select any expansion packs!")
+
+    if playChannel in callingBGuild.runningGames:
+        del callingBGuild.runningGames[playChannel]
+    
     await expiryFunctions.deleteReactionMenu(menu.msg.id)
     await callingBGuild.startGameSignups(menu.targetMember, playChannel, gameCfg["deckName"], expansionNames)
