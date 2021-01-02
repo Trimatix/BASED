@@ -401,11 +401,12 @@ class ReactionMenu(serializable.Serializable):
         return menuEmbed
     
 
-    async def updateMessage(self, noRefreshOptions=False):
+    async def updateMessage(self, noRefreshOptions=False, noUpdateEmbed=False):
         """Update the menu message by removing all reactions, replacing any existing embed with
         up to date embed content, and readd all of the menu's option reactions.
         """
-        await self.msg.edit(embed=self.getMenuEmbed())
+        if not noUpdateEmbed:
+            await self.msg.edit(embed=self.getMenuEmbed())
         
         if not noRefreshOptions:
             self.msg = await self.msg.channel.fetch_message(self.msg.id)

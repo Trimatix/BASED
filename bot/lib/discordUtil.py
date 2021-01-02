@@ -9,6 +9,7 @@ from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEv
 import random
 from ..cfg import cfg
 import asyncio
+import inspect
 
 
 def getMemberFromRef(uRef : str, dcGuild : Guild) -> Union[Member, None]:
@@ -217,8 +218,9 @@ async def clientMultiWaitFor(eventTypes, timeout):
 
 
 async def checkableClientMultiWaitFor(eventTypes, check, timeout):
+    iscoro = inspect.iscoroutinefunction(check)
     stuff = await clientMultiWaitFor(eventTypes, timeout)
-    while not check(stuff):
+    while not (await check(stuff) if iscoro else check(stuff)):
         stuff = await clientMultiWaitFor(eventTypes, timeout)
     
     return stuff

@@ -20,7 +20,7 @@ class InlineSDBSubmissionsReviewMenu(PagedReactionMenu.InlinePagedReactionMenu):
             for cardNum in range(len(player.submittedCards)):
                 currentEmbed = Embed()
                 currentEmbed.title = player.dcUser.display_name
-                currentEmbed.set_image(url=player.submittedCards)
+                currentEmbed.set_image(url=player.submittedCards[cardNum].url)
                 if multiCard:
                     currentEmbed.set_footer(text="Card " + str(cardNum+1))
                 
@@ -28,4 +28,4 @@ class InlineSDBSubmissionsReviewMenu(PagedReactionMenu.InlinePagedReactionMenu):
                 pages[currentEmbed] = {cfg.defaultAcceptEmoji: newOption}
                 returnTriggers.append(newOption)
 
-        super().__init__(msg, timeoutSeconds, targetMember=targetMember, targetRole=targetRole, owningBasedUser=owningBasedUser, noCancel=True, returnTriggers=returnTriggers)
+        super().__init__(msg, timeoutSeconds, pages=pages, targetMember=targetMember, targetRole=targetRole, owningBasedUser=owningBasedUser, noCancel=True, returnTriggers=returnTriggers)

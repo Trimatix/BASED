@@ -7,7 +7,9 @@ from ..cfg import cfg
 from . import sdbPlayer, sdbDeck
 import asyncio
 from ..reactionMenus.SDBSubmissionsReviewMenu import InlineSDBSubmissionsReviewMenu
-from..reactionMenus.ConfirmationReactionMenu import InlineConfirmationMenu
+from ..reactionMenus.ConfirmationReactionMenu import InlineConfirmationMenu
+from ..reactionMenus.SDBCardPlayMenu import SDBCardPlayMenu
+from ..reactionMenus.SDBCardSelector import SDBCardSelector
 
 
 class GamePhase(Enum):
@@ -45,7 +47,16 @@ class SDBGame:
             await lib.discordUtil.sendDM("```yaml\n" + self.owner.name + "'s game```\n<#" + str(self.channel.id) + ">\n\n__Your Hand__", player.dcUser, None, reactOnDM=False, exceptOnFail=True)
             for _ in range(cfg.cardsPerHand):
                 cardSlotMsg = await player.dcUser.dm_channel.send("​")
-                player.hand.append(sdbPlayer.SDBCardSlot(sdbDeck.WhiteCard.EMPTY_CARD, cardSlotMsg))
+                cardSlot = sdbPlayer.SDBCardSlot(sdbDeck.WhiteCard.EMPTY_CARD, cardSlotMsg)
+                player.hand.append(cardSlot)
+                cardSelector = SDBCardSelector(cardSlotMsg, player, cardSlot)
+                botState.reactionMenusDB[cardSlotMsg.id] = cardSelector
+                await cardSelector.updateMessage()
+            
+            playMenuMsg = await player.dcUser.dm_channel.send("​")
+            player.playMenu = SDBCardPlayMenu(playMenuMsg, player)
+            botState.reactionMenusDB[playMenuMsg.id] = player.playMenu
+            await player.playMenu.updateMessage()
 
 
     async def dealCards(self):
@@ -74,7 +85,7 @@ class SDBGame:
         submissionsMenuMsg = await self.channel.send("The submissions are in! But who wins?")
         menu = InlineSDBSubmissionsReviewMenu(submissionsMenuMsg, self.players,
                                                 cfg.submissionsReviewMenuTimeout,
-                                                self.currentBlackCard.requiredWhiteCards > 1,
+                                                self.currentBlackCard.currentCard.requiredWhiteCards > 1,
                                                 self.owner)
         winningOption = await menu.doMenu()
         if len(winningOption) != 1:

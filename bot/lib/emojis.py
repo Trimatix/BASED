@@ -4,10 +4,9 @@ from .. import botState
 from . import stringTyping, exceptions
 import traceback
 from ..baseClasses import serializable
+from discord import PartialEmoji, Emoji
 
-from typing import Union, TYPE_CHECKING
-if TYPE_CHECKING:
-    from discord import PartialEmoji, Emoji
+from typing import Union
 
 
 err_UnknownEmoji = "❓"

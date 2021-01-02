@@ -27,14 +27,19 @@ class SDBPlayer:
         self.submittedCards = []
         self.selectedSlots = []
         self.points = 0
+        self.playMenu = None
 
 
     async def submitCards(self):
-        if len(self.selectedSlots) != self.game.currentBlackCard.requiredWhiteCards:
-            raise ValueError("Player currently has " + str(len(self.selectedSlots)) + " card slots selected, but " + str(self.game.currentBlackCard.requiredWhiteCards) + " are required by the black card: " + str(self.game.currentBlackCard.url))
+        if len(self.selectedSlots) != self.game.currentBlackCard.currentCard.requiredWhiteCards:
+            raise ValueError("Player currently has " + str(len(self.selectedSlots)) + " card slots selected, but " + str(self.game.currentBlackCard.currentCard.requiredWhiteCards) + " are required by the black card: " + str(self.game.currentBlackCard.url))
         self.submittedCards = []
         for slot in self.selectedSlots:
             self.submittedCards.append(slot.currentCard)
-            await slot.setCard(SDBCard.SUBMITTED_CARD)
+            await slot.setCard(WhiteCard.SUBMITTED_CARD)
 
         self.selectedSlots = []
+        self.hasSubmitted = True
+
+    async def updatePlayMenu(self):
+        await self.playMenu.updateSelectionsField()
