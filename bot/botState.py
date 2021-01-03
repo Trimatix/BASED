@@ -1,4 +1,5 @@
 client = None
+httpClient = None
 
 usersDB = None
 guildsDB = None

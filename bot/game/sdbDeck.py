@@ -1,8 +1,9 @@
 import json
-from urllib import request
+# from urllib import request
 import random
 from abc import ABC
 
+from .. import botState
 from ..cfg import cfg
 
 
@@ -47,7 +48,15 @@ class SDBExpansion:
 
 class SDBDeck:
     def __init__(self, metaUrl):
-        deckMeta = json.load(request.urlopen(metaUrl))
+        self.metaUrl = metaUrl
+
+
+    async def init(self):
+        async with botState.httpClient.get(self.metaUrl) as resp:
+            # deckMeta = json.load(await resp.text())
+            deckMeta = await resp.json()
+        print("response done")
+        # deckMeta = json.load(request.urlopen(metaUrl))
         if "expansions" not in deckMeta or deckMeta["expansions"] == {}:
             raise RuntimeError("Attempted to create an empty SDBDeck")
 
