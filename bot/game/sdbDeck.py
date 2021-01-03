@@ -8,8 +8,9 @@ from ..cfg import cfg
 
 
 class SDBCard(ABC):
-    def __init__(self, url):
+    def __init__(self, text, url):
         self.url = url
+        self.text = text
         
     def isEmpty(self):
         return self.url == cfg.emptyCard
@@ -22,12 +23,12 @@ class SDBCard(ABC):
 class BlackCard(SDBCard):
     EMPTY_CARD = None
 
-    def __init__(self, url, requiredWhiteCards):
-        super().__init__(url)
+    def __init__(self, text, url, requiredWhiteCards):
+        super().__init__(text, url)
         self.requiredWhiteCards = requiredWhiteCards
 
 
-BlackCard.EMPTY_CARD = SDBCard(cfg.emptyBlackCard)
+BlackCard.EMPTY_CARD = SDBCard("EMPTY", cfg.emptyBlackCard)
 
 
 class WhiteCard(SDBCard):
@@ -35,8 +36,8 @@ class WhiteCard(SDBCard):
     SUBMITTED_CARD = None
 
 
-WhiteCard.EMPTY_CARD = SDBCard(cfg.emptyWhiteCard)
-WhiteCard.SUBMITTED_CARD = SDBCard(cfg.submittedWhiteCard)
+WhiteCard.EMPTY_CARD = SDBCard("EMPTY", cfg.emptyWhiteCard)
+WhiteCard.SUBMITTED_CARD = SDBCard("SUBMITTED", cfg.submittedWhiteCard)
 
 
 
@@ -55,7 +56,7 @@ class SDBDeck:
         async with botState.httpClient.get(self.metaUrl) as resp:
             # deckMeta = json.load(await resp.text())
             deckMeta = await resp.json()
-        print("response done")
+        
         # deckMeta = json.load(request.urlopen(metaUrl))
         if "expansions" not in deckMeta or deckMeta["expansions"] == {}:
             raise RuntimeError("Attempted to create an empty SDBDeck")
@@ -69,10 +70,10 @@ class SDBDeck:
         for expansion in self.expansionNames:
             if "white" in deckMeta["expansions"][expansion]:
                 for cardData in deckMeta["expansions"][expansion]["white"]:
-                    self.cards[expansion].white.append(WhiteCard(cardData["url"]))
+                    self.cards[expansion].white.append(WhiteCard(cardData["text"], cardData["url"]))
             if "black" in deckMeta["expansions"][expansion]:
                 for cardData in deckMeta["expansions"][expansion]["black"]:
-                    self.cards[expansion].black.append(BlackCard(cardData["url"], cardData["requiredWhiteCards"]))
+                    self.cards[expansion].black.append(BlackCard(cardData["text"], cardData["url"], cardData["requiredWhiteCards"]))
 
             if not hasWhiteCards:
                 hasWhiteCards = len(self.cards[expansion].white) != 0
