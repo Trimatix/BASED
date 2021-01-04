@@ -38,7 +38,9 @@ class BasedClient(ClientBaseClass):
     :type bot_loggedIn: bool
     """
     def __init__(self, storeUsers=True, storeGuilds=True, storeMenus=True):
-        super().__init__(command_prefix="‎")
+        intents = discord.Intents.default()
+        intents.members = True
+        super().__init__(command_prefix="‎", intents=intents)
         self.loggedIn = False
         self.storeUsers = storeUsers
         self.storeGuilds = storeGuilds
