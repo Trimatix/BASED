@@ -3,6 +3,7 @@ import discord
 from . import commandsDB as botCommands
 from . import util_help
 from .. import botState
+import time
 
 
 async def admin_cmd_admin_help(message : discord.Message, args : str, isDM : bool):
@@ -37,3 +38,19 @@ async def admin_cmd_set_prefix(message : discord.Message, args : str, isDM : boo
 botCommands.register("set-prefix", admin_cmd_set_prefix, 2, signatureStr="**set-prefix <prefix>**",
                                                             shortHelp="Set the prefix you would like to use for bot commands in this server.")
 
+
+async def admin_cmd_ping(message : discord.Message, args : str, isDM : bool):
+    """admin command testing bot latency.
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignored
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    start = time.perf_counter()
+    msg = await message.channel.send("Ping...")
+    end = time.perf_counter()
+    duration = (end - start) * 1000
+    await msg.edit(content='Pong! {:.2f}ms'.format(duration))
+
+botCommands.register("ping", admin_cmd_ping, 2, signatureStr="**ping**",
+                                                            shortHelp="Test the bot's response latency in milliseconds.")
