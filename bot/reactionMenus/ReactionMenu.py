@@ -584,7 +584,7 @@ class SingleUserReactionMenu(ReactionMenu):
             return []
         else:
             updatedMsg = await self.msg.channel.fetch_message(self.msg.id)
-            return [lib.emojis.BasedEmojiFromReaction(react.emoji) for react in updatedMsg.reactions if self.targetMember in await react.users().flatten() and lib.emojis.BasedEmojiFromReaction(react.emoji) in self.options]
+            return [lib.emojis.BasedEmoji.fromReaction(react.emoji) for react in updatedMsg.reactions if self.targetMember in await react.users().flatten() and lib.emojis.BasedEmoji.fromReaction(react.emoji) in self.options]
 
 
 class SelectorMenu(ReactionMenu):

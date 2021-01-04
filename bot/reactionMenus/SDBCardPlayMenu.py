@@ -22,7 +22,7 @@ class SDBCardPlayMenu(ReactionMenu.ReactionMenu):
 
 
     async def updateSelectionsField(self):
-        newSelectedStr = "\n".join(str(slotNum) + ". " + self.player.selectedSlots[slotNum].currentCard.text for slotNum in range(len(self.player.selectedSlots))) if self.player.selectedSlots else "No cards selected​"
+        newSelectedStr = "\n".join(str(slotNum + 1) + ". " + self.player.selectedSlots[slotNum].currentCard.text for slotNum in range(len(self.player.selectedSlots))) if self.player.selectedSlots else "No cards selected​"
         # str(len(self.player.selectedSlots))
         for fieldIndex in range(len(self.menuEmbed.fields)):
             field = self.menuEmbed.fields[fieldIndex]
