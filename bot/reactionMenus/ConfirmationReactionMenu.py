@@ -1,7 +1,6 @@
 from . import ReactionMenu
 from discord import Message, Member, User, Colour
-from typing import Dict, Union, List
-from .. import lib
+from typing import Union
 from ..cfg import cfg
 
 
