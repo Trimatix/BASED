@@ -68,6 +68,11 @@ reactionMenusDBPath = "saveData/reactionMenus.json"
 # path to folder to save log txts to
 loggingFolderPath = "saveData/logs"
 
+decksFolderPath = "saveData/decks"
+
 gameJoinMenuTimout = {"minutes": 5}
 
 expansionPickerTimeout = {"minutes": 5}
+
+cardsDCChannel = {"guild_id": 733652363235033088,
+                    "channel_id": 796038447252766741}
