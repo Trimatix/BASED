@@ -158,6 +158,8 @@ class TimedTask:
         :return: True if this task is expired in this check, False otherwise. Regardless of autorescheduling.
         :rtype: bool
         """
+        if self.gravestone:
+            return True
         expired = self.isExpired()
         # If the task has expired, call expiry function and reschedule if specified
         if expired:

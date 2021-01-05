@@ -97,6 +97,10 @@ botCommands.register("create", cmd_create, 0, allowDM=False, helpSection="decks"
 
 
 async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
+    if not args:
+        await message.channel.send(":x: Please give the name of the deck you would like to play with!")
+        return
+
     callingBGuild = botState.guildsDB.getGuild(message.guild.id)
     if args not in callingBGuild.decks:
         await message.channel.send(":x: Unknown deck: " + args)
@@ -131,6 +135,7 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
         pages=optionPages, timeout=menuTT, owningBasedUser=botState.usersDB.getOrAddID(message.author.id), targetMember=message.author)
 
     botState.reactionMenusDB[expansionPickerMsg.id] = expansionSelectorMenu
+    botState.reactionMenusTTDB.scheduleTask(menuTT)
     try:
         await expansionSelectorMenu.updateMessage()
     except discord.NotFound:
@@ -155,4 +160,20 @@ async def cmd_decks(message : discord.Message, args : str, isDM : bool):
                                                                     callingBGuild.decks[deckName]["black_count"]) + " cards | [sheet](" + callingBGuild.decks[deckName]["spreadsheet_url"] +")")
         await message.channel.send(embed=decksEmbed)
 
-botCommands.register("decks", cmd_decks, 0, allowDM=False, useDoc=True, helpSection="decks")
+botCommands.register("decks", cmd_decks, 0, allowDM=False, helpSection="decks", shortHelp="List all decks owned by this server.")
+
+
+async def cmd_join(message : discord.Message, args : str, isDM : bool):
+    callingBGuild = botState.guildsDB.getGuild(message.guild.id)
+
+    if message.channel not in callingBGuild.runningGames:
+        await message.channel.send(":x: There is no game currently running in this channel.")
+    elif callingBGuild.runningGames[message.channel] is None or not callingBGuild.runningGames[message.channel].started:
+        await message.channel.send(":x: The game has not yet started.")
+    elif callingBGuild.runningGames[message.channel].hasDCMember(message.author):
+        await message.channel.send("You are already a player in this game! Find your cards hand in our DMs.")
+    else:
+        await callingBGuild.runningGames[message.channel].dcMemberJoinGame(message.author)
+
+
+botCommands.register("join", cmd_join, 0, allowDM=False, helpSection="decks", shortHelp="Join the game that is currently running in the channel where you call the command")

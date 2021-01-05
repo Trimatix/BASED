@@ -29,6 +29,7 @@ class SDBGame:
         self.players = []
         self.currentBlackCard = None
         self.shutdownOverride = False
+        self.started = False
 
 
     def allPlayersSubmitted(self):
@@ -42,28 +43,52 @@ class SDBGame:
         await self.channel.send("")
 
 
-    async def setupPlayerHands(self):
-        for player in self.players:
-            await lib.discordUtil.sendDM("```yaml\n" + self.owner.name + "'s game```\n<#" + str(self.channel.id) + ">\n\n__Your Hand__", player.dcUser, None, reactOnDM=False, exceptOnFail=True)
-            for _ in range(cfg.cardsPerHand):
-                cardSlotMsg = await player.dcUser.dm_channel.send("​")
-                cardSlot = sdbPlayer.SDBCardSlot(None, cardSlotMsg)
-                player.hand.append(cardSlot)
-                cardSelector = SDBCardSelector(cardSlotMsg, player, cardSlot)
-                botState.reactionMenusDB[cardSlotMsg.id] = cardSelector
-                await cardSelector.updateMessage()
-            
-            playMenuMsg = await player.dcUser.dm_channel.send("​")
-            player.playMenu = SDBCardPlayMenu(playMenuMsg, player)
-            botState.reactionMenusDB[playMenuMsg.id] = player.playMenu
-            await player.playMenu.updateMessage()
+    async def setupPlayerHand(self, player):
+        await lib.discordUtil.sendDM("```yaml\n" + self.owner.name + "'s game```\n<#" + str(self.channel.id) + ">\n\n__Your Hand__", player.dcUser, None, reactOnDM=False, exceptOnFail=True)
+        for _ in range(cfg.cardsPerHand):
+            cardSlotMsg = await player.dcUser.dm_channel.send("​")
+            cardSlot = sdbPlayer.SDBCardSlot(None, cardSlotMsg)
+            player.hand.append(cardSlot)
+            cardSelector = SDBCardSelector(cardSlotMsg, player, cardSlot)
+            botState.reactionMenusDB[cardSlotMsg.id] = cardSelector
+            await cardSelector.updateMessage()
+        
+        playMenuMsg = await player.dcUser.dm_channel.send("​")
+        player.playMenu = SDBCardPlayMenu(playMenuMsg, player)
+        botState.reactionMenusDB[playMenuMsg.id] = player.playMenu
+        await player.playMenu.updateMessage()
 
 
-    async def dealCards(self):
+    async def setupAllPlayerHands(self):
+        loadingMsg = await self.channel.send("Setting up player hands... " + cfg.loadingEmoji.sendable)
         for player in self.players:
-            for cardSlot in player.hand:
-                if cardSlot.isEmpty:
-                    await cardSlot.setCard(self.deck.randomWhite(self.expansionNames))
+            await self.setupPlayerHand(player)
+        await loadingMsg.edit(content="Setting up player hands... " + cfg.defaultSubmitEmoji.sendable)
+
+
+    async def dealPlayerCards(self, player):
+        for cardSlot in player.hand:
+            if cardSlot.isEmpty:
+                newCard = self.deck.randomWhite(self.expansionNames)
+                while player.hasCard(newCard):
+                    newCard = self.deck.randomWhite(self.expansionNames)
+                await cardSlot.setCard(newCard)
+
+
+    async def dealAllPlayerCards(self):
+        loadingMsg = await self.channel.send("Dealing cards... " + cfg.loadingEmoji.sendable)
+        for player in self.players:
+            await self.dealPlayerCards(player)
+        await loadingMsg.edit(content="Dealing cards... " + cfg.defaultSubmitEmoji.sendable)
+
+
+    async def dcMemberJoinGame(self, member):
+        player = sdbPlayer.SDBPlayer(member, self)
+        await self.setupPlayerHand(player)
+        await self.dealPlayerCards(player)
+        await player.updatePlayMenu()
+        self.players.append(player)
+        await self.channel.send(member.display_name + " joined the game!")
 
 
     async def doGameIntro(self):
@@ -71,6 +96,7 @@ class SDBGame:
 
 
     async def pickNewBlackCard(self):
+        self.currentBlackCard = sdbPlayer.SDBCardSlot(None, await self.channel.send("​"))
         await self.currentBlackCard.setCard(self.deck.randomBlack(self.expansionNames))
 
 
@@ -93,6 +119,12 @@ class SDBGame:
         winningOption[0].player.points += 1
 
 
+    async def resetSubmissions(self):
+        for player in self.players:
+            player.hasSubmitted = False
+            await player.updatePlayMenu()
+
+
     async def showLeaderboard(self):
         leaderboardEmbed = Embed()
         for player in self.players:
@@ -103,6 +135,7 @@ class SDBGame:
     async def checkKeepPlaying(self):
         confirmMsg = await self.channel.send("Play another round?")
         keepPlaying = await InlineConfirmationMenu(confirmMsg, self.owner, cfg.keepPlayingConfirmMenuTimeout).doMenu()
+        await confirmMsg.delete()
         return cfg.defaultAcceptEmoji in keepPlaying
 
 
@@ -115,8 +148,8 @@ class SDBGame:
                 winningplayers.append(player)
         resultsEmbed = lib.discordUtil.makeEmbed(titleTxt="Thanks For Playing!",
                                                     desc="Congats to the winner" + ("" if len(winningplayers) == 1 else "s") +
-                                                    ", with " + str(winningplayers[0].points) + "point" +
-                                                    (("" if winningplayers.points == 1 else "s")) +
+                                                    ", with " + str(winningplayers[0].points) + " point" +
+                                                    (("" if winningplayers[0].points == 1 else "s")) +
                                                     (("" if len(winningplayers) == 1 else " each") + "!"))
         resultsEmbed.add_field(name="Winner" + ("" if len(winningplayers) == 1 else "s"), value=", ".join(player.dcUser.mention for player in winningplayers))
         await self.channel.send(embed=resultsEmbed)
@@ -126,10 +159,9 @@ class SDBGame:
         keepPlaying = True
 
         if self.gamePhase == GamePhase.setup:
-            setupMsg = await self.channel.send(cfg.loadingEmoji.sendable + " Dealing cards...")
-            await self.dealCards()
-            await setupMsg.delete()
+            await self.dealAllPlayerCards()
             await self.pickNewBlackCard()
+            await self.resetSubmissions()
             
         elif self.gamePhase == GamePhase.playRound:
             await self.waitForSubmissions()
@@ -165,10 +197,17 @@ class SDBGame:
 
 
     async def startGame(self):
-        await self.setupPlayerHands()
         await self.doGameIntro()
-        self.currentBlackCard = sdbPlayer.SDBCardSlot(None, await self.channel.send("​"))
+        await self.setupAllPlayerHands()
+        self.started = True
         await self.playPhase()
+
+
+    def hasDCMember(self, member):
+        for player in self.players:
+            if player.dcUser == member:
+                return True
+        return False
 
 
 async def startGameFromExpansionMenu(gameCfg : Dict[str, Union[str, int]]):

@@ -5,7 +5,6 @@ from .. import lib
 class SDBCardSlot:
     def __init__(self, currentCard, message):
         self.currentCard = currentCard
-        self.seleted = False
         self.message = message
         self.isEmpty = currentCard is None
 
@@ -31,18 +30,33 @@ class SDBPlayer:
         self.selectedSlots = []
         self.points = 0
         self.playMenu = None
+        self.hasCardNumErr = False
 
 
     async def submitCards(self):
         if len(self.selectedSlots) != self.game.currentBlackCard.currentCard.requiredWhiteCards:
-            raise ValueError("Player currently has " + str(len(self.selectedSlots)) + " card slots selected, but " + str(self.game.currentBlackCard.currentCard.requiredWhiteCards) + " are required by the black card: " + str(self.game.currentBlackCard.url))
-        self.submittedCards = []
-        for slot in self.selectedSlots:
-            self.submittedCards.append(slot.currentCard)
-            await slot.removeCard(self.game.deck.emptyWhite)
+            # raise ValueError("Player currently has " + str(len(self.selectedSlots)) + " card slots selected, but " + str(self.game.currentBlackCard.currentCard.requiredWhiteCards) + " are required by the black card: " + str(self.game.currentBlackCard.url))
+            if not self.hasCardNumErr:
+                await self.playMenu.addCardNumErr()
+                self.hasCardNumErr = True
+        else:
+            if self.hasCardNumErr:
+                await self.playMenu.remCardNumErr()
+                
+            self.submittedCards = []
+            for slot in self.selectedSlots:
+                self.submittedCards.append(slot.currentCard)
+                await slot.removeCard(self.game.deck.emptyWhite)
 
-        self.selectedSlots = []
-        self.hasSubmitted = True
+            self.hasSubmitted = True
+
+
+    def hasCard(self, card):
+        for c in self.hand:
+            if c == card:
+                return True
+        return False
+
 
     async def updatePlayMenu(self):
-        await self.playMenu.updateSelectionsField()
+        await self.playMenu.updateEmbed(updateRequiredWhiteCards=(self.game.currentBlackCard is not None) and (not self.game.currentBlackCard.isEmpty))

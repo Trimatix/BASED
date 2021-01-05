@@ -58,6 +58,7 @@ class BasedGuild(serializable.Serializable):
         signupMenu = SDBSignupMenu.SDBSignupMenu(signupMsg, self.runningGames[channel], lib.timeUtil.timeDeltaFromDict(cfg.gameJoinMenuTimout))
         botState.reactionMenusDB[signupMsg.id] = signupMenu
         await signupMenu.updateMessage()
+        self.decks[deckName]["plays"] += 1
 
 
     def toDict(self, **kwargs) -> dict:

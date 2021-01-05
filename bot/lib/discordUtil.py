@@ -192,19 +192,18 @@ async def sendDM(text, user, owningMsg, exceptOnFail=False, reactOnDM=True, embe
     return dmMsg
 
 
-async def clientMultiWaitFor(eventTypes, timeout):
-    done, pending = await asyncio.wait([
-                    botState.client.wait_for(eventType) for eventType in eventTypes
-                ], return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
+async def clientMultiWaitFor(eventTypes, timeout, check=None):
+    if check is not None:
+        done, pending = await asyncio.wait([
+                        botState.client.wait_for(eventType, check=check) for eventType in eventTypes
+                    ], return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
+    else:
+        done, pending = await asyncio.wait([
+                        botState.client.wait_for(eventType) for eventType in eventTypes
+                    ], return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
 
-    stuff = None
-    
-    try:
-        stuff = done.pop().result()
-    except Exception as e:
-        raise e
-        # If the first finished task died for any reason,
-        # the exception will be replayed here.
+    stuff = done.pop().result()
+
     for future in done:
         # If any exception happened in any other done tasks
         # we don't care about the exception, but don't want the noise of
@@ -217,10 +216,10 @@ async def clientMultiWaitFor(eventTypes, timeout):
     return stuff
 
 
-async def checkableClientMultiWaitFor(eventTypes, check, timeout):
-    iscoro = inspect.iscoroutinefunction(check)
-    stuff = await clientMultiWaitFor(eventTypes, timeout)
-    while not (await check(stuff) if iscoro else check(stuff)):
-        stuff = await clientMultiWaitFor(eventTypes, timeout)
+# async def checkableClientMultiWaitFor(eventTypes, check, timeout):
+#     iscoro = inspect.iscoroutinefunction(check)
+#     stuff = await clientMultiWaitFor(eventTypes, timeout)
+#     while not (await check(stuff) if iscoro else check(stuff)):
+#         stuff = await clientMultiWaitFor(eventTypes, timeout)
     
-    return stuff
+#     return stuff

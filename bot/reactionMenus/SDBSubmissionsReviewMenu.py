@@ -28,4 +28,4 @@ class InlineSDBSubmissionsReviewMenu(PagedReactionMenu.InlinePagedReactionMenu):
                 pages[currentEmbed] = {cfg.defaultAcceptEmoji: newOption}
                 returnTriggers.append(newOption)
 
-        super().__init__(msg, timeoutSeconds, pages=pages, targetMember=targetMember, targetRole=targetRole, owningBasedUser=owningBasedUser, noCancel=True, returnTriggers=returnTriggers)
+        super().__init__(msg, timeoutSeconds, pages=pages, targetMember=targetMember, targetRole=targetRole, owningBasedUser=owningBasedUser, noCancel=True, returnTriggers=returnTriggers, anon=True)

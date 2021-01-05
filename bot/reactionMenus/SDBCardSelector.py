@@ -26,5 +26,18 @@ class SDBCardSelector(ReactionMenu.ReactionMenu):
         await self.player.updatePlayMenu()
 
 
+    async def delete(self):
+        """⚠ WARNING: DO NOT SET THIS AS YOUR MENU'S TIMEDTASK EXPIRY FUNCTION. This method calls the menu's TimedTask expiry function.
+        Forcibly delete the menu.
+        If a timeout TimedTask was defined in this menu's constructor, this will be forcibly expired.
+        If no TimedTask was given, the menu will default to calling deleteReactionMenu.
+        """
+        if self.timeout is None:
+            if self.msg.id in botState.reactionMenusDB:
+                del botState.reactionMenusDB[self.msg.id]
+        else:
+            await self.timeout.forceExpire()
+
+
     async def updateMessage(self, noRefreshOptions=False, noUpdateEmbed=True):
         return await super().updateMessage(noRefreshOptions=noRefreshOptions, noUpdateEmbed=noUpdateEmbed)
