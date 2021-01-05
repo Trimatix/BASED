@@ -48,7 +48,6 @@ class SDBGame:
             for _ in range(cfg.cardsPerHand):
                 cardSlotMsg = await player.dcUser.dm_channel.send("​")
                 cardSlot = sdbPlayer.SDBCardSlot(None, cardSlotMsg)
-                await cardSlot.removeCard(self.deck.emptyWhite)
                 player.hand.append(cardSlot)
                 cardSelector = SDBCardSelector(cardSlotMsg, player, cardSlot)
                 botState.reactionMenusDB[cardSlotMsg.id] = cardSelector
@@ -169,7 +168,6 @@ class SDBGame:
         await self.setupPlayerHands()
         await self.doGameIntro()
         self.currentBlackCard = sdbPlayer.SDBCardSlot(None, await self.channel.send("​"))
-        await self.currentBlackCard.removeCard(self.deck.emptyBlack)
         await self.playPhase()
 
 
