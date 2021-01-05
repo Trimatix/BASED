@@ -1,0 +1,7 @@
+discord.py
+emoji
+pillow
+gspread
+psutil
+oath2client
+gitpython
