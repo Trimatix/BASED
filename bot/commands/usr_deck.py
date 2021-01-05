@@ -1,5 +1,6 @@
 import discord
-from urllib import request
+# from urllib import request
+import aiohttp
 import json
 from datetime import datetime
 import asyncio
@@ -49,7 +50,9 @@ async def cmd_add_deck(message : discord.Message, args : str, isDM : bool):
 
     callingBGuild = botState.guildsDB.getGuild(message.guild.id)
 
-    deckMeta = json.load(request.urlopen(args))
+    # deckMeta = json.load(request.urlopen(args))
+    async with botState.httpClient.get(args) as resp:
+        deckMeta = await resp.json()
     # if deckMeta["deck_name"] in callingBGuild.decks:
 
     now = datetime.utcnow()

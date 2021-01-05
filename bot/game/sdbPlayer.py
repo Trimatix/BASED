@@ -11,7 +11,7 @@ class SDBCardSlot:
     
     async def setCard(self, newCard):
         self.currentCard = newCard
-        await self.message.edit(embed=lib.discordUtil.makeEmbed(img=newCard.url))
+        await self.message.edit(content=newCard.url, embed=lib.discordUtil.makeEmbed(img=newCard.url))
 
     
     def isEmpty(self):

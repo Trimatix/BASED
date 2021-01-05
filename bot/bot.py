@@ -10,6 +10,7 @@ from datetime import datetime
 import os
 import traceback
 import asyncio
+import aiohttp
 
 
 # BASED Imports
@@ -82,6 +83,7 @@ class BasedClient(ClientBaseClass):
         self.loggedIn = False
         await self.logout()
         self.saveAllDBs()
+        await botState.httpClient.close()
         print(datetime.now().strftime("%H:%M:%S: Shutdown complete."))
 
 
@@ -192,6 +194,7 @@ async def on_ready():
 
     TODO: Implement dynamic timedtask checking period
     """
+    botState.httpClient = aiohttp.ClientSession()
 
     ##### EMOJI INITIALIZATION #####
     # Iterate over uninitiaizedEmoji attributes in cfg
