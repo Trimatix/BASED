@@ -3,5 +3,5 @@ emoji
 pillow
 gspread
 psutil
-oath2client
+oauth2client
 gitpython
