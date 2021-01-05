@@ -1,7 +1,7 @@
 import json
 # from urllib import request
 import random
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from .. import lib
 from .. import botState
@@ -12,34 +12,19 @@ class SDBCard(ABC):
     def __init__(self, text, url):
         self.url = url
         self.text = text
-        
-    def isEmpty(self):
-        return self.url == cfg.emptyCard
-
 
     def __str__(self):
         return self.url
 
 
 class BlackCard(SDBCard):
-    EMPTY_CARD = None
-
     def __init__(self, text, url, requiredWhiteCards):
         super().__init__(text, url)
         self.requiredWhiteCards = requiredWhiteCards
 
 
-BlackCard.EMPTY_CARD = SDBCard("EMPTY", cfg.emptyBlackCard)
-
-
 class WhiteCard(SDBCard):
-    EMPTY_CARD = None
-    SUBMITTED_CARD = None
-
-
-WhiteCard.EMPTY_CARD = SDBCard("EMPTY", cfg.emptyWhiteCard)
-WhiteCard.SUBMITTED_CARD = SDBCard("SUBMITTED", cfg.submittedWhiteCard)
-
+    pass
 
 
 class SDBExpansion:
@@ -79,6 +64,9 @@ class SDBDeck:
             raise RuntimeError("Attempted to create a deck with no white cards")
         elif not hasBlackCards:
             raise RuntimeError("Attempted to create a deck with no black cards")
+
+        self.emptyBlack = BlackCard("EMPTY", deckMeta["black_back"] if "black_back" in deckMeta else cfg.emptyBlackCard, 0)
+        self.emptyWhite = WhiteCard("EMPTY", deckMeta["white_back"] if "white_back" in deckMeta else cfg.emptyWhiteCard)
 
 
     def randomWhite(self, expansions=[]):

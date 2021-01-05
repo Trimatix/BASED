@@ -7,15 +7,18 @@ class SDBCardSlot:
         self.currentCard = currentCard
         self.seleted = False
         self.message = message
+        self.isEmpty = currentCard is None
 
     
     async def setCard(self, newCard):
         self.currentCard = newCard
-        await self.message.edit(content=newCard.url, embed=lib.discordUtil.makeEmbed(img=newCard.url))
-
+        await self.message.edit(embed=lib.discordUtil.makeEmbed(img=newCard.url))
+        self.isEmpty = False
     
-    def isEmpty(self):
-        return self.currentCard in [WhiteCard.EMPTY_CARD, WhiteCard.SUBMITTED_CARD]
+
+    async def removeCard(self, emptyCard):
+        await self.setCard(emptyCard)
+        self.isEmpty = True
 
 
 class SDBPlayer:
@@ -36,7 +39,7 @@ class SDBPlayer:
         self.submittedCards = []
         for slot in self.selectedSlots:
             self.submittedCards.append(slot.currentCard)
-            await slot.setCard(WhiteCard.SUBMITTED_CARD)
+            await slot.removeCard(self.game.deck.emptyWhite)
 
         self.selectedSlots = []
         self.hasSubmitted = True

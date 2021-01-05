@@ -47,7 +47,8 @@ class SDBGame:
             await lib.discordUtil.sendDM("```yaml\n" + self.owner.name + "'s game```\n<#" + str(self.channel.id) + ">\n\n__Your Hand__", player.dcUser, None, reactOnDM=False, exceptOnFail=True)
             for _ in range(cfg.cardsPerHand):
                 cardSlotMsg = await player.dcUser.dm_channel.send("​")
-                cardSlot = sdbPlayer.SDBCardSlot(sdbDeck.WhiteCard.EMPTY_CARD, cardSlotMsg)
+                cardSlot = sdbPlayer.SDBCardSlot(None, cardSlotMsg)
+                await cardSlot.removeCard(self.deck.emptyWhite)
                 player.hand.append(cardSlot)
                 cardSelector = SDBCardSelector(cardSlotMsg, player, cardSlot)
                 botState.reactionMenusDB[cardSlotMsg.id] = cardSelector
@@ -62,7 +63,7 @@ class SDBGame:
     async def dealCards(self):
         for player in self.players:
             for cardSlot in player.hand:
-                if cardSlot.isEmpty():
+                if cardSlot.isEmpty:
                     await cardSlot.setCard(self.deck.randomWhite(self.expansionNames))
 
 
@@ -167,7 +168,8 @@ class SDBGame:
     async def startGame(self):
         await self.setupPlayerHands()
         await self.doGameIntro()
-        self.currentBlackCard = sdbPlayer.SDBCardSlot(sdbDeck.BlackCard.EMPTY_CARD, await self.channel.send("​"))
+        self.currentBlackCard = sdbPlayer.SDBCardSlot(None, await self.channel.send("​"))
+        await self.currentBlackCard.removeCard(self.deck.emptyBlack)
         await self.playPhase()
 
 
