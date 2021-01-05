@@ -259,9 +259,9 @@ class InlinePagedReactionMenu(PagedReactionMenu):
                 return False
         
         if reactPL.event_type == "REACTION_ADD":
-            await self.reactionAdded(self.pages[self.currentPage][emoji], user)
+            await self.reactionAdded(emoji, user)
         else:
-            await self.reactionRemoved(self.pages[self.currentPage][emoji], user)
+            await self.reactionRemoved(emoji, user)
 
         return True
 

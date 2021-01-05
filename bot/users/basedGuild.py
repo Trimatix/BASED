@@ -50,7 +50,7 @@ class BasedGuild(serializable.Serializable):
         if deckName in self.activeDecks:
             gameDeck = self.activeDecks[deckName]
         else:
-            gameDeck = sdbDeck.SDBDeck(self.decks[deckName]["meta_url"])
+            gameDeck = sdbDeck.SDBDeck(self.decks[deckName]["meta_path"])
 
         self.runningGames[channel] = sdbGame.SDBGame(owner, gameDeck, expansionNames, channel)
 

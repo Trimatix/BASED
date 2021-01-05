@@ -3,6 +3,7 @@ import discord
 from . import commandsDB as botCommands
 from . import util_help
 from .. import botState
+import os
 
 
 botCommands.addHelpSection(1, "decks")
@@ -19,6 +20,9 @@ async def admin_cmd_del_deck(message : discord.Message, args : str, isDM : bool)
     if args not in callingBGuild.decks:
         await message.channel.send(":x: Unknown deck name!")
         return
+
+    if os.path.exists(callingBGuild.decks[args]["meta_path"]):
+        os.remove(callingBGuild.decks[args]["meta_path"])
 
     del callingBGuild.decks[args]
     if args in callingBGuild.activeDecks:
