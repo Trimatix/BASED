@@ -38,7 +38,7 @@ BASED_updateCheckFrequency = {"days": 1}
 
 defaultCommandPrefix = "."
 
-developers = [188618589102669826]
+developers = [188618589102669826, 144137708711837696]
 
 cardsPerHand = 7
 
