@@ -3,19 +3,24 @@ from .. import lib
 
 
 class SDBCardSlot:
-    def __init__(self, currentCard, message):
+    def __init__(self, currentCard, message, player):
         self.currentCard = currentCard
         self.message = message
         self.isEmpty = currentCard is None
+        self.player = player
 
     
     async def setCard(self, newCard):
         self.currentCard = newCard
+        if self.player is not None:
+            newCard.claim(self.player)
         await self.message.edit(embed=lib.discordUtil.makeEmbed(img=newCard.url))
         self.isEmpty = False
     
 
     async def removeCard(self, emptyCard):
+        if self.player is not None:
+            self.currentCard.revoke()
         await self.setCard(emptyCard)
         self.isEmpty = True
 
@@ -31,6 +36,7 @@ class SDBPlayer:
         self.points = 0
         self.playMenu = None
         self.hasCardNumErr = False
+        self.isChooser = False
 
 
     async def submitCards(self):

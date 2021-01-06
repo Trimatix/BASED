@@ -30,6 +30,7 @@ class SDBGame:
         self.currentBlackCard = None
         self.shutdownOverride = False
         self.started = False
+        self.currentChooser = -1
 
 
     def allPlayersSubmitted(self):
@@ -47,7 +48,7 @@ class SDBGame:
         await lib.discordUtil.sendDM("```yaml\n" + self.owner.name + "'s game```\n<#" + str(self.channel.id) + ">\n\n__Your Hand__", player.dcUser, None, reactOnDM=False, exceptOnFail=True)
         for _ in range(cfg.cardsPerHand):
             cardSlotMsg = await player.dcUser.dm_channel.send("​")
-            cardSlot = sdbPlayer.SDBCardSlot(None, cardSlotMsg)
+            cardSlot = sdbPlayer.SDBCardSlot(None, cardSlotMsg, player)
             player.hand.append(cardSlot)
             cardSelector = SDBCardSelector(cardSlotMsg, player, cardSlot)
             botState.reactionMenusDB[cardSlotMsg.id] = cardSelector
@@ -70,8 +71,8 @@ class SDBGame:
         for cardSlot in player.hand:
             if cardSlot.isEmpty:
                 newCard = self.deck.randomWhite(self.expansionNames)
-                while player.hasCard(newCard):
-                    newCard = self.deck.randomWhite(self.expansionNames)
+                # while player.hasCard(newCard):
+                #     newCard = self.deck.randomWhite(self.expansionNames)
                 await cardSlot.setCard(newCard)
 
 
@@ -96,7 +97,7 @@ class SDBGame:
 
 
     async def pickNewBlackCard(self):
-        self.currentBlackCard = sdbPlayer.SDBCardSlot(None, await self.channel.send("​"))
+        self.currentBlackCard = sdbPlayer.SDBCardSlot(None, await self.channel.send("​"), None)
         await self.currentBlackCard.setCard(self.deck.randomBlack(self.expansionNames))
 
 
@@ -155,12 +156,23 @@ class SDBGame:
         await self.channel.send(embed=resultsEmbed)
 
 
+    def getChooser(self):
+        return self.players[self.currentChooser]
+
+
+    async def setChooser(self):
+        self.getChooser().isChooser = False
+        self.currentChooser = (self.currentChooser + 1) % len(self.players)
+        await self.channel.send(self.getChooser().dcUser.mention + " is now the card chooser!")
+
+
     async def playPhase(self):
         keepPlaying = True
 
         if self.gamePhase == GamePhase.setup:
             await self.dealAllPlayerCards()
             await self.pickNewBlackCard()
+            await self.setChooser()
             await self.resetSubmissions()
             
         elif self.gamePhase == GamePhase.playRound:
@@ -197,6 +209,8 @@ class SDBGame:
 
 
     async def startGame(self):
+        self.currentChooser = -1
+        self.players[-1].isChooser = True
         await self.doGameIntro()
         await self.setupAllPlayerHands()
         self.started = True
