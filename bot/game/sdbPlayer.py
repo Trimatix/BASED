@@ -21,7 +21,7 @@ class SDBCardSlot:
     async def removeCard(self, emptyCard):
         if self.player is not None:
             self.currentCard.revoke()
-        await self.setCard(emptyCard)
+        await self.message.edit(embed=lib.discordUtil.makeEmbed(img=emptyCard.url))
         self.isEmpty = True
 
 
