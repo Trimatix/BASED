@@ -87,8 +87,8 @@ class SDBDeck:
         elif not hasBlackCards:
             raise RuntimeError("Attempted to create a deck with no black cards")
 
-        self.emptyBlack = BlackCard("EMPTY", deckMeta["black_back"] if "black_back" in deckMeta else cfg.emptyBlackCard, 0, list(self.cards.keys())[0])
-        self.emptyWhite = WhiteCard("EMPTY", deckMeta["white_back"] if "white_back" in deckMeta else cfg.emptyWhiteCard, list(self.cards.keys())[0])
+        self.emptyBlack = BlackCard("EMPTY", deckMeta["black_back"] if "black_back" in deckMeta else cfg.emptyBlackCard, 0, list(self.cards.values())[0])
+        self.emptyWhite = WhiteCard("EMPTY", deckMeta["white_back"] if "white_back" in deckMeta else cfg.emptyWhiteCard, list(self.cards.values())[0])
 
         self.maxPlayers = int(deckMeta["white_count"] / cfg.cardsPerHand)
 
