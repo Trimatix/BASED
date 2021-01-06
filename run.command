@@ -1,6 +1,6 @@
-python main.py
+python3 main.py
 while [ $? -ne 1 ]
 do
 git pull
-python main.py
+python3 main.py
 done

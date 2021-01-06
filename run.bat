@@ -1,6 +1,6 @@
 @echo off
 :bot_reboot
-	python main.py
+	python3 main.py
 	if errorlevel 1 (
    		goto :bot_shutdown
 	)
