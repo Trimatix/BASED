@@ -23,6 +23,10 @@ class SDBCardPlayMenu(ReactionMenu.ReactionMenu):
 
 
     async def updateEmbed(self, updateRequiredWhiteCards=False):
+        if self.player.isChooser:
+            self.menuEmbed.description = "You are the card chooser for this round!\nYou don't play any cards this round, just sit back and get ready to choose the winner!"
+        else:
+            self.menuEmbed.description = ""
         newSelectedStr = "\n".join(str(slotNum + 1) + ". " + self.player.selectedSlots[slotNum].currentCard.text for slotNum in range(len(self.player.selectedSlots)) if not self.player.selectedSlots[slotNum].isEmpty)
         newSelectedStr = newSelectedStr if newSelectedStr else "No cards selected​"
         field = self.menuEmbed.fields[0]
