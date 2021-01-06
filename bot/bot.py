@@ -11,6 +11,7 @@ import os
 import traceback
 import asyncio
 import aiohttp
+import sys
 
 
 # BASED Imports
@@ -384,4 +385,6 @@ for varName in ["SDB_DC_TOKEN"]:
         raise KeyError("required environment variable " + varName + " not set.")
 
 # Launch the bot!! 🤘🚀
-botState.client.run(os.environ["SDB_DC_TOKEN"])
+# botState.client.run(os.environ["SDB_DC_TOKEN"])
+
+sys.exit(int(botState.shutdown))
