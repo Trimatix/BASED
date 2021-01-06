@@ -91,7 +91,10 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
             await message.channel.send("Deck creation failed.\nDecks must have at least 1 black card.")
             return
 
+        loadingMsg = await message.channel.send("Drawing cards... " + cfg.loadingEmoji)
         deckMeta = await make_cards.render_all(botState.client.get_guild(cfg.cardsDCChannel["guild_id"]).get_channel(cfg.cardsDCChannel["channel_id"]), message, gameData)
+        await loadingMsg.edit(content="Drawing cards... " + cfg.defaultSubmitEmoji)
+        
         deckMeta["spreadsheet_url"] = args
         metaPath = cfg.decksFolderPath + os.sep + str(message.guild.id) + "-" + gameData["title"] + ".json"
         lib.jsonHandler.writeJSON(metaPath, deckMeta)
