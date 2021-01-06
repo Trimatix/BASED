@@ -93,7 +93,7 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
 
         await message.channel.send("✅ Deck added: " + gameData["title"])
 
-botCommands.register("create", cmd_create, 0, allowDM=False, helpSection="decks", forceKeepArgsCasing=True, shortHelp="Add a new deck to the server. Your cards must be given in a **public** google spreadsheet link.", longHelp="Add a new deck to the server. You must provide a link to a **public** google spreadsheet containing your new deck's cards.\n\n- Each sheet in the spreadsheet is an expansion pack\n- The **A** column of each sheet contains that expansion pack's white cards\n- The **B** columns contain black cards\n- Black cards should give spaces for white cards with **one underscore (_) per white card.**")
+botCommands.register("create", cmd_create, 0, allowDM=False, helpSection="decks", signatureStr="**create <spreadsheet link>**", forceKeepArgsCasing=True, shortHelp="Add a new deck to the server. Your cards must be given in a **public** google spreadsheet link.", longHelp="Add a new deck to the server. You must provide a link to a **public** google spreadsheet containing your new deck's cards.\n\n- Each sheet in the spreadsheet is an expansion pack\n- The **A** column of each sheet contains that expansion pack's white cards\n- The **B** columns contain black cards\n- Black cards should give spaces for white cards with **one underscore (_) per white card.**")
 
 
 async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
@@ -142,7 +142,7 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
         await asyncio.sleep(2)
         await expansionSelectorMenu.updateMessage()
 
-botCommands.register("play", cmd_start_game, 0, allowDM=False, useDoc=True, helpSection="decks")
+botCommands.register("play", cmd_start_game, 0, allowDM=False, signatureStr="**play <deck name>**", shortHelp="Start a game of Super Deck Breaker! Give the name of the deck you want to play with.", helpSection="decks")
 
 
 async def cmd_decks(message : discord.Message, args : str, isDM : bool):
@@ -160,7 +160,7 @@ async def cmd_decks(message : discord.Message, args : str, isDM : bool):
                                                                     callingBGuild.decks[deckName]["black_count"]) + " cards | [sheet](" + callingBGuild.decks[deckName]["spreadsheet_url"] +")")
         await message.channel.send(embed=decksEmbed)
 
-botCommands.register("decks", cmd_decks, 0, allowDM=False, helpSection="decks", shortHelp="List all decks owned by this server.")
+botCommands.register("decks", cmd_decks, 0, allowDM=False, helpSection="decks", signatureStr="**decks**", shortHelp="List all decks owned by this server.")
 
 
 async def cmd_join(message : discord.Message, args : str, isDM : bool):
@@ -176,4 +176,4 @@ async def cmd_join(message : discord.Message, args : str, isDM : bool):
         await callingBGuild.runningGames[message.channel].dcMemberJoinGame(message.author)
 
 
-botCommands.register("join", cmd_join, 0, allowDM=False, helpSection="decks", shortHelp="Join the game that is currently running in the channel where you call the command")
+botCommands.register("join", cmd_join, 0, allowDM=False, helpSection="decks", signatureStr="**join**", shortHelp="Join the game that is currently running in the channel where you call the command")

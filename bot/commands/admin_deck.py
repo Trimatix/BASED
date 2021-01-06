@@ -35,4 +35,4 @@ async def admin_cmd_del_deck(message : discord.Message, args : str, isDM : bool)
 
     await message.channel.send("Deck removed!")
 
-botCommands.register("del-deck", admin_cmd_del_deck, 2, allowDM=False, useDoc=True, helpSection="decks", forceKeepArgsCasing=True)
+botCommands.register("del-deck", admin_cmd_del_deck, 2, allowDM=False, signatureStr="**del-deck <deck name>**", helpSection="decks", forceKeepArgsCasing=True, shortHelp="Delete the deck with the given name from the server.")
