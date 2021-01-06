@@ -81,13 +81,21 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
             await message.channel.send(":x: A deck already exists in this server with the name '" + gameData["title"] + "' - cannot add deck.")
             return
 
+        whiteCount = sum(len(gameData["expansions"][expansion]["white"]) for expansion in gameData["expansions"] if "white" in gameData["expansions"][expansion])
+        blackCount = sum(len(gameData["expansions"][expansion]["black"]) for expansion in gameData["expansions"] if "black" in gameData["expansions"][expansion])
+        
+        if int(whiteCount / cfg.cardsPerHand) < 2:
+            await message.channel.send("Deck creation failed.\nDecks must have at least " + str(2 * cfg.cardsPerHand) + " white cards.")
+            return
+        if blackCount == 0:
+            await message.channel.send("Deck creation failed.\nDecks must have at least 1 black card.")
+            return
+
         deckMeta = await make_cards.render_all(botState.client.get_guild(cfg.cardsDCChannel["guild_id"]).get_channel(cfg.cardsDCChannel["channel_id"]), message, gameData)
         deckMeta["spreadsheet_url"] = args
         metaPath = cfg.decksFolderPath + os.sep + str(message.guild.id) + "-" + gameData["title"] + ".json"
         lib.jsonHandler.writeJSON(metaPath, deckMeta)
         now = datetime.utcnow()
-        whiteCount = sum(len(deckMeta["expansions"][expansion]["white"]) for expansion in deckMeta["expansions"] if "white" in deckMeta["expansions"][expansion])
-        blackCount = sum(len(deckMeta["expansions"][expansion]["black"]) for expansion in deckMeta["expansions"] if "black" in deckMeta["expansions"][expansion])
         callingBGuild.decks[deckMeta["deck_name"].lower()] = {"meta_path": metaPath, "creator": message.author.id, "creation_date" : str(now.day).zfill(2) + "-" + str(now.month).zfill(2) + "-" + str(now.year), "plays": 0,
                                                             "expansion_names" : list(deckMeta["expansions"].keys()), "spreadsheet_url": args, "white_count": whiteCount, "black_count": blackCount}
 
@@ -157,7 +165,8 @@ async def cmd_decks(message : discord.Message, args : str, isDM : bool):
         for deckName in callingBGuild.decks:
             decksEmbed.add_field(name=deckName.title(), value="Added " + callingBGuild.decks[deckName]["creation_date"] + " by <@" + str(callingBGuild.decks[deckName]["creator"]) + ">\n" + \
                                                                 str(callingBGuild.decks[deckName]["plays"]) + " plays | " + str(callingBGuild.decks[deckName]["white_count"] + \
-                                                                    callingBGuild.decks[deckName]["black_count"]) + " cards | [sheet](" + callingBGuild.decks[deckName]["spreadsheet_url"] +")")
+                                                                callingBGuild.decks[deckName]["black_count"]) + " cards | [sheet](" + callingBGuild.decks[deckName]["spreadsheet_url"] +")\n" + \
+                                                                "Max players: " + str(int(callingBGuild.decks[deckName]["white_count"] / cfg.cardsPerHand)))
         await message.channel.send(embed=decksEmbed)
 
 botCommands.register("decks", cmd_decks, 0, allowDM=False, helpSection="decks", signatureStr="**decks**", shortHelp="List all decks owned by this server.")
@@ -171,9 +180,25 @@ async def cmd_join(message : discord.Message, args : str, isDM : bool):
     elif callingBGuild.runningGames[message.channel] is None or not callingBGuild.runningGames[message.channel].started:
         await message.channel.send(":x: The game has not yet started.")
     elif callingBGuild.runningGames[message.channel].hasDCMember(message.author):
-        await message.channel.send("You are already a player in this game! Find your cards hand in our DMs.")
+        await message.channel.send(":x: You are already a player in this game! Find your cards hand in our DMs.")
+    elif len(callingBGuild.runningGames[message.channel].players) == callingBGuild.runningGames[message.channel].deck.maxPlayers:
+        await message.channel.send(":x: This game is full!")
     else:
         await callingBGuild.runningGames[message.channel].dcMemberJoinGame(message.author)
 
 
 botCommands.register("join", cmd_join, 0, allowDM=False, helpSection="decks", signatureStr="**join**", shortHelp="Join the game that is currently running in the channel where you call the command")
+
+
+async def cmd_leave(message : discord.Message, args : str, isDM : bool):
+    callingBGuild = botState.guildsDB.getGuild(message.guild.id)
+
+    if message.channel not in callingBGuild.runningGames:
+        await message.channel.send(":x: There is no game currently running in this channel.")
+    elif callingBGuild.runningGames[message.channel] is None or not callingBGuild.runningGames[message.channel].started:
+        await message.channel.send(":x: The game has not yet started.")
+    else:
+        await callingBGuild.runningGames[message.channel].dcMemberLeaveGame(message.author)
+
+
+botCommands.register("leave", cmd_leave, 0, allowDM=False, helpSection="decks", signatureStr="**leave**", shortHelp="Leave the game that is currently running in the channel where you call the command")

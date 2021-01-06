@@ -29,18 +29,22 @@ class SDBGame:
         self.players = []
         self.currentBlackCard = None
         self.shutdownOverride = False
+        self.shutdownOverrideReason = ""
         self.started = False
         self.currentChooser = -1
+        self.playersLeftDuringSetup = []
 
 
     def allPlayersSubmitted(self):
         for player in self.players:
-            if not player.hasSubmitted:
+            if not player.isChooser and not player.hasSubmitted:
                 return False
         return True
 
 
     async def setupPlayerHand(self, player):
+        if self.shutdownOverride:
+            return
         await lib.discordUtil.sendDM("```yaml\n" + self.owner.name + "'s game```\n<#" + str(self.channel.id) + ">\n\n__Your Hand__", player.dcUser, None, reactOnDM=False, exceptOnFail=True)
         for _ in range(cfg.cardsPerHand):
             cardSlotMsg = await player.dcUser.dm_channel.send("​")
@@ -57,6 +61,8 @@ class SDBGame:
 
 
     async def setupAllPlayerHands(self):
+        if self.shutdownOverride:
+            return
         loadingMsg = await self.channel.send("Setting up player hands... " + cfg.loadingEmoji.sendable)
         for player in self.players:
             await self.setupPlayerHand(player)
@@ -64,6 +70,8 @@ class SDBGame:
 
 
     async def dealPlayerCards(self, player):
+        if self.shutdownOverride:
+            return
         for cardSlot in player.hand:
             if cardSlot.isEmpty:
                 newCard = self.deck.randomWhite(self.expansionNames)
@@ -73,6 +81,8 @@ class SDBGame:
 
 
     async def dealAllPlayerCards(self):
+        if self.shutdownOverride:
+            return
         loadingMsg = await self.channel.send("Dealing cards... " + cfg.loadingEmoji.sendable)
         for player in self.players:
             await self.dealPlayerCards(player)
@@ -87,24 +97,55 @@ class SDBGame:
         self.players.append(player)
         await self.channel.send(member.display_name + " joined the game!")
 
+    
+    async def dcMemberLeaveGame(self, member):
+        player = None
+        for p in self.players:
+            if p.dcUser == member:
+                player = p
+                break
+        if player is None:
+            raise RuntimeError("Failed to find a matching player for member " + member.name + "#" + str(member.id))
+
+        if self.gamePhase == GamePhase.setup:
+            self.playersLeftDuringSetup.append(player)
+        else:
+            self.players.remove(player)
+
+        for slot in player.hand:
+            slot.currentCard.revoke()
+        await self.channel.send(player.dcUser.mention + " left the game.")
+        
+        if len(self.players) < 2:
+            self.shutdownOverride = True
+            self.shutdownOverrideReason = "There aren't enough players left to continue the game."
+
 
     async def doGameIntro(self):
+        if self.shutdownOverride:
+            return
         await self.channel.send("Welcome to Super Deck Breaker!")
 
 
     async def pickNewBlackCard(self):
+        if self.shutdownOverride:
+            return
         self.currentBlackCard = sdbPlayer.SDBCardSlot(None, await self.channel.send("​"), None)
         await self.currentBlackCard.setCard(self.deck.randomBlack(self.expansionNames))
 
 
     async def waitForSubmissions(self):
+        if self.shutdownOverride:
+            return
         waitingMsg = await self.channel.send("Waiting for submissions...")
-        while not self.allPlayersSubmitted():
+        while not self.allPlayersSubmitted() and not self.shutdownOverride:
             await asyncio.sleep(cfg.submissionWaitingPeriod)
         await waitingMsg.delete()
 
 
     async def pickWinningCards(self):
+        if self.shutdownOverride:
+            return
         submissionsMenuMsg = await self.channel.send("The submissions are in! But who wins?")
         menu = InlineSDBSubmissionsReviewMenu(submissionsMenuMsg, self.players,
                                                 cfg.submissionsReviewMenuTimeout,
@@ -117,6 +158,8 @@ class SDBGame:
 
 
     async def resetSubmissions(self):
+        if self.shutdownOverride:
+            return
         for player in self.players:
             player.hasSubmitted = False
             await player.updatePlayMenu()
@@ -130,6 +173,8 @@ class SDBGame:
 
 
     async def checkKeepPlaying(self):
+        if self.shutdownOverride:
+            return
         confirmMsg = await self.channel.send("Play another round?")
         keepPlaying = await InlineConfirmationMenu(confirmMsg, self.owner, cfg.keepPlayingConfirmMenuTimeout).doMenu()
         await confirmMsg.delete()
@@ -149,7 +194,10 @@ class SDBGame:
                                                     (("" if winningplayers[0].points == 1 else "s")) +
                                                     (("" if len(winningplayers) == 1 else " each") + "!"))
         resultsEmbed.add_field(name="Winner" + ("" if len(winningplayers) == 1 else "s"), value=", ".join(player.dcUser.mention for player in winningplayers))
-        await self.channel.send(embed=resultsEmbed)
+        if self.shutdownOverride:
+            await self.channel.send(self.shutdownOverrideReason if self.shutdownOverrideReason else "The game was forcibly ended, likely due to an error.", embed=resultsEmbed)
+        else:
+            await self.channel.send(embed=resultsEmbed)
 
 
     def getChooser(self):
@@ -157,8 +205,11 @@ class SDBGame:
 
 
     async def setChooser(self):
+        if self.shutdownOverride:
+            return
         self.getChooser().isChooser = False
         self.currentChooser = (self.currentChooser + 1) % len(self.players)
+        self.getChooser().isChooser = True
         await self.channel.send(self.getChooser().dcUser.mention + " is now the card chooser!")
 
 
@@ -172,6 +223,12 @@ class SDBGame:
             await self.resetSubmissions()
             
         elif self.gamePhase == GamePhase.playRound:
+            if self.getChooser() in self.playersLeftDuringSetup:
+                await self.setChooser()
+                await self.resetSubmissions()
+            for leftPlayer in self.playersLeftDuringSetup:
+                self.players.remove(leftPlayer)
+
             await self.waitForSubmissions()
             await self.pickWinningCards()
 
