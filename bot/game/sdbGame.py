@@ -40,10 +40,6 @@ class SDBGame:
         return True
 
 
-    async def doGameIntro(self):
-        await self.channel.send("")
-
-
     async def setupPlayerHand(self, player):
         await lib.discordUtil.sendDM("```yaml\n" + self.owner.name + "'s game```\n<#" + str(self.channel.id) + ">\n\n__Your Hand__", player.dcUser, None, reactOnDM=False, exceptOnFail=True)
         for _ in range(cfg.cardsPerHand):
