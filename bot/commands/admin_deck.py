@@ -6,7 +6,7 @@ from .. import botState
 import os
 
 
-botCommands.addHelpSection(1, "decks")
+botCommands.addHelpSection(2, "decks")
 
 
 async def admin_cmd_del_deck(message : discord.Message, args : str, isDM : bool):
@@ -35,4 +35,4 @@ async def admin_cmd_del_deck(message : discord.Message, args : str, isDM : bool)
 
     await message.channel.send("Deck removed!")
 
-botCommands.register("del-deck", admin_cmd_del_deck, 1, allowDM=False, useDoc=True, helpSection="decks", forceKeepArgsCasing=True)
+botCommands.register("del-deck", admin_cmd_del_deck, 2, allowDM=False, useDoc=True, helpSection="decks", forceKeepArgsCasing=True)
