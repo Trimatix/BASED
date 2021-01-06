@@ -72,10 +72,10 @@ class SDBDeck:
         for expansion in self.expansionNames:
             if "white" in deckMeta["expansions"][expansion]:
                 for cardData in deckMeta["expansions"][expansion]["white"]:
-                    self.cards[expansion].white.append(WhiteCard(cardData["text"], cardData["url"], self))
+                    self.cards[expansion].white.append(WhiteCard(cardData["text"], cardData["url"], self.cards[expansion]))
             if "black" in deckMeta["expansions"][expansion]:
                 for cardData in deckMeta["expansions"][expansion]["black"]:
-                    self.cards[expansion].black.append(BlackCard(cardData["text"], cardData["url"], cardData["requiredWhiteCards"], self))
+                    self.cards[expansion].black.append(BlackCard(cardData["text"], cardData["url"], cardData["requiredWhiteCards"], self.cards[expansion]))
 
             if not hasWhiteCards:
                 hasWhiteCards = len(self.cards[expansion].white) != 0
@@ -87,8 +87,8 @@ class SDBDeck:
         elif not hasBlackCards:
             raise RuntimeError("Attempted to create a deck with no black cards")
 
-        self.emptyBlack = BlackCard("EMPTY", deckMeta["black_back"] if "black_back" in deckMeta else cfg.emptyBlackCard, 0, self)
-        self.emptyWhite = WhiteCard("EMPTY", deckMeta["white_back"] if "white_back" in deckMeta else cfg.emptyWhiteCard, self)
+        self.emptyBlack = BlackCard("EMPTY", deckMeta["black_back"] if "black_back" in deckMeta else cfg.emptyBlackCard, 0, list(self.cards.keys())[0])
+        self.emptyWhite = WhiteCard("EMPTY", deckMeta["white_back"] if "white_back" in deckMeta else cfg.emptyWhiteCard, list(self.cards.keys())[0])
 
 
     def randomWhite(self, expansions=[]):
