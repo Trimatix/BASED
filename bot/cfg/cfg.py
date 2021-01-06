@@ -16,7 +16,7 @@ helpEmbedTimeout = {"minutes": 3}
 # When a user message prompts a DM to be sent, this emoji will be added to the message reactions.
 dmSentEmoji = BasedEmoji(unicode="📬")
 
-expiredMenuMsg = "😴 This role menu has now expired."
+expiredMenuMsg = "😴 This menu has now expired."
 
 # The default emojis to list in a reaction menu
 numberEmojis = [BasedEmoji(unicode="0️⃣"), BasedEmoji(unicode="1️⃣"), BasedEmoji(unicode="2️⃣"), BasedEmoji(unicode="3️⃣"), BasedEmoji(unicode="4️⃣"), BasedEmoji(unicode="5️⃣"), BasedEmoji(unicode="6️⃣"), BasedEmoji(unicode="7️⃣"), BasedEmoji(unicode="8️⃣"), BasedEmoji(unicode="9️⃣"), BasedEmoji(unicode="🔟")]
