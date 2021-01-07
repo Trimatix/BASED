@@ -69,9 +69,11 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
         return
 
     callingBGuild = botState.guildsDB.getGuild(message.guild.id)
+    loadingMsg = await message.channel.send("Reading spreadsheet... " + cfg.loadingEmoji.sendable)
 
     try:
         gameData = collect_cards(args)
+        await loadingMsg.edit(content="Reading spreadsheet... " + cfg.defaultSubmitEmoji.sendable)
     except gspread.SpreadsheetNotFound:
         await message.channel.send(":x: Unrecognised spreadsheet! Please make sure the file exists and is public.")
         return
@@ -90,9 +92,9 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
             await message.channel.send("Deck creation failed.\nDecks must have at least 1 black card.")
             return
 
-        loadingMsg = await message.channel.send("Drawing cards... " + cfg.loadingEmoji)
+        loadingMsg = await message.channel.send("Drawing cards... " + cfg.loadingEmoji.sendable)
         deckMeta = await make_cards.render_all(botState.client.get_guild(cfg.cardsDCChannel["guild_id"]).get_channel(cfg.cardsDCChannel["channel_id"]), message, gameData, cfg.cardFont)
-        await loadingMsg.edit(content="Drawing cards... " + cfg.defaultSubmitEmoji)
+        await loadingMsg.edit(content="Drawing cards... " + cfg.defaultSubmitEmoji.sendable)
         
         deckMeta["spreadsheet_url"] = args
         metaPath = cfg.decksFolderPath + os.sep + str(message.guild.id) + "-" + gameData["title"] + ".json"
