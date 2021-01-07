@@ -10,12 +10,14 @@ from ..reactionMenus.SDBSubmissionsReviewMenu import InlineSDBSubmissionsReviewM
 from ..reactionMenus.ConfirmationReactionMenu import InlineConfirmationMenu
 from ..reactionMenus.SDBCardPlayMenu import SDBCardPlayMenu
 from ..reactionMenus.SDBCardSelector import SDBCardSelector
+from ..reactionMenus.PagedReactionMenu import InvalidClosingReaction
+import random
 
 
 class GamePhase(Enum):
     setup = -1
     playRound = 0
-    # postRound = 1
+    postRound = 1
     gameOver = 2
 
 
@@ -109,6 +111,19 @@ class SDBGame:
 
         if self.gamePhase == GamePhase.setup:
             self.playersLeftDuringSetup.append(player)
+        elif self.gamePhase == GamePhase.playRound:
+            if player.isChooser:
+                await self.setChooser()
+                if self.getChooser().hasSubmitted:
+                    self.getChooser().submittedCards = []
+                    self.getChooser().hasSubmitted = False
+                player.isChooser = False
+            self.players.remove(player)
+        elif self.gamePhase == GamePhase.postRound:
+            if player.isChooser:
+                player.isChooser = False
+                await self.channel.send("The card chooser left the game! Please add any reaction to end the round. The winner will be chosen at random.")
+            self.players.remove(player)
         else:
             self.players.remove(player)
 
@@ -147,14 +162,22 @@ class SDBGame:
         if self.shutdownOverride:
             return
         submissionsMenuMsg = await self.channel.send("The submissions are in! But who wins?")
-        menu = InlineSDBSubmissionsReviewMenu(submissionsMenuMsg, self.players,
+        menu = InlineSDBSubmissionsReviewMenu(submissionsMenuMsg, self,
                                                 cfg.submissionsReviewMenuTimeout,
                                                 self.currentBlackCard.currentCard.requiredWhiteCards > 1,
-                                                self.owner)
-        winningOption = await menu.doMenu()
-        if len(winningOption) != 1:
-            raise RuntimeError("given selected options array of length " + str(len(winningOption)) + " but should be length 1")
-        winningOption[0].player.points += 1
+                                                self.owner,
+                                                self.getChooser())
+        try:
+            winningOption = await menu.doMenu()
+        except InvalidClosingReaction:
+            winningPlayer = random.choice(self.players)
+        else:
+            if len(winningOption) != 1:
+                raise RuntimeError("given selected options array of length " + str(len(winningOption)) + " but should be length 1")
+            winningPlayer = winningOption[0].player
+
+        await self.channel.send(winningPlayer.dcUser.mention + " wins the round!")
+        winningPlayer.points += 1
 
 
     async def resetSubmissions(self):
@@ -230,10 +253,9 @@ class SDBGame:
                 self.players.remove(leftPlayer)
 
             await self.waitForSubmissions()
-            await self.pickWinningCards()
 
-        # elif self.gamePhase == GamePhase.postRound:
-        #     await self.dealCards()
+        elif self.gamePhase == GamePhase.postRound:
+            await self.pickWinningCards()
 
         elif self.gamePhase == GamePhase.gameOver:
             await self.showLeaderboard()
@@ -250,10 +272,10 @@ class SDBGame:
             self.gamePhase = GamePhase.playRound
 
         elif self.gamePhase == GamePhase.playRound:
-            self.gamePhase = GamePhase.gameOver
+            self.gamePhase = GamePhase.postRound
 
-        # elif self.gamePhase == GamePhase.postRound:
-        #     self.gamePhase = GamePhase.setup
+        elif self.gamePhase == GamePhase.postRound:
+            self.gamePhase = GamePhase.gameOver
 
         elif self.gamePhase == GamePhase.gameOver:
             self.gamePhase = GamePhase.setup

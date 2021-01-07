@@ -170,6 +170,13 @@ class MultiPageOptionPicker(PagedReactionMenu):
         await self.updateMessage(noRefreshOptions=True)
 
 
+class InvalidClosingReaction(Exception):
+    def __init__(self, emoji, *args: object) -> None:
+        self.emoji = emoji
+        super().__init__(*args)
+
+
+
 class InlinePagedReactionMenu(PagedReactionMenu):
     """A reaction menu that, instead of taking a list of options, takes a list of pages of options.
     """
@@ -287,7 +294,9 @@ class InlinePagedReactionMenu(PagedReactionMenu):
                     currentEmbed = self.currentPage
                     currentEmbed.set_footer(text="This menu has now expired.")
                     await self.msg.edit(embed=currentEmbed)
-                    return [self.pages[self.currentPage][lib.emojis.BasedEmoji.fromReaction(reactPL.emoji)]]
+                    if emoji in self.pages[self.currentPage]:
+                        return [self.pages[self.currentPage][emoji]]
+                    raise InvalidClosingReaction(emoji)
 
             except asyncio.TimeoutError:
                 await self.msg.edit(content="This menu has now expired. Please try the command again.")

@@ -12,11 +12,10 @@ class SDBWinningSubmissionOption(ReactionMenu.DummyReactionMenuOption):
 
 
 class InlineSDBSubmissionsReviewMenu(PagedReactionMenu.InlinePagedReactionMenu):
-    def __init__(self, msg, players, timeoutSeconds, multiCard,
-                    targetMember : Member = None, targetRole : Role = None, owningBasedUser : basedUser.BasedUser = None):
+    def __init__(self, msg, game, timeoutSeconds, multiCard, targetMember : Member, chooserPlayer):
         pages = {}
         returnTriggers = []
-        for player in players:
+        for player in game.players:
             if not player.isChooser:
                 for cardNum in range(len(player.submittedCards)):
                     currentEmbed = Embed()
@@ -28,5 +27,15 @@ class InlineSDBSubmissionsReviewMenu(PagedReactionMenu.InlinePagedReactionMenu):
                     newOption = SDBWinningSubmissionOption(player)
                     pages[currentEmbed] = {cfg.defaultAcceptEmoji: newOption}
                     returnTriggers.append(newOption)
+        
+        self.chooserPlayer = chooserPlayer
 
-        super().__init__(msg, timeoutSeconds, pages=pages, targetMember=targetMember, targetRole=targetRole, owningBasedUser=owningBasedUser, noCancel=True, returnTriggers=returnTriggers, anon=True)
+        super().__init__(msg, timeoutSeconds, pages=pages, targetMember=targetMember, noCancel=True, returnTriggers=returnTriggers, anon=True)
+
+
+    async def reactionClosesMenu(self, reactPL):
+        return not self.chooserPlayer.isChooser or await super().reactionClosesMenu(reactPL)
+
+
+    def reactionValid(self, reactPL):
+        return not self.chooserPlayer.isChooser or super().reactionValid(reactPL)
