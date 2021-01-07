@@ -25,9 +25,13 @@ from .cfg import cfg, versionInfo
 async def checkForUpdates():
     """Check if any new BASED versions are available, and print a message to console if one is found.
     """
-    BASED_versionCheck = await versionInfo.checkForUpdates(botState.httpClient)
-    if BASED_versionCheck.updatesChecked and not BASED_versionCheck.upToDate:
-        print("⚠ New BASED update " + BASED_versionCheck.latestVersion + " now available! See " + versionInfo.BASED_REPO_URL + " for instructions on how to update your BASED fork.")
+    try:
+        BASED_versionCheck = await versionInfo.checkForUpdates(botState.httpClient)
+    except versionInfo.UpdatesCheckFailed:
+        print("⚠ BASED updates check failed. Either the GitHub API is down, or your BASED updates checker version is depracated: " + versionInfo.BASED_REPO_URL)
+    else:
+        if BASED_versionCheck.updatesChecked and not BASED_versionCheck.upToDate:
+            print("⚠ New BASED update " + BASED_versionCheck.latestVersion + " now available! See " + versionInfo.BASED_REPO_URL + " for instructions on how to update your BASED fork.")
 
 
 class BasedClient(ClientBaseClass):

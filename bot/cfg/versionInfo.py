@@ -13,6 +13,10 @@ BASED_REPO_URL = "https://github.com/Trimatix/BASED/"
 BASED_API_URL = "https://api.github.com/repos/" + "/".join(BASED_REPO_URL.split("/")[-3:-1]) + "/releases"
 
 
+class UpdatesCheckFailed(Exception):
+    pass
+
+
 class UpdateCheckResults:
     """Data class representing the results of a bot version check.
 
@@ -59,8 +63,13 @@ async def getNewestTagOnRemote(httpClient : aiohttp.ClientSession, url : str) ->
     :rtype: str 
     """
     async with httpClient.get(url) as resp:
-        respJSON = await resp.json()
-        return respJSON[0]["tag_name"]
+        if not resp.ok:
+            raise UpdatesCheckFailed()
+        try:
+            respJSON = await resp.json()
+            return respJSON[0]["tag_name"]
+        except (IndexError, KeyError, aiohttp.ContentTypeError):
+            raise UpdatesCheckFailed()
 
 
 # Version of BASED currently installed
