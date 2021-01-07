@@ -12,7 +12,7 @@ class SDBWinningSubmissionOption(ReactionMenu.DummyReactionMenuOption):
 
 
 class InlineSDBSubmissionsReviewMenu(PagedReactionMenu.InlinePagedReactionMenu):
-    def __init__(self, msg, game, timeoutSeconds, multiCard, targetMember : Member, chooserPlayer):
+    def __init__(self, msg, game, timeoutSeconds, multiCard, chooserPlayer):
         pages = {}
         returnTriggers = []
         for player in game.players:
@@ -30,7 +30,7 @@ class InlineSDBSubmissionsReviewMenu(PagedReactionMenu.InlinePagedReactionMenu):
         
         self.chooserPlayer = chooserPlayer
 
-        super().__init__(msg, timeoutSeconds, pages=pages, targetMember=targetMember, noCancel=True, returnTriggers=returnTriggers, anon=True)
+        super().__init__(msg, timeoutSeconds, pages=pages, targetMember=chooserPlayer.dcUser, noCancel=True, returnTriggers=returnTriggers, anon=True)
 
 
     async def reactionClosesMenu(self, reactPL):

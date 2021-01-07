@@ -173,7 +173,6 @@ class SDBGame:
         menu = InlineSDBSubmissionsReviewMenu(submissionsMenuMsg, self,
                                                 cfg.submissionsReviewMenuTimeout,
                                                 self.currentBlackCard.currentCard.requiredWhiteCards > 1,
-                                                self.owner,
                                                 self.getChooser())
         try:
             winningOption = await menu.doMenu()
