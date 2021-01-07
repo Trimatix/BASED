@@ -131,9 +131,17 @@ class SDBGame:
             slot.currentCard.revoke()
         await self.channel.send(player.dcUser.mention + " left the game.")
         
-        if len(self.players) < 2:
+        if (len(self.players) - len(self.playersLeftDuringSetup)) < 2:
             self.shutdownOverride = True
             self.shutdownOverrideReason = "There aren't enough players left to continue the game."
+
+        elif self.owner == player.dcUser:
+            newOwner = random.choice(self.players)
+            while newOwner == player or newOwner in self.playersLeftDuringSetup:
+                newOwner = random.choice(self.players)
+            self.owner = newOwner.dcUser
+            await self.channel.send("The game owner has left the game!\nThe new owner is " + self.owner.dcUser.mention + ".")
+            await self.owner.dcUser.send("You are now the owner of the game in <#" + self.channel.id + ">!\nThis means you are responsible for game admin, such as choosing to keep playing after every round.")
 
 
     async def doGameIntro(self):
@@ -216,7 +224,7 @@ class SDBGame:
                                                     ", with " + str(winningplayers[0].points) + " point" +
                                                     (("" if winningplayers[0].points == 1 else "s")) +
                                                     (("" if len(winningplayers) == 1 else " each") + "!"))
-        resultsEmbed.add_field(name="Winner" + ("" if len(winningplayers) == 1 else "s"), value=", ".join(player.dcUser.mention for player in winningplayers))
+        resultsEmbed.add_field(name="🏆 Winner" + ("" if len(winningplayers) == 1 else "s"), value=", ".join(player.dcUser.mention for player in winningplayers))
         if self.shutdownOverride:
             await self.channel.send(self.shutdownOverrideReason if self.shutdownOverrideReason else "The game was forcibly ended, likely due to an error.", embed=resultsEmbed)
         else:
@@ -251,6 +259,7 @@ class SDBGame:
                 await self.resetSubmissions()
             for leftPlayer in self.playersLeftDuringSetup:
                 self.players.remove(leftPlayer)
+            self.playersLeftDuringSetup = []
 
             await self.waitForSubmissions()
 
