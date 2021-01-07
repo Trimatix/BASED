@@ -90,7 +90,8 @@ class SDBDeck:
         self.emptyBlack = BlackCard("EMPTY", deckMeta["black_back"] if "black_back" in deckMeta else cfg.emptyBlackCard, 0, list(self.cards.values())[0])
         self.emptyWhite = WhiteCard("EMPTY", deckMeta["white_back"] if "white_back" in deckMeta else cfg.emptyWhiteCard, list(self.cards.values())[0])
 
-        self.maxPlayers = int(deckMeta["white_count"] / cfg.cardsPerHand)
+        whiteCount = deckMeta["white_count"] if "white_count" in deckMeta else sum(len(deckMeta["expansions"][expansion]["white"]) for expansion in deckMeta["expansions"] if "white" in deckMeta["expansions"][expansion])
+        self.maxPlayers = int(whiteCount / cfg.cardsPerHand)
 
 
     def randomWhite(self, expansions=[]):
