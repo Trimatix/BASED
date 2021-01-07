@@ -63,12 +63,11 @@ async def getNewestTagOnRemote(httpClient : aiohttp.ClientSession, url : str) ->
     :rtype: str 
     """
     async with httpClient.get(url) as resp:
-        if not resp.ok:
-            raise UpdatesCheckFailed()
         try:
+            resp.raise_for_status()
             respJSON = await resp.json()
             return respJSON[0]["tag_name"]
-        except (IndexError, KeyError, aiohttp.ContentTypeError):
+        except (IndexError, KeyError, aiohttp.ContentTypeError, aiohttp.ClientResponseError):
             raise UpdatesCheckFailed()
 
 
