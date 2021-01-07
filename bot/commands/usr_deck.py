@@ -197,10 +197,8 @@ botCommands.register("join", cmd_join, 0, allowDM=False, helpSection="decks", si
 async def cmd_leave(message : discord.Message, args : str, isDM : bool):
     callingBGuild = botState.guildsDB.getGuild(message.guild.id)
 
-    if message.channel not in callingBGuild.runningGames:
+    if message.channel not in callingBGuild.runningGames or callingBGuild.runningGames[message.channel] is None:
         await message.channel.send(":x: There is no game currently running in this channel.")
-    elif callingBGuild.runningGames[message.channel] is None or not callingBGuild.runningGames[message.channel].started:
-        await message.channel.send(":x: The game has not yet started.")
     else:
         await callingBGuild.runningGames[message.channel].dcMemberLeaveGame(message.author)
 

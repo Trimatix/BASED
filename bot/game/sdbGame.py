@@ -49,6 +49,8 @@ class SDBGame:
             return
         await lib.discordUtil.sendDM("```yaml\n" + self.owner.name + "'s game```\n<#" + str(self.channel.id) + ">\n\n__Your Hand__", player.dcUser, None, reactOnDM=False, exceptOnFail=True)
         for _ in range(cfg.cardsPerHand):
+            if self.shutdownOverride:
+                return
             cardSlotMsg = await player.dcUser.dm_channel.send("​")
             cardSlot = sdbPlayer.SDBCardSlot(None, cardSlotMsg, player)
             player.hand.append(cardSlot)
@@ -67,6 +69,8 @@ class SDBGame:
             return
         loadingMsg = await self.channel.send("Setting up player hands... " + cfg.loadingEmoji.sendable)
         for player in self.players:
+            if self.shutdownOverride:
+                return
             await self.setupPlayerHand(player)
         await loadingMsg.edit(content="Setting up player hands... " + cfg.defaultSubmitEmoji.sendable)
 
@@ -75,6 +79,8 @@ class SDBGame:
         if self.shutdownOverride:
             return
         for cardSlot in player.hand:
+            if self.shutdownOverride:
+                return
             if cardSlot.isEmpty:
                 newCard = self.deck.randomWhite(self.expansionNames)
                 # while player.hasCard(newCard):
@@ -87,6 +93,8 @@ class SDBGame:
             return
         loadingMsg = await self.channel.send("Dealing cards... " + cfg.loadingEmoji.sendable)
         for player in self.players:
+            if self.shutdownOverride:
+                return
             await self.dealPlayerCards(player)
         await loadingMsg.edit(content="Dealing cards... " + cfg.defaultSubmitEmoji.sendable)
 
@@ -106,42 +114,55 @@ class SDBGame:
             if p.dcUser == member:
                 player = p
                 break
-        if player is None:
-            raise RuntimeError("Failed to find a matching player for member " + member.name + "#" + str(member.id))
-
-        if self.gamePhase == GamePhase.setup:
-            self.playersLeftDuringSetup.append(player)
-        elif self.gamePhase == GamePhase.playRound:
-            if player.isChooser:
-                await self.setChooser()
-                if self.getChooser().hasSubmitted:
-                    self.getChooser().submittedCards = []
-                    self.getChooser().hasSubmitted = False
-                player.isChooser = False
-            self.players.remove(player)
-        elif self.gamePhase == GamePhase.postRound:
-            if player.isChooser:
-                player.isChooser = False
-                await self.channel.send("The card chooser left the game! Please add any reaction to end the round. The winner will be chosen at random.")
-            self.players.remove(player)
+        if not self.started:
+            if player is not None:
+                for slot in player.hand:
+                    if not slot.isEmpty:
+                        slot.currentCard.revoke()
+                self.players.remove(player)
+            await self.channel.send(member.mention + " left the game.")
+            
+            if (len(self.players) - len(self.playersLeftDuringSetup)) < 2:
+                self.shutdownOverride = True
+                self.shutdownOverrideReason = "There aren't enough players left to continue the game."
         else:
-            self.players.remove(player)
+            if player is None:
+                raise RuntimeError("Failed to find a matching player for member " + member.name + "#" + str(member.id))
 
-        for slot in player.hand:
-            slot.currentCard.revoke()
-        await self.channel.send(player.dcUser.mention + " left the game.")
-        
-        if (len(self.players) - len(self.playersLeftDuringSetup)) < 2:
-            self.shutdownOverride = True
-            self.shutdownOverrideReason = "There aren't enough players left to continue the game."
+            if self.gamePhase == GamePhase.setup:
+                self.playersLeftDuringSetup.append(player)
+            elif self.gamePhase == GamePhase.playRound:
+                if player.isChooser:
+                    await self.setChooser()
+                    if self.getChooser().hasSubmitted:
+                        self.getChooser().submittedCards = []
+                        self.getChooser().hasSubmitted = False
+                    player.isChooser = False
+                self.players.remove(player)
+            elif self.gamePhase == GamePhase.postRound:
+                if player.isChooser:
+                    player.isChooser = False
+                    await self.channel.send("The card chooser left the game! Please add any reaction to end the round. The winner will be chosen at random.")
+                self.players.remove(player)
+            else:
+                self.players.remove(player)
 
-        elif self.owner == player.dcUser:
-            newOwner = random.choice(self.players)
-            while newOwner == player or newOwner in self.playersLeftDuringSetup:
+            for slot in player.hand:
+                if not slot.isEmpty:
+                    slot.currentCard.revoke()
+            await self.channel.send(member.mention + " left the game.")
+            
+            if (len(self.players) - len(self.playersLeftDuringSetup)) < 2:
+                self.shutdownOverride = True
+                self.shutdownOverrideReason = "There aren't enough players left to continue the game."
+
+            elif self.owner == player.dcUser:
                 newOwner = random.choice(self.players)
-            self.owner = newOwner.dcUser
-            await self.channel.send("The game owner has left the game!\nThe new owner is " + self.owner.dcUser.mention + ".")
-            await self.owner.dcUser.send("You are now the owner of the game in <#" + self.channel.id + ">!\nThis means you are responsible for game admin, such as choosing to keep playing after every round.")
+                while newOwner == player or newOwner in self.playersLeftDuringSetup:
+                    newOwner = random.choice(self.players)
+                self.owner = newOwner.dcUser
+                await self.channel.send("The game owner has left the game!\nThe new owner is " + self.owner.dcUser.mention + ".")
+                await self.owner.dcUser.send("You are now the owner of the game in <#" + self.channel.id + ">!\nThis means you are responsible for game admin, such as choosing to keep playing after every round.")
 
 
     async def doGameIntro(self):
