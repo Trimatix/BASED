@@ -4,7 +4,6 @@ import aiohttp
 import json
 from datetime import datetime
 import asyncio
-import aiohttp
 
 from . import commandsDB as botCommands
 from .. import botState, lib
@@ -22,7 +21,7 @@ from ..cardRenderer import make_cards
 
 # use creds to create a client to interact with the Google Drive API
 scope = ['https://spreadsheets.google.com/feeds']
-creds = ServiceAccountCredentials.from_json_keyfile_name(os.getcwd() + os.sep + "bot" + os.sep + "cfg" + os.sep + 'google_client_secret.json', scope)
+creds = ServiceAccountCredentials.from_json_keyfile_name(cfg.googleAPICred, scope)
 gspread_client = gspread.authorize(creds)
 
 def collect_cards(sheetLink):
@@ -92,7 +91,7 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
             return
 
         loadingMsg = await message.channel.send("Drawing cards... " + cfg.loadingEmoji)
-        deckMeta = await make_cards.render_all(botState.client.get_guild(cfg.cardsDCChannel["guild_id"]).get_channel(cfg.cardsDCChannel["channel_id"]), message, gameData)
+        deckMeta = await make_cards.render_all(botState.client.get_guild(cfg.cardsDCChannel["guild_id"]).get_channel(cfg.cardsDCChannel["channel_id"]), message, gameData, cfg.cardFont)
         await loadingMsg.edit(content="Drawing cards... " + cfg.defaultSubmitEmoji)
         
         deckMeta["spreadsheet_url"] = args

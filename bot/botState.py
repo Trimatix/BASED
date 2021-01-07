@@ -14,3 +14,5 @@ reactionMenusDB = None
 reactionMenusTTDB = None
 
 shutdown = False
+
+updatesCheckTT = None

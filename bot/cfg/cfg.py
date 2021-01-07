@@ -74,5 +74,8 @@ gameJoinMenuTimout = {"minutes": 5}
 
 expansionPickerTimeout = {"minutes": 5}
 
+cardFont = "bot/cardRenderer/HelveticaNeueLTStd-Bd.otf"
+googleAPICred = "bot/cfg/google_client_secret.json"
+
 cardsDCChannel = {"guild_id": 733652363235033088,
                     "channel_id": 796038447252766741}

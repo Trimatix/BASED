@@ -4,4 +4,3 @@ pillow
 gspread
 psutil
 oauth2client
-gitpython
