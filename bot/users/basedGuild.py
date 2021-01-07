@@ -37,7 +37,7 @@ class BasedGuild(serializable.Serializable):
         self.activeDecks = {}
 
 
-    async def startGameSignups(self, owner, channel, deckName, expansionNames):
+    async def startGameSignups(self, owner, channel, deckName, expansionNames, rounds):
         if deckName not in self.decks:
             raise NameError("Unknown deck name: " + deckName)
 
@@ -52,7 +52,7 @@ class BasedGuild(serializable.Serializable):
         else:
             gameDeck = sdbDeck.SDBDeck(self.decks[deckName]["meta_path"])
 
-        self.runningGames[channel] = sdbGame.SDBGame(owner, gameDeck, expansionNames, channel)
+        self.runningGames[channel] = sdbGame.SDBGame(owner, gameDeck, expansionNames, channel, rounds)
 
         signupMsg = await channel.send("​")
         signupMenu = SDBSignupMenu.SDBSignupMenu(signupMsg, self.runningGames[channel], lib.timeUtil.timeDeltaFromDict(cfg.gameJoinMenuTimout))

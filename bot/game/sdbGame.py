@@ -22,7 +22,7 @@ class GamePhase(Enum):
 
 
 class SDBGame:
-    def __init__(self, owner, deck, activeExpansions, channel, gamePhase=GamePhase.setup):
+    def __init__(self, owner, deck, activeExpansions, channel, rounds, gamePhase=GamePhase.setup):
         self.owner = owner
         self.channel = channel
         self.deck = deck
@@ -35,6 +35,8 @@ class SDBGame:
         self.started = False
         self.currentChooser = -1
         self.playersLeftDuringSetup = []
+        self.rounds = rounds
+        self.currentRound = 0
 
 
     def allPlayersSubmitted(self):
@@ -91,12 +93,13 @@ class SDBGame:
     async def dealAllPlayerCards(self):
         if self.shutdownOverride:
             return
-        loadingMsg = await self.channel.send("Dealing cards... " + cfg.loadingEmoji.sendable)
+        loadingStr = "** **\n**__Round " + str(self.currentRound) + ((" of " + str(self.rounds)) if self.rounds != -1 else "") + "__**\nDealing cards... "
+        loadingMsg = await self.channel.send(loadingStr + cfg.loadingEmoji.sendable)
         for player in self.players:
             if self.shutdownOverride:
                 return
             await self.dealPlayerCards(player)
-        await loadingMsg.edit(content="Dealing cards... " + cfg.defaultSubmitEmoji.sendable)
+        await loadingMsg.edit(content=loadingStr + cfg.defaultSubmitEmoji.sendable)
 
 
     async def dcMemberJoinGame(self, member):
@@ -225,11 +228,14 @@ class SDBGame:
 
     async def checkKeepPlaying(self):
         if self.shutdownOverride:
-            return
-        confirmMsg = await self.channel.send("Play another round?")
-        keepPlaying = await InlineConfirmationMenu(confirmMsg, self.owner, cfg.keepPlayingConfirmMenuTimeout).doMenu()
-        await confirmMsg.delete()
-        return cfg.defaultAcceptEmoji in keepPlaying
+            return False
+        if self.rounds != -1:
+            return self.currentRound != self.rounds
+        else:
+            confirmMsg = await self.channel.send("Play another round?")
+            keepPlaying = await InlineConfirmationMenu(confirmMsg, self.owner, cfg.keepPlayingConfirmMenuTimeout).doMenu()
+            await confirmMsg.delete()
+            return cfg.defaultAcceptEmoji in keepPlaying
 
 
     async def endGame(self):
@@ -268,6 +274,7 @@ class SDBGame:
         keepPlaying = True
 
         if self.gamePhase == GamePhase.setup:
+            self.currentRound += 1
             await self.dealAllPlayerCards()
             await self.pickNewBlackCard()
             await self.setChooser()
@@ -332,13 +339,14 @@ async def startGameFromExpansionMenu(gameCfg : Dict[str, Union[str, int]]):
     menu = botState.reactionMenusDB[gameCfg["menuID"]]
     callingBGuild = botState.guildsDB.getGuild(menu.msg.guild.id)
     playChannel = menu.msg.channel
+    rounds = gameCfg["rounds"]
 
     expansionNames = [option.name for option in menu.selectedOptions if menu.selectedOptions[option]]
-    if not expansionNames:
-        await playChannel.send(":x: You didn't select any expansion packs!")
-
+    await expiryFunctions.deleteReactionMenu(menu.msg.id)
     if playChannel in callingBGuild.runningGames:
         del callingBGuild.runningGames[playChannel]
-    
-    await expiryFunctions.deleteReactionMenu(menu.msg.id)
-    await callingBGuild.startGameSignups(menu.targetMember, playChannel, gameCfg["deckName"], expansionNames)
+
+    if not expansionNames:
+        await playChannel.send(":x: Game cancelled - you didn't select any expansion packs!")
+    else:
+        await callingBGuild.startGameSignups(menu.targetMember, playChannel, gameCfg["deckName"], expansionNames, rounds)

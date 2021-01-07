@@ -118,18 +118,42 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
         await message.channel.send(":x: Unknown deck: " + args)
         return
 
-    expansionPickerMsg = await message.channel.send("​")
+    options = {}
+    optNum = 0
+    for optNum in range(len(cfg.roundsPickerOptions)):
+        emoji = cfg.defaultMenuEmojis[optNum]
+        roundsNum = cfg.roundsPickerOptions[optNum]
+        options[emoji] = ReactionMenu.DummyReactionMenuOption("Best of " + str(roundsNum), emoji)
+    options[cfg.spiralEmoji] = ReactionMenu.DummyReactionMenuOption("Free play", cfg.spiralEmoji)
+    options[cfg.defaultCancelEmoji] = ReactionMenu.DummyReactionMenuOption("Cancel", cfg.defaultCancelEmoji)
+
+    roundsPickerMsg = await message.channel.send("​")
+    roundsResult = await ReactionMenu.SingleUserReactionMenu(roundsPickerMsg, message.author, cfg.roundsPickerTimeout,
+                                                    options=options, returnTriggers=list(options.keys()), titleTxt="Game Length", desc="How many rounds would you like to play?",
+                                                    footerTxt=args.title() + " | This menu will expire in " + str(cfg.roundsPickerTimeout) + "s").doMenu()
+    
+    rounds = cfg.defaultSDBRounds
+    if len(roundsResult) == 1:
+        if roundsResult[0] == cfg.spiralEmoji:
+            rounds = -1
+        elif roundsResult[0] == cfg.defaultCancelEmoji:
+            await message.channel.send("Game cancelled.")
+            return
+        else:
+            rounds = cfg.roundsPickerOptions[cfg.defaultMenuEmojis.index(roundsResult[0])]
+
+    expansionPickerMsg = roundsPickerMsg
     numExpansions = len(callingBGuild.decks[args]["expansion_names"])
 
     optionPages = {}
     embedKeys = []
     numPages = numExpansions // 5 + (0 if numExpansions % 5 == 0 else 1)
     menuTimeout = lib.timeUtil.timeDeltaFromDict(cfg.expansionPickerTimeout)
-    menuTT = TimedTask.TimedTask(expiryDelta=menuTimeout, expiryFunction=sdbGame.startGameFromExpansionMenu, expiryFunctionArgs={"menuID": expansionPickerMsg.id, "deckName": args})
+    menuTT = TimedTask.TimedTask(expiryDelta=menuTimeout, expiryFunction=sdbGame.startGameFromExpansionMenu, expiryFunctionArgs={"menuID": expansionPickerMsg.id, "deckName": args, "rounds": rounds})
     callingBGuild.runningGames[message.channel] = None
 
     for pageNum in range(numPages):
-        embedKeys.append(lib.discordUtil.makeEmbed(authorName="What expansions would you like to use?",
+        embedKeys.append(lib.discordUtil.makeEmbed(titleTxt="Select Expansion Packs", desc="Which expansions would you like to use?",
                                                     footerTxt="Page " + str(pageNum + 1) + " of " + str(numPages) + \
                                                         " | This menu will expire in " + lib.timeUtil.td_format_noYM(menuTimeout)))
         embedKeys[-1].add_field(name="Currently selected:", value="​", inline=False)
@@ -143,6 +167,11 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
         pageEmbed.add_field(name=optionEmoji.sendable + " : " + expansionName, value="​", inline=False)
         optionPages[pageEmbed][optionEmoji] = ReactionMenu.NonSaveableSelecterMenuOption(expansionName, optionEmoji, expansionPickerMsg.id)
 
+    for page in embedKeys:
+        page.add_field(name=cfg.defaultAcceptEmoji.sendable + " : Submit", value="​", inline=False)
+        page.add_field(name=cfg.defaultCancelEmoji.sendable + " : Cancel", value="​", inline=False)
+        page.add_field(name=cfg.spiralEmoji.sendable + " : Toggle all", value="​", inline=False)
+
     expansionSelectorMenu = PagedReactionMenu.MultiPageOptionPicker(expansionPickerMsg,
         pages=optionPages, timeout=menuTT, owningBasedUser=botState.usersDB.getOrAddID(message.author.id), targetMember=message.author)
 
@@ -154,7 +183,7 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
         await asyncio.sleep(2)
         await expansionSelectorMenu.updateMessage()
 
-botCommands.register("play", cmd_start_game, 0, allowDM=False, signatureStr="**play <deck name>**", shortHelp="Start a game of Super Deck Breaker! Give the name of the deck you want to play with.", helpSection="decks")
+botCommands.register("play", cmd_start_game, 0, allowDM=False, signatureStr="**play <deck name>** *[rounds]*", shortHelp="Start a game of Super Deck Breaker! Give the name of the deck you want to play with.", helpSection="decks")
 
 
 async def cmd_decks(message : discord.Message, args : str, isDM : bool):

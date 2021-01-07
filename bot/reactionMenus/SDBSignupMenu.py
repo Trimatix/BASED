@@ -34,9 +34,10 @@ class SDBSignupMenu(ReactionMenu.ReactionMenu):
         super().__init__(msg, options = options,
                     titleTxt = game.owner.display_name + " is playing Super Deck Breaker!",
                     desc = "Deck: " + game.deck.name +
+                        "\nMax players: " + str(game.deck.maxPlayers) +
+                        "\nRounds: " + (("Best of " + str(game.rounds)) if game.rounds != -1 else "Free play") +
                         "\nExpansions: " + ", ".join(game.expansionNames) +
-                        "\n\nGame beginning in " + lib.timeUtil.td_format_noYM(timeToJoin) + "!\n" + \
-                        "Max players: " + str(game.deck.maxPlayers),
+                        "\n\nGame beginning in " + lib.timeUtil.td_format_noYM(timeToJoin) + "!",
                         timeout = timeout)
 
 

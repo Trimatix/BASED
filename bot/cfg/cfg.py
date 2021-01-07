@@ -36,7 +36,7 @@ timedTaskLatenessThresholdSeconds = 10
 BASED_checkForUpdates = True
 BASED_updateCheckFrequency = {"days": 1}
 
-defaultCommandPrefix = "."
+defaultCommandPrefix = "deck "
 
 developers = [188618589102669826, 144137708711837696]
 
@@ -52,6 +52,9 @@ submissionWaitingPeriod = 10
 submissionsReviewMenuTimeout = 1800
 
 keepPlayingConfirmMenuTimeout = 600
+
+roundsPickerTimeout = 300
+roundsPickerOptions = [3, 5, 10, 15]
 
 
 
@@ -79,3 +82,5 @@ googleAPICred = "bot/cfg/google_client_secret.json"
 
 cardsDCChannel = {"guild_id": 733652363235033088,
                     "channel_id": 796038447252766741}
+
+defaultSDBRounds = 5
