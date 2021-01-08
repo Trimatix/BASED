@@ -78,9 +78,38 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
         await message.channel.send(":x: Unrecognised spreadsheet! Please make sure the file exists and is public.")
         return
     else:
+        if gameData["title"] == "":
+            await message.channel.send(":x: Your deck does not have a name! Please name the spreadsheet and try again.")
+            return
         if gameData["title"].lower() in callingBGuild.decks:
             await message.channel.send(":x: A deck already exists in this server with the name '" + gameData["title"] + "' - cannot add deck.")
             return
+
+        lowerExpansions = [expansion.lower() for expansion in gameData["expansions"]]
+        for expansion in lowerExpansions:
+            if lowerExpansions.count(expansion) > 1:
+                await message.channel.send(":x: Deck creation failed - duplicate expansion pack name found: " + expansion)
+                return
+        
+        unnamedFound = False
+        emptyExpansions = []
+        for expansion in gameData["expansions"]:
+            if expansion == "":
+                unnamedFound = True
+            if len(gameData["expansions"][expansion]["white"]) == 0 and len(gameData["expansions"][expansion]["black"]) == 0:
+                emptyExpansions.append(expansion)
+
+        errs = ""
+        
+        if unnamedFound:
+            errs.append("\nUnnamed expansion pack detected - skipping this expansion.")
+            del gameData["expansions"][""]
+
+        if len(emptyExpansions) != 0:
+            errs.append("\nEmpty expansion packs detected - skipping these expansions: " + ", ".join(expansion for expansion in emptyExpansions))
+        
+        if errs != "":
+            await message.channel.send(errs)
 
         whiteCount = sum(len(gameData["expansions"][expansion]["white"]) for expansion in gameData["expansions"] if "white" in gameData["expansions"][expansion])
         blackCount = sum(len(gameData["expansions"][expansion]["black"]) for expansion in gameData["expansions"] if "black" in gameData["expansions"][expansion])
