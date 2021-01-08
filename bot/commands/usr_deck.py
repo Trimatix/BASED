@@ -106,7 +106,7 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
         await loadingMsg.edit(content="Drawing cards... " + cfg.defaultSubmitEmoji.sendable)
         
         deckMeta["spreadsheet_url"] = args
-        metaPath = cfg.decksFolderPath + os.sep + str(message.guild.id) + os.sep + gameData["title"] + ".json"
+        metaPath = cfg.decksFolderPath + os.sep + str(message.guild.id) + os.sep + str(hash(gameData["title"])) + ".json"
         lib.jsonHandler.writeJSON(metaPath, deckMeta)
         now = datetime.utcnow()
         callingBGuild.decks[deckMeta["deck_name"].lower()] = {"meta_path": metaPath, "creator": message.author.id, "creation_date" : str(now.day).zfill(2) + "-" + str(now.month).zfill(2) + "-" + str(now.year), "plays": 0,
