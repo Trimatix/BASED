@@ -9,10 +9,8 @@ RUN apt-get update && \
     git submodule init && \
     git submodule update && \
     rm -rf saveData/logs saveData/decks && \
-    ln -s /decks /app/saveData/decks && \
-    ln -s /logs /app/saveData/logs
+    ln -s /saveData /app/saveData
 
-VOLUME /decks
-VOLUME /logs
+VOLUME /saveData
 
 ENTRYPOINT ["python3", "./main.py"]
