@@ -220,6 +220,8 @@ async def on_ready():
     TODO: Implement dynamic timedtask checking period
     """
     botState.httpClient = aiohttp.ClientSession()
+    if cfg.cardStorageMethod not in ["discord", "local"]:
+        raise ValueError("Unsupported cfg.cardStorageMethod: " + str(cfg.cardStorageMethod))
 
     ##### EMOJI INITIALIZATION #####
     # Iterate over uninitiaizedEmoji attributes in cfg

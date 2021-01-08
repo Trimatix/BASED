@@ -4,6 +4,8 @@ from . import commandsDB as botCommands
 from . import util_help
 from .. import botState
 import os
+from ..cardRenderer.lib import clear_deck_path
+from ..cfg import cfg
 
 
 botCommands.addHelpSection(2, "decks")
@@ -24,6 +26,8 @@ async def admin_cmd_del_deck(message : discord.Message, args : str, isDM : bool)
     if os.path.exists(callingBGuild.decks[args]["meta_path"]):
         os.remove(callingBGuild.decks[args]["meta_path"])
 
+    clear_deck_path(cfg.decksFolderPath, message.guild.id, args)
+
     del callingBGuild.decks[args]
     if args in callingBGuild.activeDecks:
         del callingBGuild.activeDecks[args]
@@ -35,4 +39,4 @@ async def admin_cmd_del_deck(message : discord.Message, args : str, isDM : bool)
 
     await message.channel.send("Deck removed!")
 
-botCommands.register("del-deck", admin_cmd_del_deck, 2, allowDM=False, signatureStr="**del-deck <deck name>**", helpSection="decks", forceKeepArgsCasing=True, shortHelp="Delete the deck with the given name from the server.")
+botCommands.register("del-deck", admin_cmd_del_deck, 2, allowDM=False, signatureStr="**del-deck <deck name>**", helpSection="decks", shortHelp="Delete the deck with the given name from the server.")

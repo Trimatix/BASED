@@ -1,4 +1,5 @@
 from ..lib.emojis import BasedEmoji, UninitializedBasedEmoji
+import os
 
 longProcessEmoji = BasedEmoji(unicode="⏳")
 loadingEmoji = UninitializedBasedEmoji(793467306507763713)
@@ -64,23 +65,26 @@ roundsPickerOptions = [3, 5, 10, 15]
 savePeriod = {"hours":1}
 
 # path to JSON files for database saves
-userDBPath = "saveData/users.json"
-guildDBPath = "saveData/guilds.json"
-reactionMenusDBPath = "saveData/reactionMenus.json"
+userDBPath = "saveData" + os.sep + "users.json"
+guildDBPath = "saveData" + os.sep + "guilds.json"
+reactionMenusDBPath = "saveData" + os.sep + "reactionMenus.json"
 
 # path to folder to save log txts to
-loggingFolderPath = "saveData/logs"
+loggingFolderPath = "saveData" + os.sep + "logs"
 
-decksFolderPath = "saveData/decks"
+decksFolderPath = "saveData" + os.sep + "decks"
 
 gameJoinMenuTimout = {"minutes": 5}
 
 expansionPickerTimeout = {"minutes": 5}
 
-cardFont = "bot/cardRenderer/HelveticaNeueLTStd-Bd.otf"
-googleAPICred = "bot/cfg/google_client_secret.json"
+cardFont = "bot" + os.sep + "cardRenderer" + os.sep + "HelveticaNeueLTStd-Bd.otf"
+googleAPICred = "bot" + os.sep + "cfg" + os.sep + "google_client_secret.json"
 
 cardsDCChannel = {"guild_id": 733652363235033088,
                     "channel_id": 796038447252766741}
 
 defaultSDBRounds = 5
+
+# Can be either "local" or "discord"
+cardStorageMethod = "local"

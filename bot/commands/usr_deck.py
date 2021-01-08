@@ -93,11 +93,20 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
             return
 
         loadingMsg = await message.channel.send("Drawing cards... " + cfg.loadingEmoji.sendable)
-        deckMeta = await make_cards.render_all(botState.client.get_guild(cfg.cardsDCChannel["guild_id"]).get_channel(cfg.cardsDCChannel["channel_id"]), message, gameData, cfg.cardFont)
+        deckMeta = await make_cards.render_all(cfg.decksFolderPath, gameData, cfg.cardFont, message.guild.id)
+        if cfg.cardStorageMethod == "discord":
+            deckMeta = await make_cards.store_cards_discord(cfg.decksFolderPath, deckMeta,
+                                                            botState.client.get_guild(cfg.cardsDCChannel["guild_id"]).get_channel(cfg.cardsDCChannel["channel_id"]),
+                                                            message)
+        elif cfg.cardStorageMethod == "local":
+            deckMeta = make_cards.store_cards_local(deckMeta)
+        else:
+            raise ValueError("Unsupported cfg.cardStorageMethod: " + str(cfg.cardStorageMethod))
+
         await loadingMsg.edit(content="Drawing cards... " + cfg.defaultSubmitEmoji.sendable)
         
         deckMeta["spreadsheet_url"] = args
-        metaPath = cfg.decksFolderPath + os.sep + str(message.guild.id) + "-" + gameData["title"] + ".json"
+        metaPath = cfg.decksFolderPath + os.sep + str(message.guild.id) + os.sep + gameData["title"] + ".json"
         lib.jsonHandler.writeJSON(metaPath, deckMeta)
         now = datetime.utcnow()
         callingBGuild.decks[deckMeta["deck_name"].lower()] = {"meta_path": metaPath, "creator": message.author.id, "creation_date" : str(now.day).zfill(2) + "-" + str(now.month).zfill(2) + "-" + str(now.year), "plays": 0,
