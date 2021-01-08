@@ -223,6 +223,11 @@ async def on_ready():
     if cfg.cardStorageMethod not in ["discord", "local"]:
         raise ValueError("Unsupported cfg.cardStorageMethod: " + str(cfg.cardStorageMethod))
 
+    for path in [cfg.baseSaveDataFolder, cfg.loggingFolderPath, cfg.decksFolderPath]:
+        if not os.path.isdir(path):
+            os.makedirs(path)
+
+
     ##### EMOJI INITIALIZATION #####
     # Iterate over uninitiaizedEmoji attributes in cfg
     for varName, varValue in vars(cfg).items():

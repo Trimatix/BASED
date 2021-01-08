@@ -64,15 +64,18 @@ roundsPickerOptions = [3, 5, 10, 15]
 # The time to wait inbetween database autosaves.
 savePeriod = {"hours":1}
 
+baseSaveDataFolder = "saveData"
+
 # path to JSON files for database saves
-userDBPath = "saveData" + os.sep + "users.json"
-guildDBPath = "saveData" + os.sep + "guilds.json"
-reactionMenusDBPath = "saveData" + os.sep + "reactionMenus.json"
+userDBPath = baseSaveDataFolder + os.sep + "users.json"
+guildDBPath = baseSaveDataFolder + os.sep + "guilds.json"
+reactionMenusDBPath = baseSaveDataFolder + os.sep + "reactionMenus.json"
 
 # path to folder to save log txts to
-loggingFolderPath = "saveData" + os.sep + "logs"
+loggingFolderPath = baseSaveDataFolder + os.sep + "logs"
 
-decksFolderPath = "saveData" + os.sep + "decks"
+decksFolderPath = baseSaveDataFolder + os.sep + "decks"
+deckMetaFolderPath = baseSaveDataFolder + os.sep + "deckMeta"
 
 gameJoinMenuTimout = {"minutes": 5}
 
