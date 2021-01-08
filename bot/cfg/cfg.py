@@ -1,7 +1,36 @@
-from ..lib.emojis import BasedEmoji, UninitializedBasedEmoji
-import os
+from ..lib.emojis import UninitializedBasedEmoji
 
-longProcessEmoji = BasedEmoji(unicode="⏳")
+emojiVars = [   "longProcessEmoji",
+                "loadingEmoji",
+                "dmSentEmoji",
+                "defaultCancelEmoji",
+                "defaultSubmitEmoji",
+                "spiralEmoji",
+                "defaultErrEmoji",
+                "defaultAcceptEmoji",
+                "defaultRejectEmoji",
+                "defaultNextEmoji",
+                "defaultPreviousEmoji"
+            ]
+
+emojiListVars = [
+                "numberEmojis",
+                "defaultMenuEmojis"
+                ]
+
+pathVars =  [
+                "baseSaveDataFolder",
+                "userDBPath",
+                "guildDBPath",
+                "reactionMenusDBPath",
+                "loggingFolderPath",
+                "decksFolderPath",
+                "deckMetaFolderPath",
+                "cardFont",
+                "googleAPICred"
+            ]
+
+longProcessEmoji = UninitializedBasedEmoji("⏳")
 loadingEmoji = UninitializedBasedEmoji(793467306507763713)
 userAccessLevels = ["user", "mod", "admin", "dev"]
 helpIntro = "Here are my commands!"
@@ -15,21 +44,21 @@ includedCommandModules = (  "usr_misc", "usr_deck",
 helpEmbedTimeout = {"minutes": 3}
 
 # When a user message prompts a DM to be sent, this emoji will be added to the message reactions.
-dmSentEmoji = BasedEmoji(unicode="📬")
+dmSentEmoji = UninitializedBasedEmoji("📬")
 
 expiredMenuMsg = "😴 This menu has now expired."
 
 # The default emojis to list in a reaction menu
-numberEmojis = [BasedEmoji(unicode="0️⃣"), BasedEmoji(unicode="1️⃣"), BasedEmoji(unicode="2️⃣"), BasedEmoji(unicode="3️⃣"), BasedEmoji(unicode="4️⃣"), BasedEmoji(unicode="5️⃣"), BasedEmoji(unicode="6️⃣"), BasedEmoji(unicode="7️⃣"), BasedEmoji(unicode="8️⃣"), BasedEmoji(unicode="9️⃣"), BasedEmoji(unicode="🔟")]
+numberEmojis = [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"), UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"), UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"), UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")]
 defaultMenuEmojis = numberEmojis
-defaultCancelEmoji = BasedEmoji(unicode="🇽")
-defaultSubmitEmoji = BasedEmoji(unicode="✅")
-spiralEmoji = BasedEmoji(unicode="🌀")
-defaultErrEmoji = BasedEmoji(unicode="❓")
-defaultAcceptEmoji = BasedEmoji(unicode="👍")
-defaultRejectEmoji = BasedEmoji(unicode="👎")
-defaultNextEmoji = BasedEmoji(unicode='⏩')
-defaultPreviousEmoji = BasedEmoji(unicode='⏪')
+defaultCancelEmoji = UninitializedBasedEmoji("🇽")
+defaultSubmitEmoji = UninitializedBasedEmoji("✅")
+spiralEmoji = UninitializedBasedEmoji("🌀")
+defaultErrEmoji = UninitializedBasedEmoji("❓")
+defaultAcceptEmoji = UninitializedBasedEmoji("👍")
+defaultRejectEmoji = UninitializedBasedEmoji("👎")
+defaultNextEmoji = UninitializedBasedEmoji('⏩')
+defaultPreviousEmoji = UninitializedBasedEmoji('⏪')
 
 timedTaskCheckingType = "fixed"
 timedTaskLatenessThresholdSeconds = 10
@@ -67,22 +96,22 @@ savePeriod = {"hours":1}
 baseSaveDataFolder = "saveData"
 
 # path to JSON files for database saves
-userDBPath = baseSaveDataFolder + os.sep + "users.json"
-guildDBPath = baseSaveDataFolder + os.sep + "guilds.json"
-reactionMenusDBPath = baseSaveDataFolder + os.sep + "reactionMenus.json"
+userDBPath = baseSaveDataFolder + "/" + "users.json"
+guildDBPath = baseSaveDataFolder + "/" + "guilds.json"
+reactionMenusDBPath = baseSaveDataFolder + "/" + "reactionMenus.json"
 
 # path to folder to save log txts to
-loggingFolderPath = baseSaveDataFolder + os.sep + "logs"
+loggingFolderPath = baseSaveDataFolder + "/" + "logs"
 
-decksFolderPath = baseSaveDataFolder + os.sep + "decks"
-deckMetaFolderPath = baseSaveDataFolder + os.sep + "deckMeta"
+decksFolderPath = baseSaveDataFolder + "/" + "decks"
+deckMetaFolderPath = baseSaveDataFolder + "/" + "deckMeta"
 
 gameJoinMenuTimout = {"minutes": 5}
 
 expansionPickerTimeout = {"minutes": 5}
 
-cardFont = "bot" + os.sep + "cardRenderer" + os.sep + "HelveticaNeueLTStd-Bd.otf"
-googleAPICred = "bot" + os.sep + "cfg" + os.sep + "google_client_secret.json"
+cardFont = "bot" + "/" + "cardRenderer" + "/" + "HelveticaNeueLTStd-Bd.otf"
+googleAPICred = "bot" + "/" + "cfg" + "/" + "google_client_secret.json"
 
 cardsDCChannel = {"guild_id": 733652363235033088,
                     "channel_id": 796038447252766741}

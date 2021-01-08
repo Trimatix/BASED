@@ -13,7 +13,6 @@ import asyncio
 import aiohttp
 import sys
 import signal
-import time
 
 
 # BASED Imports
@@ -230,19 +229,50 @@ async def on_ready():
 
     ##### EMOJI INITIALIZATION #####
     # Iterate over uninitiaizedEmoji attributes in cfg
-    for varName, varValue in vars(cfg).items():
-        if isinstance(varValue, lib.emojis.UninitializedBasedEmoji):
-            uninitEmoji = varValue.value
+    # for varName, varValue in vars(cfg).items():
+    #     if isinstance(varValue, lib.emojis.UninitializedBasedEmoji):
+    #         uninitEmoji = varValue.value
+    #         # Create BasedEmoji instances based on the type of the uninitialized value
+    #         if isinstance(uninitEmoji, int):
+    #             setattr(cfg, varName, lib.emojis.BasedEmoji(id=uninitEmoji))
+    #         elif isinstance(uninitEmoji, str):
+    #             setattr(cfg, varName, lib.emojis.BasedEmoji.fromStr(uninitEmoji))
+    #         elif isinstance(uninitEmoji, dict):
+    #             setattr(cfg, varName, lib.emojis.BasedEmoji.fromDict(uninitEmoji))
+    #         # Unrecognised uninitialized value
+    #         else:
+    #             raise ValueError("Unrecognised UninitializedBasedEmoji value type. Expecting int, str or dict, given '" + type(uninitEmoji).__name__ + "'")
+
+    for varname in cfg.emojiVars:
+        uninitEmoji = getattr(cfg, varname).value
+        # Create BasedEmoji instances based on the type of the uninitialized value
+        if isinstance(uninitEmoji, int):
+            setattr(cfg, varname, lib.emojis.BasedEmoji(id=uninitEmoji))
+        elif isinstance(uninitEmoji, str):
+            setattr(cfg, varname, lib.emojis.BasedEmoji.fromStr(uninitEmoji))
+        elif isinstance(uninitEmoji, dict):
+            setattr(cfg, varname, lib.emojis.BasedEmoji.fromDict(uninitEmoji))
+        # Unrecognised uninitialized value
+        else:
+            raise ValueError("Unrecognised UninitializedBasedEmoji value type. Expecting int, str or dict, given '" + type(uninitEmoji).__name__ + "'")
+
+    for varname in cfg.emojiListVars:
+        working = []
+        for item in getattr(cfg, varname):
+            uninitEmoji = item.value
             # Create BasedEmoji instances based on the type of the uninitialized value
             if isinstance(uninitEmoji, int):
-                setattr(cfg, varName, lib.emojis.BasedEmoji(id=uninitEmoji))
+                working.append(lib.emojis.BasedEmoji(id=uninitEmoji))
             elif isinstance(uninitEmoji, str):
-                setattr(cfg, varName, lib.emojis.BasedEmoji.fromStr(uninitEmoji))
+                working.append(lib.emojis.BasedEmoji.fromStr(uninitEmoji))
             elif isinstance(uninitEmoji, dict):
-                setattr(cfg, varName, lib.emojis.BasedEmoji.fromDict(uninitEmoji))
+                working.append(lib.emojis.BasedEmoji.fromDict(uninitEmoji))
             # Unrecognised uninitialized value
             else:
-                raise ValueError("Unrecognised UninitializedBasedEmoji value type. Expecting int, str or dict, given '" + type(uninitEmoji).__name__ + "'")
+                raise ValueError("Unrecognised UninitializedBasedEmoji value type. Expecting int, str or dict, given '" + varname + "'")
+        
+        setattr(cfg, varname, working)
+        
     
     # Ensure all emojis have been initialized
     for varName, varValue in vars(cfg).items():
@@ -425,7 +455,8 @@ for varName in ["SDB_DC_TOKEN"]:
     if varName not in os.environ:
         raise KeyError("required environment variable " + varName + " not set.")
 
-# Launch the bot!! 🤘🚀
-botState.client.run(os.environ["SDB_DC_TOKEN"])
+def run():
+    # Launch the bot!! 🤘🚀
+    botState.client.run(os.environ["SDB_DC_TOKEN"])
 
-sys.exit(int(botState.shutdown))
+    sys.exit(int(botState.shutdown))
