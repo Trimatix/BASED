@@ -316,7 +316,7 @@ async def on_message(message : discord.Message):
         commandPrefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
 
     # For any messages beginning with commandPrefix
-    if message.content.startswith(commandPrefix) and len(message.content) > len(commandPrefix):
+    if message.content.lower().startswith(commandPrefix) and len(message.content) > len(commandPrefix):
         # replace special apostraphe characters with the universal '
         msgContent = message.content.replace("‘", "'").replace("’", "'")
 
