@@ -107,6 +107,8 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
 
         if len(emptyExpansions) != 0:
             errs.append("\nEmpty expansion packs detected - skipping these expansions: " + ", ".join(expansion for expansion in emptyExpansions))
+            for expansion in emptyExpansions:
+                del gameData["expansions"][expansion]
         
         if errs != "":
             await message.channel.send(errs)
