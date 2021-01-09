@@ -6,7 +6,7 @@ from ..game import sdbPlayer
 
 
 class SDBWinningSubmissionOption(ReactionMenu.DummyReactionMenuOption):
-    def __init__(self, player: sdbPlayer.SDBPlayer, name="Select winning player", emoji=cfg.defaultAcceptEmoji):
+    def __init__(self, player: sdbPlayer.SDBPlayer, name="Select winning player", emoji=cfg.defaultEmojis.accept):
         super().__init__(name, emoji)
         self.player = player
 
@@ -25,7 +25,7 @@ class InlineSDBSubmissionsReviewMenu(PagedReactionMenu.InlinePagedReactionMenu):
                         currentEmbed.set_footer(text="Card " + str(cardNum+1))
                     
                     newOption = SDBWinningSubmissionOption(player)
-                    pages[currentEmbed] = {cfg.defaultAcceptEmoji: newOption}
+                    pages[currentEmbed] = {cfg.defaultEmojis.accept: newOption}
                     returnTriggers.append(newOption)
         
         self.chooserPlayer = chooserPlayer

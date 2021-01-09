@@ -11,7 +11,7 @@ from datetime import timedelta
 
 class SDBCardSelector(ReactionMenu.ReactionMenu):
     def __init__(self, msg: Message, player: sdbPlayer.SDBPlayer, cardSlot: sdbPlayer.SDBCardSlot):
-        super().__init__(msg, options={cfg.defaultAcceptEmoji: ReactionMenu.NonSaveableReactionMenuOption("Select card", cfg.defaultAcceptEmoji, addFunc=self.selectCard, removeFunc=self.deselectCard)}, targetMember=player.dcUser)
+        super().__init__(msg, options={cfg.defaultEmojis.accept: ReactionMenu.NonSaveableReactionMenuOption("Select card", cfg.defaultEmojis.accept, addFunc=self.selectCard, removeFunc=self.deselectCard)}, targetMember=player.dcUser)
         self.player = player
         self.cardSlot = cardSlot
 

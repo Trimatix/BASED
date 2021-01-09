@@ -73,7 +73,7 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
 
     try:
         gameData = collect_cards(args)
-        await loadingMsg.edit(content="Reading spreadsheet... " + cfg.defaultSubmitEmoji.sendable)
+        await loadingMsg.edit(content="Reading spreadsheet... " + cfg.defaultEmojis.submit.sendable)
     except gspread.SpreadsheetNotFound:
         await message.channel.send(":x: Unrecognised spreadsheet! Please make sure the file exists and is public.")
         return
@@ -134,7 +134,7 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
         else:
             raise ValueError("Unsupported cfg.cardStorageMethod: " + str(cfg.cardStorageMethod))
 
-        await loadingMsg.edit(content="Drawing cards... " + cfg.defaultSubmitEmoji.sendable)
+        await loadingMsg.edit(content="Drawing cards... " + cfg.defaultEmojis.submit.sendable)
         
         deckMeta["spreadsheet_url"] = args
         metaPath = cfg.paths.decksFolder + os.sep + str(message.guild.id) + os.sep + str(hash(gameData["title"])) + ".json"
@@ -161,11 +161,11 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
     options = {}
     optNum = 0
     for optNum in range(len(cfg.roundsPickerOptions)):
-        emoji = cfg.defaultMenuEmojis[optNum]
+        emoji = cfg.defaultEmojis.menuOptions[optNum]
         roundsNum = cfg.roundsPickerOptions[optNum]
         options[emoji] = ReactionMenu.DummyReactionMenuOption("Best of " + str(roundsNum), emoji)
-    options[cfg.spiralEmoji] = ReactionMenu.DummyReactionMenuOption("Free play", cfg.spiralEmoji)
-    options[cfg.defaultCancelEmoji] = ReactionMenu.DummyReactionMenuOption("Cancel", cfg.defaultCancelEmoji)
+    options[cfg.defaultEmojis.spiral] = ReactionMenu.DummyReactionMenuOption("Free play", cfg.defaultEmojis.spiral)
+    options[cfg.defaultEmojis.cancel] = ReactionMenu.DummyReactionMenuOption("Cancel", cfg.defaultEmojis.cancel)
 
     roundsPickerMsg = await message.channel.send("​")
     roundsResult = await ReactionMenu.InlineReactionMenu(roundsPickerMsg, message.author, cfg.timeouts.numRoundsPickerSeconds,
@@ -174,13 +174,13 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
     
     rounds = cfg.defaultSDBRounds
     if len(roundsResult) == 1:
-        if roundsResult[0] == cfg.spiralEmoji:
+        if roundsResult[0] == cfg.defaultEmojis.spiral:
             rounds = -1
-        elif roundsResult[0] == cfg.defaultCancelEmoji:
+        elif roundsResult[0] == cfg.defaultEmojis.cancel:
             await message.channel.send("Game cancelled.")
             return
         else:
-            rounds = cfg.roundsPickerOptions[cfg.defaultMenuEmojis.index(roundsResult[0])]
+            rounds = cfg.roundsPickerOptions[cfg.defaultEmojis.menuOptions.index(roundsResult[0])]
 
     expansionPickerMsg = roundsPickerMsg
     numExpansions = len(callingBGuild.decks[args]["expansion_names"])
@@ -202,15 +202,15 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
     for expansionNum in range(numExpansions):
         pageNum = expansionNum // 5
         pageEmbed = embedKeys[pageNum]
-        optionEmoji = cfg.defaultMenuEmojis[expansionNum % 5]
+        optionEmoji = cfg.defaultEmojis.menuOptions[expansionNum % 5]
         expansionName = callingBGuild.decks[args]["expansion_names"][expansionNum]
         pageEmbed.add_field(name=optionEmoji.sendable + " : " + expansionName, value="​", inline=False)
         optionPages[pageEmbed][optionEmoji] = ReactionMenu.NonSaveableSelecterMenuOption(expansionName, optionEmoji, expansionPickerMsg.id)
 
     for page in embedKeys:
-        page.add_field(name=cfg.defaultAcceptEmoji.sendable + " : Submit", value="​", inline=False)
-        page.add_field(name=cfg.defaultCancelEmoji.sendable + " : Cancel", value="​", inline=False)
-        page.add_field(name=cfg.spiralEmoji.sendable + " : Toggle all", value="​", inline=False)
+        page.add_field(name=cfg.defaultEmojis.accept.sendable + " : Submit", value="​", inline=False)
+        page.add_field(name=cfg.defaultEmojis.cancel.sendable + " : Cancel", value="​", inline=False)
+        page.add_field(name=cfg.defaultEmojis.spiral.sendable + " : Toggle all", value="​", inline=False)
 
     expansionSelectorMenu = PagedReactionMenu.MultiPageOptionPicker(expansionPickerMsg,
         pages=optionPages, timeout=menuTT, owningBasedUser=botState.usersDB.getOrAddID(message.author.id), targetMember=message.author)

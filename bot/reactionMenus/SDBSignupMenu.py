@@ -24,9 +24,9 @@ class SDBSignupMenu(ReactionMenu.ReactionMenu):
     def __init__(self, msg : Message, game : sdbGame.SDBGame, timeToJoin : timedelta):
 
         self.game = game
-        options = {cfg.defaultAcceptEmoji: ReactionMenu.NonSaveableReactionMenuOption("Join game", cfg.defaultAcceptEmoji, addFunc=self.userJoinGame, removeFunc=self.userLeaveGame),
-                    cfg.defaultSubmitEmoji: ReactionMenu.NonSaveableReactionMenuOption("Force start game", cfg.defaultSubmitEmoji, addFunc=ownerOnlyStartGame, addArgs=self),
-                    cfg.defaultCancelEmoji: ReactionMenu.NonSaveableReactionMenuOption("Cancel game", cfg.defaultCancelEmoji, addFunc=ownerOnlyCancelGame, addArgs=self)}
+        options = {cfg.defaultEmojis.accept: ReactionMenu.NonSaveableReactionMenuOption("Join game", cfg.defaultEmojis.accept, addFunc=self.userJoinGame, removeFunc=self.userLeaveGame),
+                    cfg.defaultEmojis.submit: ReactionMenu.NonSaveableReactionMenuOption("Force start game", cfg.defaultEmojis.submit, addFunc=ownerOnlyStartGame, addArgs=self),
+                    cfg.defaultEmojis.cancel: ReactionMenu.NonSaveableReactionMenuOption("Cancel game", cfg.defaultEmojis.cancel, addFunc=ownerOnlyCancelGame, addArgs=self)}
         timeout = TimedTask.TimedTask(expiryDelta=timeToJoin, expiryFunction=self.endSignups)
         botState.reactionMenusTTDB.scheduleTask(timeout)
         self.numSignups = 0
@@ -52,7 +52,7 @@ class SDBSignupMenu(ReactionMenu.ReactionMenu):
             if self.numSignups == self.game.deck.maxPlayers:
                 await sendChannel.send("This game is full!")
                 try:
-                    await self.msg.remove_reaction(cfg.defaultAcceptEmoji.sendable, reactingUser)
+                    await self.msg.remove_reaction(cfg.defaultEmojis.accept.sendable, reactingUser)
                 except (Forbidden, NotFound, HTTPException):
                     pass
             else:
@@ -61,7 +61,7 @@ class SDBSignupMenu(ReactionMenu.ReactionMenu):
         except Forbidden:
             await self.msg.channel.send(":x: " + reactingUser.mention + " failed to join - I can't DM you! Please enable DMs from users who are not friends.")
             try:
-                await self.msg.remove_reaction(cfg.defaultAcceptEmoji.sendable, reactingUser)
+                await self.msg.remove_reaction(cfg.defaultEmojis.accept.sendable, reactingUser)
             except (Forbidden, NotFound, HTTPException):
                 pass
 
@@ -82,7 +82,7 @@ class SDBSignupMenu(ReactionMenu.ReactionMenu):
     
     async def endSignups(self):
         self.msg = await self.msg.channel.fetch_message(self.msg.id)
-        reaction = [reaction for reaction in self.msg.reactions if lib.emojis.BasedEmoji.fromReaction(reaction.emoji) == cfg.defaultAcceptEmoji]
+        reaction = [reaction for reaction in self.msg.reactions if lib.emojis.BasedEmoji.fromReaction(reaction.emoji) == cfg.defaultEmojis.accept]
         if not reaction or self.numSignups < 2:
             await self.msg.channel.send(":x: " + self.game.owner.mention + " Game cancelled: Not enough players joined the game.")
             await expiryFunctions.deleteReactionMenu(self.msg.id)

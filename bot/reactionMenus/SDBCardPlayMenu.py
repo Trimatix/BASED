@@ -15,7 +15,7 @@ class SDBCardPlayMenu(ReactionMenu.ReactionMenu):
         self.menuEmbed = lib.discordUtil.makeEmbed(titleTxt="Play your cards")
         self.menuEmbed.add_field(name="Currently selected:", value="No cards selected​", inline=False)
         self.menuEmbed.add_field(name="White cards required this round:", value="Waiting for game to start...", inline=False)
-        super().__init__(msg, options={cfg.defaultSubmitEmoji: ReactionMenu.NonSaveableReactionMenuOption("Submit cards", cfg.defaultSubmitEmoji, addFunc=self.player.submitCards)}, targetMember=player.dcUser)
+        super().__init__(msg, options={cfg.defaultEmojis.submit: ReactionMenu.NonSaveableReactionMenuOption("Submit cards", cfg.defaultEmojis.submit, addFunc=self.player.submitCards)}, targetMember=player.dcUser)
 
 
     def getMenuEmbed(self):

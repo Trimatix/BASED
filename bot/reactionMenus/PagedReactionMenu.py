@@ -45,19 +45,19 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
         nextOption = ReactionMenu.NonSaveableReactionMenuOption("Next Page", cfg.defaultEmojis.next, self.nextPage, None)
         prevOption = ReactionMenu.NonSaveableReactionMenuOption("Previous Page", cfg.defaultEmojis.previous, self.previousPage, None)
 
-        self.firstPageControls = {  cfg.defaultNextEmoji:      nextOption}
+        self.firstPageControls = {  cfg.defaultEmojis.next:      nextOption}
 
-        self.midPageControls = {    cfg.defaultNextEmoji:      nextOption,
-                                    cfg.defaultPreviousEmoji:  prevOption}
+        self.midPageControls = {    cfg.defaultEmojis.next:      nextOption,
+                                    cfg.defaultEmojis.previous:  prevOption}
 
-        self.lastPageControls = {   cfg.defaultPreviousEmoji:  prevOption}
+        self.lastPageControls = {   cfg.defaultEmojis.previous:  prevOption}
 
         self.onePageControls = {}
 
         if not noCancel:
             cancelOption = ReactionMenu.NonSaveableReactionMenuOption("Close Menu", cfg.defaultEmojis.cancel, self.delete, None)
             for optionsDict in [self.firstPageControls, self.midPageControls, self.lastPageControls, self.onePageControls]:
-                optionsDict[cfg.defaultCancelEmoji] = cancelOption
+                optionsDict[cfg.defaultEmojis.cancel] = cancelOption
 
         if len(self.pages) == 1:
             self.currentPageControls = self.onePageControls
@@ -148,8 +148,8 @@ class MultiPageOptionPicker(PagedReactionMenu):
             if cfg.defaultEmojis.cancel not in pages[pageEmbed]:
                 pages[pageEmbed][cfg.defaultEmojis.cancel] = ReactionMenu.NonSaveableReactionMenuOption("Cancel Game", cfg.defaultEmojis.cancel, expiryFunctions.deleteReactionMenu, msg.id)
 
-            if cfg.defaultEmojis.cancel not in pages[pageEmbed]:
-                pages[pageEmbed][cfg.defaultEmojis.cancel] = ReactionMenu.NonSaveableReactionMenuOption("Toggle All", cfg.defaultEmojis.cancel,
+            if cfg.defaultEmojis.spiral not in pages[pageEmbed]:
+                pages[pageEmbed][cfg.defaultEmojis.spiral] = ReactionMenu.NonSaveableReactionMenuOption("Toggle All", cfg.defaultEmojis.spiral,
                                                                                                 addFunc=ReactionMenu.selectorSelectAllOptions, addArgs=msg.id,
                                                                                                 removeFunc=ReactionMenu.selectorDeselectAllOptions, removeArgs=msg.id)
 

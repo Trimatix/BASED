@@ -187,7 +187,7 @@ async def sendDM(text, user, owningMsg, exceptOnFail=False, reactOnDM=True, embe
         await owningMsg.channel.send(":x: I can't DM you, " + user.display_name + "! Please enable DMs from users who are not friends.")
     else:
         if sendDM and reactOnDM:
-            await owningMsg.add_reaction(cfg.dmSentEmoji.sendable)
+            await owningMsg.add_reaction(cfg.defaultEmojis.dmSent.sendable)
 
     return dmMsg
 

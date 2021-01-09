@@ -74,7 +74,7 @@ class SDBGame:
             if self.shutdownOverride:
                 return
             await self.setupPlayerHand(player)
-        await loadingMsg.edit(content="Setting up player hands... " + cfg.defaultSubmitEmoji.sendable)
+        await loadingMsg.edit(content="Setting up player hands... " + cfg.defaultEmojis.submit.sendable)
 
 
     async def dealPlayerCards(self, player):
@@ -99,7 +99,7 @@ class SDBGame:
             if self.shutdownOverride:
                 return
             await self.dealPlayerCards(player)
-        await loadingMsg.edit(content=loadingStr + cfg.defaultSubmitEmoji.sendable)
+        await loadingMsg.edit(content=loadingStr + cfg.defaultEmojis.submit.sendable)
 
 
     async def dcMemberJoinGame(self, member):
@@ -235,7 +235,7 @@ class SDBGame:
             confirmMsg = await self.channel.send("Play another round?")
             keepPlaying = await InlineConfirmationMenu(confirmMsg, self.owner, cfg.timeouts.keepPlayingMenuSeconds).doMenu()
             await confirmMsg.delete()
-            return cfg.defaultAcceptEmoji in keepPlaying
+            return cfg.defaultEmojis.accept in keepPlaying
 
 
     async def endGame(self):
