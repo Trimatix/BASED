@@ -45,6 +45,8 @@ def makeDefaultCfg():
     with open(cfgPath, "w", encoding="utf-8") as f:
         f.write(toml.dumps(defaults))
 
+    print("Created " + cfgPath)
+
 def loadCfg(cfgFile : str):
     if not cfgFile.endswith(".toml"):
         raise ValueError("config files must be TOML")
