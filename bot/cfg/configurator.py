@@ -24,14 +24,23 @@ for varname, varvalue in cfg.defaultEmojis.items():
     
 
 
-def makeDefaultCfg():
-    cfgBase = "defaultCfg"
-    cfgPath = "defaultCfg"
+def makeDefaultCfg(fileName="defaultCfg.toml"):
+    if not fileName.endswith(".toml"):
+        print(fileName)
+        raise ValueError("file name must end with .toml")
+
+    fileName = os.path.abspath(os.path.normpath(fileName))
+    if not os.path.isdir(os.path.dirname(fileName)):
+        os.makedirs(os.path.dirname(fileName))
+    
+    fileName = fileName.split(".toml")[0]
+    cfgPath = fileName
     fileExt = ".toml"
+
     currentExt = 0
     while os.path.exists(cfgPath + fileExt):
         currentExt += 1
-        cfgPath = cfgBase + "-" + str(currentExt)
+        cfgPath = fileName + "-" + str(currentExt)
 
     cfgPath += fileExt
 
