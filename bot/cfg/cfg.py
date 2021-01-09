@@ -1,6 +1,14 @@
-from ..lib.emojis import BasedEmoji, UninitializedBasedEmoji
+from ..lib.emojis import UninitializedBasedEmoji
 
-longProcessEmoji = BasedEmoji(unicode="⏳")
+pathVars =  [
+                "baseSaveDir",
+                "userDBPath",
+                "guildDBPath",
+                "reactionMenusDBPath",
+                "loggingFolderPath"
+            ]
+
+longProcessEmoji = UninitializedBasedEmoji("⏳")
 userAccessLevels = ["user", "mod", "admin", "dev"]
 helpIntro = "Here are my commands!"
 maxCommandsPerHelpPage = 5
@@ -13,21 +21,21 @@ includedCommandModules = (  "usr_misc",
 helpEmbedTimeout = {"minutes": 3}
 
 # When a user message prompts a DM to be sent, this emoji will be added to the message reactions.
-dmSentEmoji = BasedEmoji(unicode="📬")
+dmSentEmoji = UninitializedBasedEmoji("📬")
 
 expiredMenuMsg = "😴 This role menu has now expired."
 
 # The default emojis to list in a reaction menu
-numberEmojis = [BasedEmoji(unicode="0️⃣"), BasedEmoji(unicode="1️⃣"), BasedEmoji(unicode="2️⃣"), BasedEmoji(unicode="3️⃣"), BasedEmoji(unicode="4️⃣"), BasedEmoji(unicode="5️⃣"), BasedEmoji(unicode="6️⃣"), BasedEmoji(unicode="7️⃣"), BasedEmoji(unicode="8️⃣"), BasedEmoji(unicode="9️⃣"), BasedEmoji(unicode="🔟")]
+numberEmojis = [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"), UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"), UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"), UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")]
 defaultMenuEmojis = numberEmojis
-defaultCancelEmoji = BasedEmoji(unicode="🇽")
-defaultSubmitEmoji = BasedEmoji(unicode="✅")
-spiralEmoji = BasedEmoji(unicode="🌀")
-defaultErrEmoji = BasedEmoji(unicode="❓")
-defaultAcceptEmoji = BasedEmoji(unicode="👍")
-defaultRejectEmoji = BasedEmoji(unicode="👎")
-defaultNextEmoji = BasedEmoji(unicode='⏩')
-defaultPreviousEmoji = BasedEmoji(unicode='⏪')
+defaultCancelEmoji = UninitializedBasedEmoji("🇽")
+defaultSubmitEmoji = UninitializedBasedEmoji("✅")
+spiralEmoji = UninitializedBasedEmoji("🌀")
+defaultErrEmoji = UninitializedBasedEmoji("❓")
+defaultAcceptEmoji = UninitializedBasedEmoji("👍")
+defaultRejectEmoji = UninitializedBasedEmoji("👎")
+defaultNextEmoji = UninitializedBasedEmoji('⏩')
+defaultPreviousEmoji = UninitializedBasedEmoji('⏪')
 
 timedTaskCheckingType = "fixed"
 timedTaskLatenessThresholdSeconds = 10
@@ -47,9 +55,10 @@ developers = [188618589102669826]
 savePeriod = {"hours":1}
 
 # path to JSON files for database saves
-userDBPath = "saveData/users.json"
-guildDBPath = "saveData/guilds.json"
-reactionMenusDBPath = "saveData/reactionMenus.json"
+baseSaveDir = "saveData"
+userDBPath = baseSaveDir + "/" + "users.json"
+guildDBPath = baseSaveDir + "/" + "guilds.json"
+reactionMenusDBPath = baseSaveDir + "/" + "reactionMenus.json"
 
 # path to folder to save log txts to
-loggingFolderPath = "saveData/logs"
+loggingFolderPath = baseSaveDir + "/" + "logs"

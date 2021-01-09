@@ -20,6 +20,13 @@ from .scheduling import TimedTaskHeap, TimedTask
 from .cfg import cfg, versionInfo
 
 
+for varname in cfg.pathVars:
+    path = os.path.normpath(getattr(cfg, varname))
+    setattr(cfg, varname, path)
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+
 def checkForUpdates():
     """Check if any new BASED versions are available, and print a message to console if one is found.
     """
@@ -380,5 +387,6 @@ for varName in ["BASED_DC_TOKEN"]:
     if varName not in os.environ:
         raise KeyError("required environment variable " + varName + " not set.")
 
-# Launch the bot!! 🤘🚀
-botState.client.run(os.environ["BASED_DC_TOKEN"])
+def run():
+    # Launch the bot!! 🤘🚀
+    botState.client.run(os.environ["BASED_DC_TOKEN"])
