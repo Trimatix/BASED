@@ -24,9 +24,9 @@ if not defined cfg (
 )
 
 if defined cfg (
-	set runbot=py main.py %cfg%
+	set runbot=python3 main.py %cfg%
 ) else (
-	set runbot=py main.py
+	set runbot=python3 main.py
 )
 
 
