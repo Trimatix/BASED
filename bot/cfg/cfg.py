@@ -119,4 +119,4 @@ cardStorageMethod = "local"
 # botToken contains a string of your bot token
 # botToken_envVarName contains the name of an environment variable to get your bot token from
 botToken = ""
-botToken_envVarName = ""
+botToken_envVarName = "SDB_BOT_TOKEN"
