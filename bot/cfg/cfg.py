@@ -62,3 +62,6 @@ reactionMenusDBPath = baseSaveDir + "/" + "reactionMenus.json"
 
 # path to folder to save log txts to
 loggingFolderPath = baseSaveDir + "/" + "logs"
+
+botToken = ""
+botToken_envVarName = ""

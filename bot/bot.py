@@ -405,12 +405,14 @@ async def on_raw_bulk_message_delete(payload : discord.RawBulkMessageDeleteEvent
             await botState.reactionMenusDB[msgID].delete()
 
 
-for varName in ["BASED_DC_TOKEN"]:
-    if varName not in os.environ:
-        raise KeyError("required environment variable " + varName + " not set.")
-
 def run():
+    if cfg.botToken ^ cfg.botToken_envVarName:
+        raise ValueError("You must give exactly one of either cfg.botToken or cfg.botToken_envVarName")
+
+    if cfg.botToken_envVarName and cfg.botToken_envVarName not in os.environ:
+        raise KeyError("Bot token environment variable " + cfg.botToken_envVarName + " not set (cfg.botToken_envVarName")
+
     # Launch the bot!! 🤘🚀
-    botState.client.run(os.environ["BASED_DC_TOKEN"])
+    botState.client.run(cfg.botToken if cfg.botToken else os.environ[cfg.botToken_envVarName])
     return botState.shutdown
     
