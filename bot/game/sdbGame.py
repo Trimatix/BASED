@@ -69,7 +69,7 @@ class SDBGame:
     async def setupAllPlayerHands(self):
         if self.shutdownOverride:
             return
-        loadingMsg = await self.channel.send("Setting up player hands... " + cfg.loadingEmoji.sendable)
+        loadingMsg = await self.channel.send("Setting up player hands... " + cfg.defaultEmojis.loading.sendable)
         for player in self.players:
             if self.shutdownOverride:
                 return
@@ -94,7 +94,7 @@ class SDBGame:
         if self.shutdownOverride:
             return
         loadingStr = "** **\n**__Round " + str(self.currentRound) + ((" of " + str(self.rounds)) if self.rounds != -1 else "") + "__**\nDealing cards... "
-        loadingMsg = await self.channel.send(loadingStr + cfg.loadingEmoji.sendable)
+        loadingMsg = await self.channel.send(loadingStr + cfg.defaultEmojis.loading.sendable)
         for player in self.players:
             if self.shutdownOverride:
                 return
@@ -186,7 +186,7 @@ class SDBGame:
             return
         waitingMsg = await self.channel.send("Waiting for submissions...")
         while not self.allPlayersSubmitted() and not self.shutdownOverride:
-            await asyncio.sleep(cfg.submissionWaitingPeriod)
+            await asyncio.sleep(cfg.timeouts.allSubmittedCheckPeriodSeconds)
         await waitingMsg.delete()
 
 
@@ -195,7 +195,7 @@ class SDBGame:
             return
         submissionsMenuMsg = await self.channel.send("The submissions are in! But who wins?")
         menu = InlineSDBSubmissionsReviewMenu(submissionsMenuMsg, self,
-                                                cfg.submissionsReviewMenuTimeout,
+                                                cfg.timeouts.submissionsReviewMenuSeconds,
                                                 self.currentBlackCard.currentCard.requiredWhiteCards > 1,
                                                 self.getChooser())
         try:
@@ -233,7 +233,7 @@ class SDBGame:
             return self.currentRound != self.rounds
         else:
             confirmMsg = await self.channel.send("Play another round?")
-            keepPlaying = await InlineConfirmationMenu(confirmMsg, self.owner, cfg.keepPlayingConfirmMenuTimeout).doMenu()
+            keepPlaying = await InlineConfirmationMenu(confirmMsg, self.owner, cfg.timeouts.keepPlayingMenuSeconds).doMenu()
             await confirmMsg.delete()
             return cfg.defaultAcceptEmoji in keepPlaying
 

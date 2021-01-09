@@ -42,8 +42,8 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
         self.targetRole = targetRole
         self.owningBasedUser = owningBasedUser
 
-        nextOption = ReactionMenu.NonSaveableReactionMenuOption("Next Page", cfg.defaultNextEmoji, self.nextPage, None)
-        prevOption = ReactionMenu.NonSaveableReactionMenuOption("Previous Page", cfg.defaultPreviousEmoji, self.previousPage, None)
+        nextOption = ReactionMenu.NonSaveableReactionMenuOption("Next Page", cfg.defaultEmojis.next, self.nextPage, None)
+        prevOption = ReactionMenu.NonSaveableReactionMenuOption("Previous Page", cfg.defaultEmojis.previous, self.previousPage, None)
 
         self.firstPageControls = {  cfg.defaultNextEmoji:      nextOption}
 
@@ -55,7 +55,7 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
         self.onePageControls = {}
 
         if not noCancel:
-            cancelOption = ReactionMenu.NonSaveableReactionMenuOption("Close Menu", cfg.defaultCancelEmoji, self.delete, None)
+            cancelOption = ReactionMenu.NonSaveableReactionMenuOption("Close Menu", cfg.defaultEmojis.cancel, self.delete, None)
             for optionsDict in [self.firstPageControls, self.midPageControls, self.lastPageControls, self.onePageControls]:
                 optionsDict[cfg.defaultCancelEmoji] = cancelOption
 
@@ -99,9 +99,9 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
         await self.updateMessage(noRefreshOptions=True)
         if self.currentPageNum == len(self.pages) - 1:
             self.msg = await self.msg.channel.fetch_message(self.msg.id)
-            await self.msg.remove_reaction(cfg.defaultNextEmoji.sendable, botState.client.user)
+            await self.msg.remove_reaction(cfg.defaultEmojis.next.sendable, botState.client.user)
         if self.currentPageNum == 1:
-            await self.msg.add_reaction(cfg.defaultPreviousEmoji.sendable)
+            await self.msg.add_reaction(cfg.defaultEmojis.previous.sendable)
 
 
     async def previousPage(self):
@@ -112,9 +112,9 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
         await self.updateMessage(noRefreshOptions=True)
         if self.currentPageNum == 0:
             self.msg = await self.msg.channel.fetch_message(self.msg.id)
-            await self.msg.remove_reaction(cfg.defaultPreviousEmoji.sendable, botState.client.user)
+            await self.msg.remove_reaction(cfg.defaultEmojis.previous.sendable, botState.client.user)
         if self.currentPageNum == len(self.pages) - 2:
-            await self.msg.add_reaction(cfg.defaultNextEmoji.sendable)
+            await self.msg.add_reaction(cfg.defaultEmojis.next.sendable)
 
     
     async def jumpToPage(self, pageNum : int):
@@ -127,9 +127,9 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
             if len(self.pages) > 1:
                 if self.currentPageNum == 0:
                     self.msg = await self.msg.channel.fetch_message(self.msg.id)
-                    await self.msg.remove_reaction(cfg.defaultPreviousEmoji.sendable, botState.client.user)
+                    await self.msg.remove_reaction(cfg.defaultEmojis.previous.sendable, botState.client.user)
                 if self.currentPageNum != len(self.pages) - 1:
-                    await self.msg.add_reaction(cfg.defaultNextEmoji.sendable)
+                    await self.msg.add_reaction(cfg.defaultEmojis.next.sendable)
 
 
 class MultiPageOptionPicker(PagedReactionMenu):
@@ -142,14 +142,14 @@ class MultiPageOptionPicker(PagedReactionMenu):
                 self.selectedOptions[option] = False
 
         for pageEmbed in pages:
-            if cfg.defaultAcceptEmoji not in pages[pageEmbed]:
-                pages[pageEmbed][cfg.defaultAcceptEmoji] = ReactionMenu.NonSaveableReactionMenuOption("Submit", cfg.defaultAcceptEmoji, self.delete, None)
+            if cfg.defaultEmojis.accept not in pages[pageEmbed]:
+                pages[pageEmbed][cfg.defaultEmojis.accept] = ReactionMenu.NonSaveableReactionMenuOption("Submit", cfg.defaultEmojis.accept, self.delete, None)
 
-            if cfg.defaultCancelEmoji not in pages[pageEmbed]:
-                pages[pageEmbed][cfg.defaultCancelEmoji] = ReactionMenu.NonSaveableReactionMenuOption("Cancel Game", cfg.defaultCancelEmoji, expiryFunctions.deleteReactionMenu, msg.id)
+            if cfg.defaultEmojis.cancel not in pages[pageEmbed]:
+                pages[pageEmbed][cfg.defaultEmojis.cancel] = ReactionMenu.NonSaveableReactionMenuOption("Cancel Game", cfg.defaultEmojis.cancel, expiryFunctions.deleteReactionMenu, msg.id)
 
-            if cfg.spiralEmoji not in pages[pageEmbed]:
-                pages[pageEmbed][cfg.spiralEmoji] = ReactionMenu.NonSaveableReactionMenuOption("Toggle All", cfg.spiralEmoji,
+            if cfg.defaultEmojis.cancel not in pages[pageEmbed]:
+                pages[pageEmbed][cfg.defaultEmojis.cancel] = ReactionMenu.NonSaveableReactionMenuOption("Toggle All", cfg.defaultEmojis.cancel,
                                                                                                 addFunc=ReactionMenu.selectorSelectAllOptions, addArgs=msg.id,
                                                                                                 removeFunc=ReactionMenu.selectorDeselectAllOptions, removeArgs=msg.id)
 
