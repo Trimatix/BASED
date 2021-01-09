@@ -230,6 +230,27 @@ class BasedEmoji(serializable.Serializable):
             return None
 
 
+    @classmethod
+    def fromUninitialized(cls, e : UninitializedBasedEmoji) -> BasedEmoji:
+        """Construct a BasedEmoji object from an UninitializedBasedEmoji object.
+        Always throws an exception if the emoji is unrecognised.
+
+        :param UninitializedBasedEmoji e: The emoji to initialize
+        :return: A BasedEmoji representing the given emoji
+        :rtype: BasedEmoji
+        """
+        # Create BasedEmoji instances based on the type of the uninitialized value
+        if isinstance(e.value, int):
+            return BasedEmoji(id=e.value, rejectInvalid=True)
+        elif isinstance(e.value, str):
+            return BasedEmoji.fromStr(e.value, rejectInvalid=True)
+        elif isinstance(e.value, dict):
+            return BasedEmoji.fromDict(e.value, rejectInvalid=True)
+        # Unrecognised uninitialized value
+        else:
+            raise ValueError("Unrecognised UninitializedBasedEmoji value type. Expecting int, str or dict, given '" + type(e.value).__name__ + "'")
+
+
 # 'static' object representing an empty/lack of emoji
 BasedEmoji.EMPTY = BasedEmoji(unicode=" ")
 BasedEmoji.EMPTY.isUnicode = False
