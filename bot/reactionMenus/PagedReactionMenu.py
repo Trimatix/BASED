@@ -38,21 +38,21 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
         self.targetRole = targetRole
         self.owningBasedUser = owningBasedUser
 
-        nextOption = ReactionMenu.NonSaveableReactionMenuOption("Next Page", cfg.defaultNextEmoji, self.nextPage, None)
-        prevOption = ReactionMenu.NonSaveableReactionMenuOption("Previous Page", cfg.defaultPreviousEmoji, self.previousPage, None)
-        cancelOption = ReactionMenu.NonSaveableReactionMenuOption("Close Menu", cfg.defaultCancelEmoji, self.delete, None)
+        nextOption = ReactionMenu.NonSaveableReactionMenuOption("Next Page", cfg.defaultEmojis.next, self.nextPage, None)
+        prevOption = ReactionMenu.NonSaveableReactionMenuOption("Previous Page", cfg.defaultEmojis.previous, self.previousPage, None)
+        cancelOption = ReactionMenu.NonSaveableReactionMenuOption("Close Menu", cfg.defaultEmojis.cancel, self.delete, None)
 
-        self.firstPageControls = {  cfg.defaultCancelEmoji:    cancelOption,
-                                    cfg.defaultNextEmoji:      nextOption}
+        self.firstPageControls = {  cfg.defaultEmojis.cancel:    cancelOption,
+                                    cfg.defaultEmojis.next:      nextOption}
 
-        self.midPageControls = {    cfg.defaultCancelEmoji:    cancelOption,
-                                    cfg.defaultNextEmoji:      nextOption,
-                                    cfg.defaultPreviousEmoji:  prevOption}
+        self.midPageControls = {    cfg.defaultEmojis.cancel:    cancelOption,
+                                    cfg.defaultEmojis.next:      nextOption,
+                                    cfg.defaultEmojis.previous:  prevOption}
 
-        self.lastPageControls = {   cfg.defaultCancelEmoji:    cancelOption,
-                                    cfg.defaultPreviousEmoji:  prevOption}
+        self.lastPageControls = {   cfg.defaultEmojis.cancel:    cancelOption,
+                                    cfg.defaultEmojis.previous:  prevOption}
 
-        self.onePageControls = {    cfg.defaultCancelEmoji:    cancelOption}
+        self.onePageControls = {    cfg.defaultEmojis.cancel:    cancelOption}
 
         if len(self.pages) == 1:
             self.currentPageControls = self.onePageControls
@@ -94,9 +94,9 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
         await self.updateMessage(noRefreshOptions=True)
         if self.currentPageNum == len(self.pages) - 1:
             self.msg = await self.msg.channel.fetch_message(self.msg.id)
-            await self.msg.remove_reaction(cfg.defaultNextEmoji.sendable, botState.client.user)
+            await self.msg.remove_reaction(cfg.defaultEmojis.next.sendable, botState.client.user)
         if self.currentPageNum == 1:
-            await self.msg.add_reaction(cfg.defaultPreviousEmoji.sendable)
+            await self.msg.add_reaction(cfg.defaultEmojis.previous.sendable)
 
 
     async def previousPage(self):
@@ -107,9 +107,9 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
         await self.updateMessage(noRefreshOptions=True)
         if self.currentPageNum == 0:
             self.msg = await self.msg.channel.fetch_message(self.msg.id)
-            await self.msg.remove_reaction(cfg.defaultPreviousEmoji.sendable, botState.client.user)
+            await self.msg.remove_reaction(cfg.defaultEmojis.previous.sendable, botState.client.user)
         if self.currentPageNum == len(self.pages) - 2:
-            await self.msg.add_reaction(cfg.defaultNextEmoji.sendable)
+            await self.msg.add_reaction(cfg.defaultEmojis.next.sendable)
 
     
     async def jumpToPage(self, pageNum : int):
@@ -122,6 +122,6 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
             if len(self.pages) > 1:
                 if self.currentPageNum == 0:
                     self.msg = await self.msg.channel.fetch_message(self.msg.id)
-                    await self.msg.remove_reaction(cfg.defaultPreviousEmoji.sendable, botState.client.user)
+                    await self.msg.remove_reaction(cfg.defaultEmojis.previous.sendable, botState.client.user)
                 if self.currentPageNum != len(self.pages) - 1:
-                    await self.msg.add_reaction(cfg.defaultNextEmoji.sendable)
+                    await self.msg.add_reaction(cfg.defaultEmojis.next.sendable)

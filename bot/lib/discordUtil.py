@@ -71,7 +71,7 @@ async def startLongProcess(message : Message):
     :param discord.Message message: The message to react to
     """
     try:
-        await message.add_reaction(cfg.longProcessEmoji.sendable)
+        await message.add_reaction(cfg.defaultEmojis.longProcess.sendable)
     except (HTTPException, Forbidden):
         pass
 
@@ -82,7 +82,7 @@ async def endLongProcess(message : Message):
     :param discord.Message message: The message to remove the reaction from
     """
     try:
-        await message.remove_reaction(cfg.longProcessEmoji.sendable, botState.client.user)
+        await message.remove_reaction(cfg.defaultEmojis.longProcess.sendable, botState.client.user)
     except (HTTPException, Forbidden):
         pass
 

@@ -37,19 +37,19 @@ async def util_autohelp(message : discord.Message, args : str, isDM : bool, user
         if args == "":
             owningUser = botState.usersDB.getOrAddID(message.author.id)
             if owningUser.helpMenuOwned:
-                await message.channel.send(":x: Please close your existing help menu before making a new one!\nIn case you can't find it, help menus auto exire after **" + lib.timeUtil.td_format_noYM(lib.timeUtil.timeDeltaFromDict(cfg.helpEmbedTimeout)) + "**.")
+                await message.channel.send(":x: Please close your existing help menu before making a new one!\nIn case you can't find it, help menus auto exire after **" + lib.timeUtil.td_format_noYM(lib.timeUtil.timeDeltaFromDict(cfg.timeouts.helpMenu)) + "**.")
                 return
             owningUser.helpMenuOwned = True
             menuMsg = await sendChannel.send("‎")
-            helpTT = TimedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(cfg.helpEmbedTimeout), expiryFunction=expiryFunctions.expireHelpMenu, expiryFunctionArgs=menuMsg.id)
+            helpTT = TimedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(cfg.timeouts.helpMenu), expiryFunction=expiryFunctions.expireHelpMenu, expiryFunctionArgs=menuMsg.id)
             botState.reactionMenusTTDB.scheduleTask(helpTT)
-            indexEmbed = lib.discordUtil.makeEmbed(titleTxt=cfg.userAccessLevels[userAccessLevel] + " Commands", desc="Select " + cfg.defaultNextEmoji.sendable + " to go to page one.", thumb=botState.client.user.avatar_url_as(size=64), footerTxt="This menu will expire in " + lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
+            indexEmbed = lib.discordUtil.makeEmbed(titleTxt=cfg.userAccessLevels[userAccessLevel] + " Commands", desc="Select " + cfg.defaultEmojis.next.sendable + " to go to page one.", thumb=botState.client.user.avatar_url_as(size=64), footerTxt="This menu will expire in " + lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
             sectionsStr = ""
             pages = {indexEmbed: {}}
             for sectionNum in range(len(botCommands.helpSectionEmbeds[userAccessLevel])):
                 sectionsStr += "\n" + str(sectionNum + 1) + ") " + list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title()
-                # sectionsStr += "\n" + cfg.defaultMenuEmojis[sectionNum + 1].sendable + " : " + list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title()
-                # pages[indexEmbed][cfg.defaultMenuEmojis[sectionNum + 1]] = ReactionMenu.NonSaveableReactionMenuOption(list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title(), cfg.defaultMenuEmojis[sectionNum + 1], addFunc=PagedReactionMenu.menuJumpToPage, addArgs={"menuID": menuMsg.id, "pageNum": sectionNum})
+                # sectionsStr += "\n" + cfg.defaultEmojis.menuOptions[sectionNum + 1].sendable + " : " + list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title()
+                # pages[indexEmbed][cfg.defaultEmojis.menuOptions[sectionNum + 1]] = ReactionMenu.NonSaveableReactionMenuOption(list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title(), cfg.defaultEmojis.menuOptions[sectionNum + 1], addFunc=PagedReactionMenu.menuJumpToPage, addArgs={"menuID": menuMsg.id, "pageNum": sectionNum})
             indexEmbed.add_field(name="Contents",value=sectionsStr)
             pageNum = 0
             for helpSectionEmbedList in botCommands.helpSectionEmbeds[userAccessLevel].values():
@@ -68,11 +68,11 @@ async def util_autohelp(message : discord.Message, args : str, isDM : bool, user
             else:
                 owningUser = botState.usersDB.getOrAddID(message.author.id)
                 if owningUser.helpMenuOwned:
-                    await message.channel.send(":x: Please close your existing help menu before making a new one!\nIn case you can't find it, help menus auto exire after **" + lib.timeUtil.td_format_noYM(lib.timeUtil.timeDeltaFromDict(cfg.helpEmbedTimeout)) + "**.")
+                    await message.channel.send(":x: Please close your existing help menu before making a new one!\nIn case you can't find it, help menus auto exire after **" + lib.timeUtil.td_format_noYM(lib.timeUtil.timeDeltaFromDict(cfg.timeouts.helpMenu)) + "**.")
                     return
                 owningUser.helpMenuOwned = True
                 menuMsg = await sendChannel.send("‎")
-                helpTT = TimedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(cfg.helpEmbedTimeout), expiryFunction=expiryFunctions.expireHelpMenu, expiryFunctionArgs=menuMsg.id)
+                helpTT = TimedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(cfg.timeouts.helpMenu), expiryFunction=expiryFunctions.expireHelpMenu, expiryFunctionArgs=menuMsg.id)
                 botState.reactionMenusTTDB.scheduleTask(helpTT)
                 pages = {}
                 for helpEmbed in botCommands.helpSectionEmbeds[userAccessLevel][args]:
@@ -103,4 +103,4 @@ async def util_autohelp(message : discord.Message, args : str, isDM : bool, user
         return
     else:
         if sendDM:
-            await message.add_reaction(cfg.dmSentEmoji.sendable)
+            await message.add_reaction(cfg.defaultEmojis.dmSent.sendable)
