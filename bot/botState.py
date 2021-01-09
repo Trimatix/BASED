@@ -4,6 +4,7 @@ class ShutDownState:
     update = 2
 
 client = None
+httpClient = None
 
 usersDB = None
 guildsDB = None

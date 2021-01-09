@@ -196,6 +196,35 @@ class DummyReactionMenuOption(ReactionMenuOption):
         return super(DummyReactionMenuOption, self).toDict(**kwargs)
 
 
+async def ToggleSelectorMenuOption(args : Dict[str, Union["NonSaveableSelecterMenuOption", int]]):
+    menu = botState.reactionMenusDB[args["menuID"]]
+    menuOption = args["option"]
+    menu.selectedOptions[menuOption] = not menu.selectedOptions[menuOption]
+    await menu.updateSelectionsField()
+
+
+async def SetSelectorMenuOption(args : Dict[str, Union["NonSaveableSelecterMenuOption", int]]):
+    menu = botState.reactionMenusDB[args["menuID"]]
+    menuOption = args["option"]
+    if not menu.selectedOptions[menuOption]:
+        menu.selectedOptions[menuOption] = True
+        await menu.updateSelectionsField()
+
+
+async def UnsetSelectorMenuOption(args : Dict[str, Union["NonSaveableSelecterMenuOption", int]]):
+    menu = botState.reactionMenusDB[args["menuID"]]
+    menuOption = args["option"]
+    if menu.selectedOptions[menuOption]:
+        menu.selectedOptions[menuOption] = False
+        await menu.updateSelectionsField()
+
+
+class NonSaveableSelecterMenuOption(NonSaveableReactionMenuOption):
+    def __init__(self, name : str, emoji : lib.emojis.BasedEmoji, menuID : int):
+        self.menuID = menuID
+        super().__init__(name, emoji, addFunc=ToggleSelectorMenuOption, addArgs={"option": self, "menuID": self.menuID}, removeFunc=ToggleSelectorMenuOption, removeArgs={"option": self, "menuID": self.menuID})
+
+
 class ReactionMenu(serializable.Serializable):
     """A versatile class implementing emoji reaction menus.
     This class can be used as-is, to create unsaveable reaction menus of any type, with vast possibilities for behaviour.
@@ -249,13 +278,15 @@ class ReactionMenu(serializable.Serializable):
     :vartype targetRole: discord.Role
     :var saveable: Class attribute indicating whether or not this type of ReactionMenu can be saved to file. If not, this menu will be forcibly deleted before bot shutdown.
     :vartype saveable: bool
+    :var anon: If true, remove reactions as soon as they are given
+    :vartype anon: bool
     """
     saveable = False
 
     def __init__(self, msg : Message, options : Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = {}, 
                     titleTxt : str = "", desc : str ="", col : Colour = Colour.blue(), timeout : TimedTask = None,
                     footerTxt : str = "", img : str = "", thumb : str = "", icon : str = "",
-                    authorName : str = "", targetMember : Member = None, targetRole : Role = None):
+                    authorName : str = "", targetMember : Member = None, targetRole : Role = None, anon : bool = False):
         """
         :param discord.Message msg: the message where this menu is embedded
         :param options: A dictionary storing all of the menu's options and their behaviour (Default {})
@@ -271,6 +302,7 @@ class ReactionMenu(serializable.Serializable):
         :param TimedTask timeout: The TimedTask responsible for expiring this menu (Default None)
         :param discord.Member targetMember: The only discord.Member that is able to interact with this menu. All other reactions are ignored (Default None)
         :param discord.Role targetRole: In order to interact with this menu, users must possess this role. All other reactions are ignored (Default None)
+        :param bool anon: If true, remove reactions as soon as they are given (Default False)
         """
 
         if footerTxt == "" and timeout is not None:
@@ -292,6 +324,7 @@ class ReactionMenu(serializable.Serializable):
         self.timeout = timeout
         self.targetMember = targetMember
         self.targetRole = targetRole
+        self.anon = anon
 
     
     def hasEmojiRegistered(self, emoji : lib.emojis.BasedEmoji) -> bool:
@@ -318,6 +351,25 @@ class ReactionMenu(serializable.Serializable):
         :param discord.Member member: The member that added the emoji reaction
         :return: The result of the corresponding menu option's addFunc, if any
         """
+        if self.anon:
+            try:
+                await self.msg.remove_reaction(emoji.sendable, member)
+            except HTTPException:
+                success = False
+                for i in range(3):
+                    asyncio.sleep(2)
+                    try:
+                        await self.msg.remove_reaction(emoji.sendable, member)
+                    except HTTPException:
+                        pass
+                    else:
+                        success = True
+                        break
+                if not success:
+                    botState.logger.log(type(self).__name__, "reactionAdded", "Failed to remove anon reaction after 3 retries", category="reactionMenus", eventType="HTTPException")
+            except (Forbidden, NotFound):
+                pass
+
         if self.targetMember is not None:
             if member != self.targetMember:
                 return
@@ -372,11 +424,12 @@ class ReactionMenu(serializable.Serializable):
         return menuEmbed
     
 
-    async def updateMessage(self, noRefreshOptions=False):
+    async def updateMessage(self, noRefreshOptions=False, noUpdateEmbed=False):
         """Update the menu message by removing all reactions, replacing any existing embed with
         up to date embed content, and readd all of the menu's option reactions.
         """
-        await self.msg.edit(embed=self.getMenuEmbed())
+        if not noUpdateEmbed:
+            await self.msg.edit(embed=self.getMenuEmbed())
         
         if not noRefreshOptions:
             self.msg = await self.msg.channel.fetch_message(self.msg.id)
@@ -517,7 +570,7 @@ class CancellableReactionMenu(ReactionMenu):
         return baseDict
 
 
-class SingleUserReactionMenu(ReactionMenu):
+class InlineReactionMenu(ReactionMenu):
     """
     An in-place menu solution
     """
@@ -554,4 +607,22 @@ class SingleUserReactionMenu(ReactionMenu):
             return []
         else:
             updatedMsg = await self.msg.channel.fetch_message(self.msg.id)
-            return [lib.emojis.BasedEmojiFromReaction(react.emoji) for react in updatedMsg.reactions if self.targetMember in await react.users().flatten() and lib.emojis.BasedEmojiFromReaction(react.emoji) in self.options]
+            return [lib.emojis.BasedEmoji.fromReaction(react.emoji) for react in updatedMsg.reactions if self.targetMember in await react.users().flatten() and lib.emojis.BasedEmoji.fromReaction(react.emoji) in self.options]
+
+
+class SelectorMenu(ReactionMenu):
+    pass
+
+
+async def selectorSelectAllOptions(menuID: int):
+    menu = botState.reactionMenusDB[menuID]
+    for option in menu.selectedOptions:
+        menu.selectedOptions[option] = True
+    await menu.updateSelectionsField()
+
+
+async def selectorDeselectAllOptions(menuID: int):
+    menu = botState.reactionMenusDB[menuID]
+    for option in menu.selectedOptions:
+        menu.selectedOptions[option] = False
+    await menu.updateSelectionsField()

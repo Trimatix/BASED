@@ -113,6 +113,12 @@ class BasedClient(ClientBaseClass):
         - logs out of discord
         - saves all savedata to file
         """
+        for guild in botState.guildsDB.getGuilds():
+            for game in guild.runningGames.values():
+                if game is not None:
+                    game.shutdownOverride = True
+                    game.shutdownOverrideReason = "The bot is shutting down"
+
         if self.storeMenus:
             menus = list(botState.reactionMenusDB.values())
             for menu in menus:
@@ -121,6 +127,7 @@ class BasedClient(ClientBaseClass):
         self.loggedIn = False
         await self.logout()
         self.saveAllDBs()
+        await botState.httpClient.close()
         print(datetime.now().strftime("%H:%M:%S: Shutdown complete."))
         await botState.httpClient.close()
 
@@ -233,6 +240,8 @@ async def on_ready():
     TODO: Implement dynamic timedtask checking period
     """
     botState.httpClient = aiohttp.ClientSession()
+    if cfg.cardStorageMethod not in ["discord", "local"]:
+        raise ValueError("Unsupported cfg.cardStorageMethod: " + str(cfg.cardStorageMethod))
 
     ##### EMOJI INITIALIZATION #####
     emojiVars = []
@@ -263,7 +272,7 @@ async def on_ready():
             working.append(lib.emojis.BasedEmoji.fromUninitialized(item))
             
         setattr(cfg.defaultEmojis, varname, working)
-    
+        
     # Ensure all emojis have been initialized
     for varName, varValue in vars(cfg).items():
         if isinstance(varValue, lib.emojis.UninitializedBasedEmoji):
@@ -271,6 +280,11 @@ async def on_ready():
 
     botState.usersDB = loadUsersDB(cfg.paths.usersDB)
     botState.guildsDB = loadGuildsDB(cfg.paths.guildsDB)
+
+    # Handle any guilds joined while the bot was offline
+    for guild in botState.client.guilds:
+        if not botState.guildsDB.idExists(guild.id):
+            botState.guildsDB.addID(guild.id)
 
     # Set help embed thumbnails
     for levelSection in botCommands.helpSectionEmbeds:
@@ -336,7 +350,7 @@ async def on_message(message : discord.Message):
         commandPrefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
 
     # For any messages beginning with commandPrefix
-    if message.content.startswith(commandPrefix) and len(message.content) > len(commandPrefix):
+    if message.content.lower().startswith(commandPrefix) and len(message.content) > len(commandPrefix):
         # replace special apostraphe characters with the universal '
         msgContent = message.content.replace("‘", "'").replace("’", "'")
 
