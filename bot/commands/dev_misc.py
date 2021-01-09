@@ -28,6 +28,7 @@ async def dev_cmd_sleep(message : discord.Message, args : str, isDM : bool):
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
+    botState.shutdown = botState.ShutDownState.shutdown
     await message.channel.send("shutting down.")
     await botState.client.shutdown()
 
@@ -178,3 +179,17 @@ async def dev_cmd_say(message : discord.Message, args : str, isDM : bool):
         await message.channel.send(msgText, embed=broadcastEmbed)
 
 botCommands.register("say", dev_cmd_say, 3, forceKeepArgsCasing=True, allowDM=True, useDoc=True)
+
+
+async def dev_cmd_bot_update(message : discord.Message, args : str, isDM : bool):
+    """developer command that gracefully shuts down the bot, performs git pull, and then reboots the bot.
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignored
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    botState.shutdown = botState.ShutDownState.update
+    await message.channel.send("updating and restarting...")
+    await botState.client.shutdown()
+
+botCommands.register("bot-update", dev_cmd_bot_update, 3, allowDM=True, useDoc=True)

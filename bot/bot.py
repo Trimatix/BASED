@@ -10,6 +10,7 @@ from datetime import datetime
 import os
 import traceback
 import asyncio
+import signal
 
 
 # BASED Imports
@@ -35,6 +36,16 @@ def checkForUpdates():
         print("⚠ New BASED update " + BASED_versionCheck.latestVersion + " now available! See " + versionInfo.BASED_REPO_URL + " for instructions on how to update your BASED fork.")
 
 
+class GracefulKiller:
+  kill_now = False
+  def __init__(self):
+    signal.signal(signal.SIGINT, self.exit_gracefully)
+    signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+  def exit_gracefully(self,signum, frame):
+    self.kill_now = True
+
+
 class BasedClient(ClientBaseClass):
     """A minor extension to discord.ext.commands.Bot to include database saving and extended shutdown procedures.
 
@@ -54,6 +65,7 @@ class BasedClient(ClientBaseClass):
         self.storeMenus = storeMenus
         self.storeNone = not(storeUsers or storeGuilds or storeMenus)
         self.launchTime = datetime.utcnow()
+        self.killer = GracefulKiller()
 
     
     def saveAllDBs(self):
@@ -261,6 +273,11 @@ async def on_ready():
         await botState.dbSaveTT.doExpiryCheck()
         await botState.reactionMenusTTDB.doTaskChecking()
 
+        if botState.client.killer.kill_now:
+            botState.shutdown = botState.ShutDownState.shutdown
+            print("shutdown signal received, shutting down...")
+            await botState.client.shutdown()
+
 
 @botState.client.event
 async def on_message(message : discord.Message):
@@ -390,3 +407,5 @@ for varName in ["BASED_DC_TOKEN"]:
 def run():
     # Launch the bot!! 🤘🚀
     botState.client.run(os.environ["BASED_DC_TOKEN"])
+    return botState.shutdown
+    
