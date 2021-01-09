@@ -1,4 +1,11 @@
-#!/usr/bin/env python3
-import bot
+import sys
+from bot.cfg.configurator import loadCfg
 
-bot.bot.run()
+if len(sys.argv) > 1:
+    loadCfg(sys.argv[1])
+
+from bot import bot
+
+status = bot.run()
+
+sys.exit(status)

@@ -21,7 +21,7 @@ from ..cardRenderer import make_cards
 
 # use creds to create a client to interact with the Google Drive API
 scope = ['https://spreadsheets.google.com/feeds']
-creds = ServiceAccountCredentials.from_json_keyfile_name(cfg.googleAPICred, scope)
+creds = ServiceAccountCredentials.from_json_keyfile_name(cfg.paths.googleAPICred, scope)
 gspread_client = gspread.authorize(creds)
 
 def collect_cards(sheetLink):
@@ -69,7 +69,7 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
         return
 
     callingBGuild = botState.guildsDB.getGuild(message.guild.id)
-    loadingMsg = await message.channel.send("Reading spreadsheet... " + cfg.loadingEmoji.sendable)
+    loadingMsg = await message.channel.send("Reading spreadsheet... " + cfg.defaultEmojis.loading.sendable)
 
     try:
         gameData = collect_cards(args)
@@ -123,10 +123,10 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
             await message.channel.send("Deck creation failed.\nDecks must have at least 1 black card.")
             return
 
-        loadingMsg = await message.channel.send("Drawing cards... " + cfg.loadingEmoji.sendable)
-        deckMeta = await make_cards.render_all(cfg.decksFolderPath, gameData, cfg.cardFont, message.guild.id)
+        loadingMsg = await message.channel.send("Drawing cards... " + cfg.defaultEmojis.loading.sendable)
+        deckMeta = await make_cards.render_all(cfg.paths.decksFolder, gameData, cfg.paths.cardFont, message.guild.id)
         if cfg.cardStorageMethod == "discord":
-            deckMeta = await make_cards.store_cards_discord(cfg.decksFolderPath, deckMeta,
+            deckMeta = await make_cards.store_cards_discord(cfg.paths.decksFolder, deckMeta,
                                                             botState.client.get_guild(cfg.cardsDCChannel["guild_id"]).get_channel(cfg.cardsDCChannel["channel_id"]),
                                                             message)
         elif cfg.cardStorageMethod == "local":
@@ -137,7 +137,7 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
         await loadingMsg.edit(content="Drawing cards... " + cfg.defaultSubmitEmoji.sendable)
         
         deckMeta["spreadsheet_url"] = args
-        metaPath = cfg.decksFolderPath + os.sep + str(message.guild.id) + os.sep + str(hash(gameData["title"])) + ".json"
+        metaPath = cfg.paths.decksFolder + os.sep + str(message.guild.id) + os.sep + str(hash(gameData["title"])) + ".json"
         lib.jsonHandler.writeJSON(metaPath, deckMeta)
         now = datetime.utcnow()
         callingBGuild.decks[deckMeta["deck_name"].lower()] = {"meta_path": metaPath, "creator": message.author.id, "creation_date" : str(now.day).zfill(2) + "-" + str(now.month).zfill(2) + "-" + str(now.year), "plays": 0,
@@ -168,9 +168,9 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
     options[cfg.defaultCancelEmoji] = ReactionMenu.DummyReactionMenuOption("Cancel", cfg.defaultCancelEmoji)
 
     roundsPickerMsg = await message.channel.send("​")
-    roundsResult = await ReactionMenu.SingleUserReactionMenu(roundsPickerMsg, message.author, cfg.roundsPickerTimeout,
+    roundsResult = await ReactionMenu.InlineReactionMenu(roundsPickerMsg, message.author, cfg.timeouts.numRoundsPickerSeconds,
                                                     options=options, returnTriggers=list(options.keys()), titleTxt="Game Length", desc="How many rounds would you like to play?",
-                                                    footerTxt=args.title() + " | This menu will expire in " + str(cfg.roundsPickerTimeout) + "s").doMenu()
+                                                    footerTxt=args.title() + " | This menu will expire in " + str(cfg.timeouts.numRoundsPickerSeconds) + "s").doMenu()
     
     rounds = cfg.defaultSDBRounds
     if len(roundsResult) == 1:
@@ -188,7 +188,7 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
     optionPages = {}
     embedKeys = []
     numPages = numExpansions // 5 + (0 if numExpansions % 5 == 0 else 1)
-    menuTimeout = lib.timeUtil.timeDeltaFromDict(cfg.expansionPickerTimeout)
+    menuTimeout = lib.timeUtil.timeDeltaFromDict(cfg.timeouts.expansionsPicker)
     menuTT = TimedTask.TimedTask(expiryDelta=menuTimeout, expiryFunction=sdbGame.startGameFromExpansionMenu, expiryFunctionArgs={"menuID": expansionPickerMsg.id, "deckName": args, "rounds": rounds})
     callingBGuild.runningGames[message.channel] = None
 

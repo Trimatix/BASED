@@ -3,14 +3,16 @@ from . import cfg
 from .. import lib
 from datetime import datetime
 from typing import Dict, Union
-import re
 import aiohttp
 
 # Path to the BASED version json descriptor file. File also contains the timestamp of the next scheduled version check.
-BASED_VERSIONFILE = 'bot/cfg/version/BASED_version.json'
+BASED_VERSIONFILE = "bot" + os.sep + "cfg" + os.sep + "version" + os.sep + "BASED_version.json"
+
+BASED_REPO_USER = "Trimatix"
+BASED_REPO_NAME = "BASED"
 # Pointer to the BASED repository. Do not change this.
-BASED_REPO_URL = "https://github.com/Trimatix/BASED/"
-BASED_API_URL = "https://api.github.com/repos/" + "/".join(BASED_REPO_URL.split("/")[-3:-1]) + "/releases"
+BASED_REPO_URL = "https://github.com/" + "/".join([BASED_REPO_USER, BASED_REPO_NAME])
+BASED_API_URL = "https://api.github.com/repos/" + "/".join([BASED_REPO_USER, BASED_REPO_NAME]) + "/releases"
 
 
 class UpdatesCheckFailed(Exception):
@@ -92,7 +94,7 @@ async def checkForUpdates(httpClient : aiohttp.ClientSession) -> UpdateCheckResu
         latest = await getNewestTagOnRemote(httpClient, BASED_API_URL)
 
         # Schedule next updates check
-        nextCheck = datetime.utcnow() + lib.timeUtil.timeDeltaFromDict(cfg.BASED_updateCheckFrequency)
+        nextCheck = datetime.utcnow() + lib.timeUtil.timeDeltaFromDict(cfg.timeouts.BASED_updateCheckFrequency)
         lib.jsonHandler.writeJSON(BASED_VERSIONFILE,
                                     {   "BASED_version"     : BASED_VERSION,
                                         "next_update_check" : nextCheck.timestamp()})

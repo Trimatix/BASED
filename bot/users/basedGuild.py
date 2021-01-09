@@ -55,7 +55,7 @@ class BasedGuild(serializable.Serializable):
         self.runningGames[channel] = sdbGame.SDBGame(owner, gameDeck, expansionNames, channel, rounds)
 
         signupMsg = await channel.send("​")
-        signupMenu = SDBSignupMenu.SDBSignupMenu(signupMsg, self.runningGames[channel], lib.timeUtil.timeDeltaFromDict(cfg.gameJoinMenuTimout))
+        signupMenu = SDBSignupMenu.SDBSignupMenu(signupMsg, self.runningGames[channel], lib.timeUtil.timeDeltaFromDict(cfg.timeouts.gameJoinMenu))
         botState.reactionMenusDB[signupMsg.id] = signupMenu
         await signupMenu.updateMessage()
         self.decks[deckName]["plays"] += 1

@@ -74,7 +74,7 @@ class Logger:
 
     def save(self):
         """Save all currently stored logs to separate text files, named after categories.
-        Log files are saved to the directory specified in cfg.loggingFolderPath.
+        Log files are saved to the directory specified in cfg.paths.logsFolder.
         Logs are sorted by the time they were added to the logger prior to saving.
         After saving, the logger is cleared of logs.
         If category-named text files do not exist, they are created.
@@ -93,7 +93,7 @@ class Logger:
         
         for category in self.logs:
             if bool(self.logs[category]):
-                currentFName = cfg.loggingFolderPath + ("" if cfg.loggingFolderPath.endswith("/") else "/") + category + ".txt"
+                currentFName = cfg.paths.logsFolder + ("" if cfg.paths.logsFolder.endswith("/") else "/") + category + ".txt"
                 logsSaved += category + ".txt, "
 
                 if category not in files:

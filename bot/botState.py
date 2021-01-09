@@ -1,3 +1,8 @@
+class ShutDownState:
+    restart = 0
+    shutdown = 1
+    update = 2
+
 client = None
 httpClient = None
 
@@ -13,6 +18,6 @@ dbSaveTT = None
 reactionMenusDB = None
 reactionMenusTTDB = None
 
-shutdown = False
+shutdown = ShutDownState.restart
 
 updatesCheckTT = None

@@ -26,7 +26,7 @@ async def admin_cmd_del_deck(message : discord.Message, args : str, isDM : bool)
     if os.path.exists(callingBGuild.decks[args]["meta_path"]):
         os.remove(callingBGuild.decks[args]["meta_path"])
 
-    clear_deck_path(cfg.decksFolderPath, message.guild.id, args)
+    clear_deck_path(cfg.paths.decksFolder, message.guild.id, args)
 
     del callingBGuild.decks[args]
     if args in callingBGuild.activeDecks:
