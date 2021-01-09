@@ -40,8 +40,12 @@ BASED v0.3 adds the ability to configure all of the bot's cfg attributes externa
 To run your bot, simply run `main.py`.
 
 Alternatively, auto restarting and updating of the bot are provided by using one of the two looping bot launching scripts, `run.bat` and `run.sh`.
+
 By launching your bot from a `run` script, dev_cmd_restart becomes functional. This command will restart the script. The `run` script will also restart your bot if critical errors are encountered, crashing the bot.
-By giving the `-g` argument to a `run` script, dev_cmd_update becomes functional. ONLY specify `-g` if you have git installed on your system, and your bot is in a git tree. Running `dev_cmd_update` will shut down the bot, run `git pull`, and restart the bot again. If conflicts are encountered with merging commits, the pull will be cancelled entirely. This error will not be announced to discord, and you should check your console after running dev_cmd_update to ensure that it was successful (or implement your own bot version checking command)
+
+By giving the `-g` argument to a `run` script, dev_cmd_update becomes functional. ONLY specify `-g` if you have git installed on your system, and your bot is in a git tree.
+
+Running `dev_cmd_update` will shut down the bot, run `git pull`, and restart the bot again. If conflicts are encountered with merging commits, the pull will be cancelled entirely. This error will not be announced to discord, and you should check your console after running dev_cmd_update to ensure that it was successful (or implement your own bot version checking command)
 
 
 # How to Update Your BASED Fork
