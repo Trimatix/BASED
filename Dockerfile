@@ -22,6 +22,7 @@ RUN python3 ./makeDefaultConfig.py && \
     sed -i 's/saveData\/logs/\/logs/' /config.toml && \
     sed -i 's/bot\/cfg\/google_client_secret.json/\/google_client_secret.json/' /config.toml && \
     sed -i 's/saveData/\/saveData/' /config.toml && \
+    sed -i 's/botToken_envVarName = ""/botToken_envVarName = "DISCORD_TOKEN"/' /config.toml && \
     mkdir -p /logs
 
 # I/O
