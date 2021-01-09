@@ -32,7 +32,21 @@ async def dev_cmd_sleep(message : discord.Message, args : str, isDM : bool):
     await message.channel.send("shutting down.")
     await botState.client.shutdown()
 
-botCommands.register("sleep", dev_cmd_sleep, 3, allowDM=True, useDoc=True)
+botCommands.register("bot-sleep", dev_cmd_sleep, 3, allowDM=True, useDoc=True)
+
+
+async def dev_cmd_restart(message : discord.Message, args : str, isDM : bool):
+    """developer command saving all data to JSON and then restarting the bot
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignored
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    botState.shutdown = botState.ShutDownState.restart
+    await message.channel.send("restarting...")
+    await botState.client.shutdown()
+
+botCommands.register("bot-restart", dev_cmd_restart, 3, allowDM=True, useDoc=True)
 
 
 async def dev_cmd_save(message : discord.Message, args : str, isDM : bool):
