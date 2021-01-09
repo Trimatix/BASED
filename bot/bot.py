@@ -28,12 +28,16 @@ for varname in cfg.pathVars:
         os.makedirs(path)
 
 
-def checkForUpdates():
+async def checkForUpdates():
     """Check if any new BASED versions are available, and print a message to console if one is found.
     """
-    BASED_versionCheck = versionInfo.checkForUpdates()
-    if BASED_versionCheck.updatesChecked and not BASED_versionCheck.upToDate:
-        print("⚠ New BASED update " + BASED_versionCheck.latestVersion + " now available! See " + versionInfo.BASED_REPO_URL + " for instructions on how to update your BASED fork.")
+    try:
+        BASED_versionCheck = await versionInfo.checkForUpdates(botState.httpClient)
+    except versionInfo.UpdatesCheckFailed:
+        print("⚠ BASED updates check failed. Either the GitHub API is down, or your BASED updates checker version is depracated: " + versionInfo.BASED_REPO_URL)
+    else:
+        if BASED_versionCheck.updatesChecked and not BASED_versionCheck.upToDate:
+            print("⚠ New BASED update " + BASED_versionCheck.latestVersion + " now available! See " + versionInfo.BASED_REPO_URL + " for instructions on how to update your BASED fork.")
 
 
 class GracefulKiller:
@@ -84,7 +88,6 @@ class BasedClient(ClientBaseClass):
         botState.logger.save()
         if not self.storeNone:
             print(datetime.now().strftime("%H:%M:%S: Data saved!"))
-        checkForUpdates()
 
 
     async def shutdown(self):
@@ -256,9 +259,10 @@ async def on_ready():
     botState.reactionMenusDB = await loadReactionMenusDB(cfg.reactionMenusDBPath)
 
     botState.dbSaveTT = TimedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(cfg.savePeriod), autoReschedule=True, expiryFunction=botState.client.saveAllDBs)
+    botState.updatesCheckTT = TimedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(cfg.BASED_updateCheckFrequency), autoReschedule=True, expiryFunction=checkForUpdates)
 
     print("BASED " + versionInfo.BASED_VERSION + " loaded.\nClient logged in as {0.user}".format(botState.client))
-    checkForUpdates()
+    await checkForUpdates()
 
     await botState.client.change_presence(activity=discord.Game("BASED APP"))
     # bot is now logged in
@@ -272,6 +276,7 @@ async def on_ready():
 
         await botState.dbSaveTT.doExpiryCheck()
         await botState.reactionMenusTTDB.doTaskChecking()
+        await botState.updatesCheckTT.doExpiryCheck()
 
         if botState.client.killer.kill_now:
             botState.shutdown = botState.ShutDownState.shutdown

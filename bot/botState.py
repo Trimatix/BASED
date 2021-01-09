@@ -18,3 +18,5 @@ reactionMenusDB = None
 reactionMenusTTDB = None
 
 shutdown = ShutDownState.restart
+
+updatesCheckTT = None

@@ -1,14 +1,22 @@
-import git
 import os
 from . import cfg
 from .. import lib
 from datetime import datetime
 from typing import Dict, Union
+import aiohttp
 
 # Path to the BASED version json descriptor file. File also contains the timestamp of the next scheduled version check.
-BASED_VERSIONFILE = 'bot/cfg/version/BASED_version.json'
+BASED_VERSIONFILE = "bot" + os.sep + "cfg" + os.sep + "version" + os.sep + "BASED_version.json"
+
+BASED_REPO_USER = "Trimatix"
+BASED_REPO_NAME = "BASED"
 # Pointer to the BASED repository. Do not change this.
-BASED_REPO_URL = "https://github.com/Trimatix/BASED.git"
+BASED_REPO_URL = "https://github.com/" + "/".join([BASED_REPO_USER, BASED_REPO_NAME])
+BASED_API_URL = "https://api.github.com/repos/" + "/".join([BASED_REPO_USER, BASED_REPO_NAME]) + "/releases"
+
+
+class UpdatesCheckFailed(Exception):
+    pass
 
 
 class UpdateCheckResults:
@@ -46,28 +54,34 @@ def getBASEDVersion() -> Dict[str, Union[str, float]]:
     return lib.jsonHandler.readJSON(BASED_VERSIONFILE)
 
 
-def getNewestTagOnRemote(url : str) -> str:
+async def getNewestTagOnRemote(httpClient : aiohttp.ClientSession, url : str) -> str:
     """Fetch the name of the latest tag on the given git remote.
     If the remote has no tags, empty string is returned.
+    Python port of lukechild's shell gist: https://gist.github.com/lukechilds/a83e1d7127b78fef38c2914c4ececc3c
 
+    :param aiohttp.ClientSession httpClient: The ClientSession to request git info with
     :param str url: URL to the git remote to check
     :return: String name of the the latest tag on the remote at URL, if the remote at URL has any tags. Empty string otherwise
     :rtype: str 
     """
-    # Fetch latest tag. ls-remote --tags returns tags sorted by date, so select the first element.
-    latest = git.cmd.Git().ls_remote("--tags", url).split("\n")[0]
-    # Strip of the commit sha, and strip of leading tag identifiers ('refs/tags/') added by GitHub
-    return latest[latest.rfind("/")+1:] if latest else ""
+    async with httpClient.get(url) as resp:
+        try:
+            resp.raise_for_status()
+            respJSON = await resp.json()
+            return respJSON[0]["tag_name"]
+        except (IndexError, KeyError, aiohttp.ContentTypeError, aiohttp.ClientResponseError):
+            raise UpdatesCheckFailed()
 
 
 # Version of BASED currently installed
 BASED_VERSION = getBASEDVersion()["BASED_version"]
 
 
-def checkForUpdates() -> UpdateCheckResults:
+async def checkForUpdates(httpClient : aiohttp.ClientSession) -> UpdateCheckResults:
     """Check the BASED repository for new releases.
     Could be easily extended to check your own bot repository for updates as well.
 
+    :param aiohttp.ClientSession httpClient: The ClientSession to request git info with
     :return: The latest BASED version and whether or not this installation is up to date, if the scheduled check time has been reached. UpdateCheckResults indicating that no check was performed otherwise.
     :rtype: UpdateCheckResults
     """
@@ -77,7 +91,7 @@ def checkForUpdates() -> UpdateCheckResults:
     # Is it time to check yet?
     if datetime.utcnow() >= nextUpdateCheck:
         # Get latest version
-        latest = getNewestTagOnRemote(BASED_REPO_URL)
+        latest = await getNewestTagOnRemote(httpClient, BASED_API_URL)
 
         # Schedule next updates check
         nextCheck = datetime.utcnow() + lib.timeUtil.timeDeltaFromDict(cfg.BASED_updateCheckFrequency)
