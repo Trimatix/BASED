@@ -11,6 +11,7 @@ for varname in cfg.paths:
 
 class ConfigProxy:
     def __init__(self, attrs):
+        self.attrNames = attrs.keys()
         for varname, varvalue in attrs.items():
             setattr(self, varname, varvalue)
 
@@ -243,38 +244,35 @@ async def on_ready():
         raise ValueError("Unsupported cfg.cardStorageMethod: " + str(cfg.cardStorageMethod))
 
     ##### EMOJI INITIALIZATION #####
+    emojiVars = []
+    emojiListVars = []
 
-    for varname in cfg.emojiVars:
-        uninitEmoji = getattr(cfg, varname).value
-        # Create BasedEmoji instances based on the type of the uninitialized value
-        if isinstance(uninitEmoji, int):
-            setattr(cfg, varname, lib.emojis.BasedEmoji(id=uninitEmoji))
-        elif isinstance(uninitEmoji, str):
-            setattr(cfg, varname, lib.emojis.BasedEmoji.fromStr(uninitEmoji))
-        elif isinstance(uninitEmoji, dict):
-            setattr(cfg, varname, lib.emojis.BasedEmoji.fromDict(uninitEmoji))
-        # Unrecognised uninitialized value
-        else:
-            raise ValueError("Unrecognised UninitializedBasedEmoji value type. Expecting int, str or dict, given '" + type(uninitEmoji).__name__ + "'")
-
-    for varname in cfg.emojiListVars:
-        working = []
-        for item in getattr(cfg, varname):
-            uninitEmoji = item.value
-            # Create BasedEmoji instances based on the type of the uninitialized value
-            if isinstance(uninitEmoji, int):
-                working.append(lib.emojis.BasedEmoji(id=uninitEmoji))
-            elif isinstance(uninitEmoji, str):
-                working.append(lib.emojis.BasedEmoji.fromStr(uninitEmoji))
-            elif isinstance(uninitEmoji, dict):
-                working.append(lib.emojis.BasedEmoji.fromDict(uninitEmoji))
-            # Unrecognised uninitialized value
-            else:
-                raise ValueError("Unrecognised UninitializedBasedEmoji value type. Expecting int, str or dict, given '" + varname + "'")
-        
-        setattr(cfg, varname, working)
-        
+    for varname in cfg.defaultEmojis.attrNames:
+        varvalue = getattr(cfg.defaultEmojis, varname)
+        if type(varvalue) == lib.emojis.UninitializedBasedEmoji:
+            emojiVars.append(varname)
+            continue
+        elif type(varvalue) == list:
+            onlyEmojis = True
+            for item in varvalue:
+                if type(item) != lib.emojis.UninitializedBasedEmoji:
+                    onlyEmojis = False
+                    break
+            if onlyEmojis:
+                emojiListVars.append(varname)
+                continue
+        raise ValueError("Invalid config variable in cfg.defaultEmojis: Emoji config variables must be either UninitializedBasedEmoji or List[UninitializedBasedEmoji]")
     
+    for varname in emojiVars:
+        setattr(cfg.defaultEmojis, varname, lib.emojis.BasedEmoji.fromUninitialized(getattr(cfg.defaultEmojis, varname)))
+    
+    for varname in emojiListVars:
+        working = []
+        for item in getattr(cfg.defaultEmojis, varname):
+            working.append(lib.emojis.BasedEmoji.fromUninitialized(item))
+            
+        setattr(cfg.defaultEmojis, varname, working)
+        
     # Ensure all emojis have been initialized
     for varName, varValue in vars(cfg).items():
         if isinstance(varValue, lib.emojis.UninitializedBasedEmoji):

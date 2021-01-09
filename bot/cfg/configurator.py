@@ -10,6 +10,7 @@ emojiListVars = []
 for varname, varvalue in cfg.defaultEmojis.items():
     if type(varvalue) == UninitializedBasedEmoji:
         emojiVars.append(varname)
+        continue
     elif type(varvalue) == list:
         onlyEmojis = True
         for item in varvalue:
@@ -18,6 +19,9 @@ for varname, varvalue in cfg.defaultEmojis.items():
                 break
         if onlyEmojis:
             emojiListVars.append(varname)
+            continue
+    raise ValueError("Invalid config variable in cfg.defaultEmojis: Emoji config variables must be either UninitializedBasedEmoji or List[UninitializedBasedEmoji]")
+    
 
 
 def makeDefaultCfg():
