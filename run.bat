@@ -23,29 +23,30 @@ if not defined cfg (
 	)
 )
 
-
 if defined cfg (
-	set runbot=python3 main.py %cfg%
+	set runbot=py main.py %cfg%
 ) else (
-	set runbot=python3 main.py
+	set runbot=py main.py
 )
 
 
 :bot_reboot
 	%runbot%
-	
-	if errorlevel 1 (
+
+	if '%errorlevel%'=='1' (
    		goto :bot_shutdown
-	) else if errorlevel 0 (
+	) else if '%errorlevel%'=='0' (
 		goto :bot_reboot
 	)
+
 	if %usegit%==true (
+		echo update requested, pulling...
 		git pull --no-commit --no-ff
-		if not errorlevel 0 (
-			echo "conflict occurred, aborting"
+		if not '%errorlevel%'=='1' (
+			echo conflict occurred, aborting
 			git merge --abort
 		) else (
-			echo "no conflict, merging"
+			echo no conflict, merging
 			git commit
 		)
 	)
