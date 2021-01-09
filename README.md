@@ -37,7 +37,7 @@ BASED v0.3 adds the ability to configure all of the bot's cfg attributes externa
     
 
 # Running Your Bot
-To run your bot, simply run `main.py`.
+To run your bot, simply run `main.py`. To load a config.toml, provide a path to your config in command line args. E.g `python3 main.py myConfig.toml`.
 
 Alternatively, auto restarting and updating of the bot are provided by using one of the two looping bot launching scripts, `run.bat` and `run.sh`.
 
