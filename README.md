@@ -1,4 +1,18 @@
-![BASED Banner](https://i.imgur.com/Nqoq3s4.png)
+<p align="center">
+  <img
+    width="800"
+    src="https://i.imgur.com/Nqoq3s4.png"
+    alt="Bot Advanced Schematic - Easy Discord! (BASED)"
+  />
+</p>
+
+<p align="center">
+  <a href="https://github.com/Trimatix/BASED/actions"
+    ><img
+      src="https://img.shields.io/github/workflow/status/Trimatix/BASED/BASED"
+      alt="GitHub Actions workflow status"
+  /></a>
+</p>
 
 BASED is a template project for creating advanced discord bots using python.
 
