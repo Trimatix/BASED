@@ -1,8 +1,8 @@
 from datetime import timedelta
-import random
 from typing import Dict
 
-def td_format_noYM(td_object : timedelta) -> str:
+
+def td_format_noYM(td_object: timedelta) -> str:
     """Create a string describing the attributes of a given datetime.timedelta object, in a
     human reader-friendly format.
     This function does not create 'week', 'month' or 'year' strings, its highest time denominator is 'day'.
@@ -14,27 +14,28 @@ def td_format_noYM(td_object : timedelta) -> str:
     """
     seconds = int(td_object.total_seconds())
     periods = [
-        ('day',         60*60*24),
-        ('hour',        60*60),
-        ('minute',      60),
-        ('second',      1)
+        ('day', 60 * 60 * 24),
+        ('hour', 60 * 60),
+        ('minute', 60),
+        ('second', 1)
     ]
 
-    strings=[]
+    strings = []
     for period_name, period_seconds in periods:
         if seconds >= period_seconds:
-            period_value , seconds = divmod(seconds, period_seconds)
+            period_value, seconds = divmod(seconds, period_seconds)
             has_s = 's' if period_value > 1 else ''
             strings.append("%s %s%s" % (period_value, period_name, has_s))
 
     return ", ".join(strings)
 
 
-def timeDeltaFromDict(timeDict : dict) -> timedelta:
+def timeDeltaFromDict(timeDict: dict) -> timedelta:
     """Construct a datetime.timedelta from a dictionary,
     transforming keys into keyword arguments for the timedelta constructor.
 
-    :param dict timeDict: dictionary containing measurements for each time interval. i.e weeks, days, hours, minutes, seconds, microseconds and milliseconds. all are optional and case sensitive.
+    :param dict timeDict: dictionary containing measurements for each time interval. i.e weeks, days, hours, minutes,
+                            seconds, microseconds and milliseconds. all are optional and case sensitive.
     :return: a timedelta with all of the attributes requested in the dictionary.
     :rtype: datetime.timedelta
     """
