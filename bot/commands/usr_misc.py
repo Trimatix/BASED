@@ -9,7 +9,7 @@ from .. import lib
 from ..cfg import versionInfo
 
 
-async def cmd_help(message : discord.Message, args : str, isDM : bool):
+async def cmd_help(message: discord.Message, args: str, isDM: bool):
     """Print the help strings as an embed.
     If a command is provided in args, the associated help string for just that command is printed.
 
@@ -20,12 +20,15 @@ async def cmd_help(message : discord.Message, args : str, isDM : bool):
     await util_help.util_autohelp(message, args, isDM, 0)
 
 botCommands.register("help", cmd_help, 0, allowDM=True, signatureStr="**help** *[page number, section or command]*",
-    shortHelp="Show usage information for available commands.\nGive a specific command for detailed info about it, or give a page number or give a section name for brief info.",
-    longHelp="Show usage information for available commands.\nGive a specific command for detailed info about it, or give a page number or give a section name for brief info about a set of commands. These are the currently valid section names:\n- Miscellaneous",
-    useDoc=False)
+                     shortHelp="Show usage information for available commands.\nGive a specific command for detailed info " +
+                                "about it, or give a page number or give a section name for brief info.",
+                     longHelp="Show usage information for available commands.\nGive a specific command for detailed info " +
+                                "about it, or give a page number or give a section name for brief info about a set of " +
+                                "commands. These are the currently valid section names:\n- Miscellaneous",
+                     useDoc=False)
 
 
-async def cmd_source(message : discord.Message, args : str, isDM : bool):
+async def cmd_source(message: discord.Message, args: str, isDM: bool):
     """Print a short message with information about the bot's source code.
 
     :param discord.Message message: the discord message calling the command
@@ -33,8 +36,10 @@ async def cmd_source(message : discord.Message, args : str, isDM : bool):
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     srcEmbed = lib.discordUtil.makeEmbed(authorName="Source Code",
-                         col=discord.Colour.purple(), icon="https://image.flaticon.com/icons/png/512/25/25231.png",
-                         footerTxt="Bot Source", footerIcon="https://i.imgur.com/7SMgF0t.png")
+                                         col=discord.Colour.purple(),
+                                         icon="https://image.flaticon.com/icons/png/512/25/25231.png",
+                                         footerTxt="Bot Source",
+                                         footerIcon="https://i.imgur.com/7SMgF0t.png")
     srcEmbed.add_field(name="Uptime",
                        value=lib.timeUtil.td_format_noYM(datetime.utcnow() - botState.client.launchTime))
     srcEmbed.add_field(name="Author",
@@ -49,4 +54,5 @@ async def cmd_source(message : discord.Message, args : str, isDM : bool):
                        value="Please ask the bot developer to post the bot's invite link here!")
     await message.channel.send(embed=srcEmbed)
 
-botCommands.register("source", cmd_source, 0, allowDM=True, signatureStr="**source**", shortHelp="Show links to the project's GitHub page.")
+botCommands.register("source", cmd_source, 0, allowDM=True, signatureStr="**source**",
+                     shortHelp="Show links to the project's GitHub page.")
