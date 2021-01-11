@@ -9,8 +9,9 @@ from ..baseClasses import serializable
 
 class UserDB(serializable.Serializable):
     """A database of BasedUser objects.
-    
-    :var users: Dictionary of users in the database, where values are the BasedUser objects and keys are the ids of their respective BasedUser
+
+    :var users: Dictionary of users in the database, where values are the BasedUser objects and keys are the ids
+                of their respective BasedUser
     :vartype users: dict[int, BasedUser]
     """
 
@@ -19,7 +20,7 @@ class UserDB(serializable.Serializable):
         self.users = {}
 
 
-    def idExists(self, id : int) -> bool:
+    def idExists(self, id: int) -> bool:
         """Check if a user is stored in the database with the given ID.
 
         :param int id: integer discord ID for the BasedUser to search for
@@ -29,7 +30,7 @@ class UserDB(serializable.Serializable):
         return id in self.users.keys()
 
 
-    def userExists(self, user : BasedUser) -> bool:
+    def userExists(self, user: BasedUser) -> bool:
         """Check if a given BasedUser object is stored in the database.
         Currently only checks if a user with the same ID is stored in the database, not if the objects are the same.
 
@@ -40,7 +41,7 @@ class UserDB(serializable.Serializable):
         return self.idExists(user.id)
 
 
-    def validateID(self, id : int) -> int:
+    def validateID(self, id: int) -> int:
         """Internal function to assert the type of and, potentially cast, an ID.
 
         :param int ID: the ID to type check. Can be either int or a string consisting only of digits.
@@ -58,9 +59,9 @@ class UserDB(serializable.Serializable):
             raise TypeError("user ID must be either int or string of digits")
         # ID must be an int, so return it.
         return id
-    
 
-    def reinitUser(self, id : int):
+
+    def reinitUser(self, id: int):
         """Reset the stats for the user with the specified ID.
 
         :param int ID: The ID of the user to reset. Can be integer or a string of digits.
@@ -74,7 +75,7 @@ class UserDB(serializable.Serializable):
         self.users[id].resetUser()
 
 
-    def addID(self, id : int) -> BasedUser:
+    def addID(self, id: int) -> BasedUser:
         """
         Create a new BasedUser object with the specified ID and add it to the database
 
@@ -92,7 +93,8 @@ class UserDB(serializable.Serializable):
         self.users[id] = newUser
         return newUser
 
-    def addUser(self, userObj : BasedUser):
+
+    def addUser(self, userObj: BasedUser):
         """Store the given BasedUser object in the database
 
         :param BasedUser userObj: BasedUser to store
@@ -105,8 +107,9 @@ class UserDB(serializable.Serializable):
         self.users[userObj.id] = userObj
 
 
-    def getOrAddID(self, id : int) -> BasedUser:
-        """If a BasedUser exists in the database with the requested ID, return it. If not, create and store a new BasedUser and return it.
+    def getOrAddID(self, id: int) -> BasedUser:
+        """If a BasedUser exists in the database with the requested ID, return it.
+        If not, create and store a new BasedUser and return it.
 
         :param int id: integer discord ID for the user to fetch or create
         :return: the requested/created BasedUser
@@ -114,8 +117,8 @@ class UserDB(serializable.Serializable):
         """
         return self.getUser(id) if self.idExists(id) else self.addID(id)
 
-    
-    def removeID(self, id : int):
+
+    def removeID(self, id: int):
         """Remove the new BasedUser object with the specified ID from the database
         ⚠ The BasedUser object is deleted from memory.
 
@@ -127,8 +130,8 @@ class UserDB(serializable.Serializable):
             raise KeyError("user not found: " + str(id))
         del self.users[id]
 
-    
-    def getUser(self, id : int) -> BasedUser:
+
+    def getUser(self, id: int) -> BasedUser:
         """Fetch the BasedUser from the database with the given ID.
 
         :param int ID: integer discord ID for the user to fetch
@@ -147,7 +150,7 @@ class UserDB(serializable.Serializable):
         """
         return list(self.users.values())
 
-    
+
     def getIDs(self) -> List[int]:
         """Get a list of all user IDs stored in the database
 
@@ -156,7 +159,7 @@ class UserDB(serializable.Serializable):
         """
         return list(self.users.keys())
 
-    
+
     def toDict(self, **kwargs) -> dict:
         """Serialise this UserDB into dictionary format.
 
@@ -166,15 +169,16 @@ class UserDB(serializable.Serializable):
         data = {}
         # Iterate over all user IDs in the database
         for id in self.getIDs():
-            # Serialise each BasedUser in the database and save it, along with its ID to dict 
+            # Serialise each BasedUser in the database and save it, along with its ID to dict
             # JSON stores properties as strings, so ids must be converted to str first.
             try:
                 data[str(id)] = self.users[id].toDict(**kwargs)
             except Exception as e:
-                botState.logger.log("UserDB", "toDict", "Error serialising BasedUser: " + e.__class__.__name__, trace=traceback.format_exc(), eventType="USERERR")
+                botState.logger.log("UserDB", "toDict", "Error serialising BasedUser: " +
+                                    e.__class__.__name__, trace=traceback.format_exc(), eventType="USERERR")
         return data
 
-    
+
     def __str__(self) -> str:
         """Get summarising information about this UserDB in string format.
         Currently only the number of users stored.
@@ -186,7 +190,7 @@ class UserDB(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, userDBDict : dict, **kwargs) -> UserDB:
+    def fromDict(cls, userDBDict: dict, **kwargs) -> UserDB:
         """Construct a UserDB from a dictionary-serialised representation - the reverse of UserDB.toDict()
 
         :param dict userDBDict: a dictionary-serialised representation of the UserDB to construct
