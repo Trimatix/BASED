@@ -18,10 +18,10 @@ async def dev_cmd_dev_help(message: discord.Message, args: str, isDM: bool):
     await util_help.util_autohelp(message, args, isDM, 3)
 
 botCommands.register("dev-help", dev_cmd_dev_help, 3, signatureStr="**dev-help** *[page number, section or command]*",
-                        shortHelp="Display information about developer-only commands.\nGive a specific command for \n" +
+                        shortHelp="Display information about developer-only commands.\nGive a specific command for " +
                                     "detailed info about it, or give a page number or give a section name for brief info.",
-                        longHelp="Display information about developer-only commands.\nGive a specific command for \n" +
-                                    "detailed info about it, or give a page number or give a section name for brief info \n" +
+                        longHelp="Display information about developer-only commands.\nGive a specific command for " +
+                                    "detailed info about it, or give a page number or give a section name for brief info " +
                                     "about a set of commands. These are the currently valid section names:\n- Miscellaneous")
 
 

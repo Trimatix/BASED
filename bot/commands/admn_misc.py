@@ -16,10 +16,10 @@ async def admin_cmd_admin_help(message: discord.Message, args: str, isDM: bool):
     await util_help.util_autohelp(message, args, isDM, 2)
 
 botCommands.register("admin-help", admin_cmd_admin_help, 2, signatureStr="**admin-help** *[page number, section or command]*",
-                     shortHelp="Display information about admin-only commands.\nGive a specific command for detailed \n" +
+                     shortHelp="Display information about admin-only commands.\nGive a specific command for detailed " +
                                 "info about it, or give a page number or give a section name for brief info.",
-                     longHelp="Display information about admin-only commands.\nGive a specific command for detailed \n" +
-                                "info about it, or give a page number or give a section name for brief info about \n" +
+                     longHelp="Display information about admin-only commands.\nGive a specific command for detailed " +
+                                "info about it, or give a page number or give a section name for brief info about " +
                                 "a set of commands. These are the currently valid section names:\n- Miscellaneous")
 
 
