@@ -29,7 +29,8 @@ class UpdateCheckResults:
     :var upToDate: Whether or not the current bot version is latestVersion
     :vartype upToDate: bool
     """
-    def __init__(self, updatesChecked : bool, latestVersion : str = None, upToDate : bool = None):
+
+    def __init__(self, updatesChecked: bool, latestVersion: str = None, upToDate: bool = None):
         """Data class representing the results of a bot version check.
 
         :param bool updatesChecked: whether or not an updates check was attempted
@@ -54,7 +55,7 @@ def getBASEDVersion() -> Dict[str, Union[str, float]]:
     return lib.jsonHandler.readJSON(BASED_VERSIONFILE)
 
 
-async def getNewestTagOnRemote(httpClient : aiohttp.ClientSession, url : str) -> str:
+async def getNewestTagOnRemote(httpClient: aiohttp.ClientSession, url: str) -> str:
     """Fetch the name of the latest tag on the given git remote.
     If the remote has no tags, empty string is returned.
     Python port of lukechild's shell gist: https://gist.github.com/lukechilds/a83e1d7127b78fef38c2914c4ececc3c
@@ -77,7 +78,7 @@ async def getNewestTagOnRemote(httpClient : aiohttp.ClientSession, url : str) ->
 BASED_VERSION = getBASEDVersion()["BASED_version"]
 
 
-async def checkForUpdates(httpClient : aiohttp.ClientSession) -> UpdateCheckResults:
+async def checkForUpdates(httpClient: aiohttp.ClientSession) -> UpdateCheckResults:
     """Check the BASED repository for new releases.
     Could be easily extended to check your own bot repository for updates as well.
 
@@ -96,13 +97,12 @@ async def checkForUpdates(httpClient : aiohttp.ClientSession) -> UpdateCheckResu
         # Schedule next updates check
         nextCheck = datetime.utcnow() + lib.timeUtil.timeDeltaFromDict(cfg.timeouts.BASED_updateCheckFrequency)
         lib.jsonHandler.writeJSON(BASED_VERSIONFILE,
-                                    {   "BASED_version"     : BASED_VERSION,
-                                        "next_update_check" : nextCheck.timestamp()})
-        
+                                  {"BASED_version": BASED_VERSION,
+                                   "next_update_check": nextCheck.timestamp()})
+
         # If no tags were found on remote, assume up to date.
         upToDate = (latest == BASED_VERSION) if latest else True
         return UpdateCheckResults(True, latestVersion=latest, upToDate=upToDate)
 
     # If not time to check yet, indicate as such
     return UpdateCheckResults(False)
-    
