@@ -61,7 +61,10 @@ paths = {
     # Font to render cards with
     "cardFont": "bot" + "/" + "cardRenderer" + "/" + "HelveticaNeueLTStd-Bd.otf",
     # Google API credentials to use when reading spreadsheets
-    "googleAPICred": "bot" + "/" + "cfg" + "/" + "google_client_secret.json"
+    "googleAPICred": "bot" + "/" + "cfg" + "/" + "google_client_secret.json",
+    
+    # Working folder for temporary image files
+    "cardsTemp": "saveData" + "/" + "decks" + "/" + "temp"
 }
 
 # Names of user access levels to be used in help menus. Also determines the number of access levels available, e.g when registering commands
@@ -90,7 +93,7 @@ timedTaskLatenessThresholdSeconds = 10
 BASED_checkForUpdates = True
 
 # Default prefix for commands
-defaultCommandPrefix = "deck "
+defaultCommandPrefix = "."
 
 # discord user IDs of developers - will be granted developer command permissions
 developers = [188618589102669826, 144137708711837696]
@@ -113,10 +116,15 @@ cardsDCChannel = {"guild_id": 733652363235033088,
                     "channel_id": 796038447252766741}
 
 # Can be either "local" or "discord"
-cardStorageMethod = "local"
+cardStorageMethod = "discord"
 
 # Exactly one of botToken or botToken_envVarName must be given.
 # botToken contains a string of your bot token
 # botToken_envVarName contains the name of an environment variable to get your bot token from
 botToken = ""
 botToken_envVarName = "SDB_BOT_TOKEN"
+
+# Can be either "sequential" or "merged"
+submissionsPresentationMethod = "merged"
+# Number of cards to display per line on an merged image of all of a player's submitted cards
+mergedSubmissionsMenu_lineLength = 3
