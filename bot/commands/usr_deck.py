@@ -102,11 +102,11 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
         errs = ""
         
         if unnamedFound:
-            errs.append("\nUnnamed expansion pack detected - skipping this expansion.")
+            errs += "\nUnnamed expansion pack detected - skipping this expansion."
             del gameData["expansions"][""]
 
         if len(emptyExpansions) != 0:
-            errs.append("\nEmpty expansion packs detected - skipping these expansions: " + ", ".join(expansion for expansion in emptyExpansions))
+            errs += "\nEmpty expansion packs detected - skipping these expansions: " + ", ".join(expansion for expansion in emptyExpansions)
             for expansion in emptyExpansions:
                 del gameData["expansions"][expansion]
         
