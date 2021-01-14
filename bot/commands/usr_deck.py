@@ -124,7 +124,7 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
             return
 
         loadingMsg = await message.channel.send("Drawing cards... " + cfg.defaultEmojis.loading.sendable)
-        deckMeta = await make_cards.render_all(cfg.paths.decksFolder, gameData, cfg.paths.cardFont, message.guild.id)
+        deckMeta = await make_cards.render_all(cfg.paths.decksFolder, gameData, cfg.paths.cardFont, message.guild.id, contentFontSize=cfg.cardContentFontSize, titleFontSize=cfg.cardTitleFontSize)
         if cfg.cardStorageMethod == "discord":
             deckMeta = await make_cards.store_cards_discord(cfg.paths.decksFolder, deckMeta,
                                                             botState.client.get_guild(cfg.cardsDCChannel["guild_id"]).get_channel(cfg.cardsDCChannel["channel_id"]),
@@ -148,6 +148,18 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
 botCommands.register("create", cmd_create, 0, allowDM=False, helpSection="decks", signatureStr="**create <spreadsheet link>**", forceKeepArgsCasing=True, shortHelp="Add a new deck to the server. Your cards must be given in a **public** google spreadsheet link.", longHelp="Add a new deck to the server. You must provide a link to a **public** google spreadsheet containing your new deck's cards.\n\n- Each sheet in the spreadsheet is an expansion pack\n- The **A** column of each sheet contains that expansion pack's white cards\n- The **B** columns contain black cards\n- Black cards should give spaces for white cards with **one underscore (_) per white card.**")
 
 
+async def cancelGame(menuID):
+    if menuID in botState.reactionMenusDB:
+        menu = botState.reactionMenusDB[menuID]
+        await menu.msg.channel.send("Game Cancelled.")
+        callingBGuild = botState.guildsDB.getGuild(menu.msg.guild.id)
+        if menu.msg.channel in callingBGuild.runningGames:
+            del callingBGuild.runningGames[menu.msg.channel]
+        await menu.msg.delete()
+        del botState.reactionMenusDB[menuID]
+
+
+
 async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
     if not args:
         await message.channel.send(":x: Please give the name of the deck you would like to play with!")
@@ -157,6 +169,12 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
     if args not in callingBGuild.decks:
         await message.channel.send(":x: Unknown deck: " + args)
         return
+
+    if message.channel in callingBGuild.runningGames:
+        await message.reply(":x: A game is already being played in this channel!")
+        return
+    
+    callingBGuild.runningGames[message.channel] = None
 
     options = {}
     optNum = 0
@@ -178,6 +196,7 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
             rounds = -1
         elif roundsResult[0] == cfg.defaultEmojis.cancel:
             await message.channel.send("Game cancelled.")
+            del callingBGuild.runningGames[message.channel]
             return
         else:
             rounds = cfg.roundsPickerOptions[cfg.defaultEmojis.menuOptions.index(roundsResult[0])]
@@ -190,7 +209,6 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
     numPages = numExpansions // 5 + (0 if numExpansions % 5 == 0 else 1)
     menuTimeout = lib.timeUtil.timeDeltaFromDict(cfg.timeouts.expansionsPicker)
     menuTT = TimedTask.TimedTask(expiryDelta=menuTimeout, expiryFunction=sdbGame.startGameFromExpansionMenu, expiryFunctionArgs={"menuID": expansionPickerMsg.id, "deckName": args, "rounds": rounds})
-    callingBGuild.runningGames[message.channel] = None
 
     for pageNum in range(numPages):
         embedKeys.append(lib.discordUtil.makeEmbed(titleTxt="Select Expansion Packs", desc="Which expansions would you like to use?",
@@ -211,6 +229,7 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
         page.add_field(name=cfg.defaultEmojis.accept.sendable + " : Submit", value="​", inline=False)
         page.add_field(name=cfg.defaultEmojis.cancel.sendable + " : Cancel", value="​", inline=False)
         page.add_field(name=cfg.defaultEmojis.spiral.sendable + " : Toggle all", value="​", inline=False)
+        optionPages[page][cfg.defaultEmojis.cancel] = ReactionMenu.NonSaveableReactionMenuOption("Cancel", cfg.defaultEmojis.cancel, addFunc=cancelGame, addArgs=expansionPickerMsg.id)
 
     expansionSelectorMenu = PagedReactionMenu.MultiPageOptionPicker(expansionPickerMsg,
         pages=optionPages, timeout=menuTT, owningBasedUser=botState.usersDB.getOrAddID(message.author.id), targetMember=message.author)

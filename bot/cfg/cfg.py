@@ -116,7 +116,7 @@ cardsDCChannel = {"guild_id": 733652363235033088,
                     "channel_id": 796038447252766741}
 
 # Can be either "local" or "discord"
-cardStorageMethod = "local"
+cardStorageMethod = "discord"
 
 # Exactly one of botToken or botToken_envVarName must be given.
 # botToken contains a string of your bot token
@@ -128,3 +128,8 @@ botToken_envVarName = "SDB_BOT_TOKEN"
 submissionsPresentationMethod = "merged"
 # Number of cards to display per line on an merged image of all of a player's submitted cards
 mergedSubmissionsMenu_lineLength = 3
+
+# Font size of main text to render on cards
+cardContentFontSize = 90
+# Font size of smaller text to render on cards
+cardTitleFontSize = 40
