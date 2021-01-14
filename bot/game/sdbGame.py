@@ -6,12 +6,16 @@ from ..baseClasses.enum import Enum
 from ..cfg import cfg
 from . import sdbPlayer, sdbDeck
 import asyncio
-from ..reactionMenus.SDBSubmissionsReviewMenu import InlineSDBSubmissionsReviewMenu
+from ..reactionMenus.SDBSubmissionsReviewMenu import InlineSequentialSubmissionsReviewMenu
 from ..reactionMenus.ConfirmationReactionMenu import InlineConfirmationMenu
 from ..reactionMenus.SDBCardPlayMenu import SDBCardPlayMenu
 from ..reactionMenus.SDBCardSelector import SDBCardSelector
 from ..reactionMenus.PagedReactionMenu import InvalidClosingReaction
 import random
+import shutil
+import os
+
+from bot.reactionMenus import SDBSubmissionsReviewMenu
 
 
 class GamePhase(Enum):
@@ -194,10 +198,14 @@ class SDBGame:
         if self.shutdownOverride:
             return
         submissionsMenuMsg = await self.channel.send("The submissions are in! But who wins?")
-        menu = InlineSDBSubmissionsReviewMenu(submissionsMenuMsg, self,
-                                                cfg.timeouts.submissionsReviewMenuSeconds,
-                                                self.currentBlackCard.currentCard.requiredWhiteCards > 1,
-                                                self.getChooser())
+        if cfg.submissionsPresentationMethod == "sequential" or self.currentBlackCard.currentCard.requiredWhiteCards == 1:
+            menu = InlineSequentialSubmissionsReviewMenu(submissionsMenuMsg, self,
+                                                    cfg.timeouts.submissionsReviewMenuSeconds)
+        elif cfg.submissionsPresentationMethod == "merged":
+            submissions = await SDBSubmissionsReviewMenu.buildMergedSubmissionsMenuImages(self)
+            menu = SDBSubmissionsReviewMenu.InlineMergedSubmissionsReviewMenu(submissionsMenuMsg, submissions, cfg.timeouts.submissionsReviewMenuSeconds, self.getChooser())
+        else:
+            raise ValueError("Unknown submissionsPresentationMethod '" + str(cfg.submissionsPresentationMethod) + "'")
         try:
             winningOption = await menu.doMenu()
         except InvalidClosingReaction:
@@ -206,6 +214,12 @@ class SDBGame:
             if len(winningOption) != 1:
                 raise RuntimeError("given selected options array of length " + str(len(winningOption)) + " but should be length 1")
             winningPlayer = winningOption[0].player
+
+        if cfg.submissionsPresentationMethod == "merged" and cfg.cardStorageMethod == "local":
+            roundCardsDir = cfg.paths.cardsTemp + os.sep + str(self.channel.id) + os.sep + str(self.currentRound)
+            if os.path.isdir(roundCardsDir):
+                shutil.rmtree(roundCardsDir)
+            os.makedirs(roundCardsDir)
 
         await self.channel.send(winningPlayer.dcUser.mention + " wins the round!")
         winningPlayer.points += 1
