@@ -350,17 +350,21 @@ class SDBGame:
 
 
 async def startGameFromExpansionMenu(gameCfg : Dict[str, Union[str, int]]):
-    menu = botState.reactionMenusDB[gameCfg["menuID"]]
-    callingBGuild = botState.guildsDB.getGuild(menu.msg.guild.id)
-    playChannel = menu.msg.channel
-    rounds = gameCfg["rounds"]
+    if gameCfg["menuID"] in botState.reactionMenusDB:
+        menu = botState.reactionMenusDB[gameCfg["menuID"]]
+        callingBGuild = botState.guildsDB.getGuild(menu.msg.guild.id)
+        playChannel = menu.msg.channel
+        rounds = gameCfg["rounds"]
 
-    expansionNames = [option.name for option in menu.selectedOptions if menu.selectedOptions[option]]
-    await expiryFunctions.deleteReactionMenu(menu.msg.id)
-    if playChannel in callingBGuild.runningGames:
-        del callingBGuild.runningGames[playChannel]
+        expansionNames = [option.name for option in menu.selectedOptions if menu.selectedOptions[option]]
+        await expiryFunctions.deleteReactionMenu(menu.msg.id)
+        if playChannel in callingBGuild.runningGames:
+            del callingBGuild.runningGames[playChannel]
 
-    if not expansionNames:
-        await playChannel.send(":x: Game cancelled - you didn't select any expansion packs!")
+        if not expansionNames:
+            await playChannel.send(":x: Game cancelled - you didn't select any expansion packs!")
+        else:
+            await callingBGuild.startGameSignups(menu.targetMember, playChannel, gameCfg["deckName"], expansionNames, rounds)
     else:
-        await callingBGuild.startGameSignups(menu.targetMember, playChannel, gameCfg["deckName"], expansionNames, rounds)
+        botState.logger.log("sdbGame", "startGameFromExpansionMenu", "menu not in reactionMenusDB: " + str(gameCfg["menuID"]), category="reactionMenus", eventType="MENU_NOTFOUND")
+        

@@ -8,13 +8,15 @@ async def deleteReactionMenu(menuID : int):
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
-    menu = botState.reactionMenusDB[menuID]
-    if menu.msg.id in botState.reactionMenusDB:
-        del botState.reactionMenusDB[menu.msg.id]
-    try:
-        await menu.msg.delete()
-    except NotFound:
-        pass
+    if menuID in botState.reactionMenusDB:
+        menu = botState.reactionMenusDB[menuID]
+        del botState.reactionMenusDB[menuID]
+        try:
+            await menu.msg.delete()
+        except NotFound:
+            pass
+    else:
+        botState.logger.log("expiryFunctions", "deleteReactionMenu", "menu not in reactionMenusDB: " + str(menuID), category="reactionMenus", eventType="MENU_NOTFOUND")
 
 
 async def removeEmbedAndOptions(menuID : int):
