@@ -93,7 +93,7 @@ timedTaskLatenessThresholdSeconds = 10
 BASED_checkForUpdates = True
 
 # Default prefix for commands
-defaultCommandPrefix = "."
+defaultCommandPrefix = "deck "
 
 # discord user IDs of developers - will be granted developer command permissions
 developers = [188618589102669826, 144137708711837696]
