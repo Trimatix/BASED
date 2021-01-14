@@ -42,7 +42,9 @@ timeouts = {
     # The time that the SDB 'join game' menu should be active for, before auto starting the game
     "gameJoinMenu": {"minutes": 5},
     # The time that the SDB expansions picker menu should be active for when stating a new game
-    "expansionsPicker": {"minutes": 5}
+    "expansionsPicker": {"minutes": 5},
+    # The time allowed to pick a new deck master when relinquishing game ownership
+    "sdbPlayerSelectorSeconds": 300
 }
 
 paths = {
@@ -77,7 +79,7 @@ helpIntro = "Here are my commands!"
 maxCommandsPerHelpPage = 5
 
 # List of module names from the commands package to import
-includedCommandModules = (  "usr_misc", "usr_deck",
+includedCommandModules = (  "usr_misc", "usr_deck", "usr_dm",
                             "admn_misc", "admin_deck",
                             "dev_misc")
 
@@ -133,3 +135,6 @@ mergedSubmissionsMenu_lineLength = 3
 cardContentFontSize = 90
 # Font size of smaller text to render on cards
 cardTitleFontSize = 40
+
+# Default number of options to present in a PagedReactionMenu
+defaultOptionsPerPage = 5
