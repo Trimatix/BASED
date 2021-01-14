@@ -168,14 +168,14 @@ class SDBGame:
                 while newOwner == player or newOwner in self.playersLeftDuringSetup:
                     newOwner = random.choice(self.players)
                 self.owner = newOwner.dcUser
-                await self.channel.send("The game owner has left the game!\nThe new owner is " + self.owner.dcUser.mention + ".")
-                await self.owner.dcUser.send("You are now the owner of the game in <#" + self.channel.id + ">!\nThis means you are responsible for game admin, such as choosing to keep playing after every round.")
+                await self.channel.send("The deck master has left the game!\nAll hail the new deck master, " + self.owner.dcUser.mention + "!")
+                await self.owner.dcUser.send("You are now the deck master of the game in <#" + self.channel.id + ">!\nThis means you are responsible for game admin, such as choosing to keep playing after every round.")
 
 
     async def doGameIntro(self):
         if self.shutdownOverride:
             return
-        await self.channel.send("Welcome to Super Deck Breaker!")
+        await self.channel.send("Welcome to Super Deck Breaker!\nThe deck master is now " + self.owner.mention + ".")
 
 
     async def pickNewBlackCard(self):
