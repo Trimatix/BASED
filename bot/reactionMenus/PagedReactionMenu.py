@@ -165,9 +165,9 @@ class MultiPageOptionPicker(PagedReactionMenu):
             for fieldIndex in range(len(pageEmbed.fields)):
                 field = pageEmbed.fields[fieldIndex]
                 if field.name == "Currently selected:":
-                    pageEmbed.set_field_at(fieldIndex, name=field.name, value=newSelectedStr)
+                    pageEmbed.set_field_at(fieldIndex, name=field.name, value=newSelectedStr, inline=False)
                 break
-
+        
         await self.updateMessage(noRefreshOptions=True)
 
 

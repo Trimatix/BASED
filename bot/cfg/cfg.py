@@ -138,3 +138,6 @@ cardTitleFontSize = 40
 
 # Default number of options to present in a PagedReactionMenu
 defaultOptionsPerPage = 5
+
+# Minimum number of players required to start a game
+minPlayerCount = 2
