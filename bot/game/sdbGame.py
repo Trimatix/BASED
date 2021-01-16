@@ -41,6 +41,7 @@ class SDBGame:
         self.playersLeftDuringSetup = []
         self.rounds = rounds
         self.currentRound = 0
+        self.maxPlayers = sum(len(deck.cards[expansion].white) for expansion in activeExpansions) // cfg.cardsPerHand
 
 
     def allPlayersSubmitted(self):
@@ -352,18 +353,21 @@ class SDBGame:
 async def startGameFromExpansionMenu(gameCfg : Dict[str, Union[str, int]]):
     if gameCfg["menuID"] in botState.reactionMenusDB:
         menu = botState.reactionMenusDB[gameCfg["menuID"]]
-        callingBGuild = botState.guildsDB.getGuild(menu.msg.guild.id)
         playChannel = menu.msg.channel
-        rounds = gameCfg["rounds"]
 
-        expansionNames = [option.name for option in menu.selectedOptions if menu.selectedOptions[option]]
-        await expiryFunctions.deleteReactionMenu(menu.msg.id)
-        if playChannel in callingBGuild.runningGames:
-            del callingBGuild.runningGames[playChannel]
-
-        if not expansionNames:
-            await playChannel.send(":x: Game cancelled - you didn't select any expansion packs!")
+        if menu.currentMaxPlayers < cfg.minPlayerCount:
+            await playChannel.send(":x: You don't have enough white cards!\nPlease select at least " + str(cfg.minPlayerCount * cfg.cardsPerHand) + " white cards.")
+        elif not menu.hasBlackCardsSelected:
+            await playChannel.send(":x: You don't have enough black cards!\nPlease select at least one black card.")
         else:
+            callingBGuild = botState.guildsDB.getGuild(menu.msg.guild.id)
+            rounds = gameCfg["rounds"]
+
+            expansionNames = [option.name for option in menu.selectedOptions if menu.selectedOptions[option]]
+            await expiryFunctions.deleteReactionMenu(menu.msg.id)
+            if playChannel in callingBGuild.runningGames:
+                del callingBGuild.runningGames[playChannel]
+
             await callingBGuild.startGameSignups(menu.targetMember, playChannel, gameCfg["deckName"], expansionNames, rounds)
     else:
         botState.logger.log("sdbGame", "startGameFromExpansionMenu", "menu not in reactionMenusDB: " + str(gameCfg["menuID"]), category="reactionMenus", eventType="MENU_NOTFOUND")

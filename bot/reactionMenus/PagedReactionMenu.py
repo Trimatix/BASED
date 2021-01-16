@@ -136,22 +136,22 @@ class MultiPageOptionPicker(PagedReactionMenu):
     def __init__(self, msg : Message, pages : Dict[Embed, Dict[lib.emojis.BasedEmoji, ReactionMenu.NonSaveableSelecterMenuOption]] = {}, 
                     timeout : TimedTask.TimedTask = None, targetMember : Member = None, targetRole : Role = None, owningBasedUser : basedUser.BasedUser = None):
         
+        controls = {cfg.defaultEmojis.accept: ReactionMenu.NonSaveableReactionMenuOption("Submit", cfg.defaultEmojis.accept, self.delete, None),
+                    cfg.defaultEmojis.cancel: ReactionMenu.NonSaveableReactionMenuOption("Cancel Game", cfg.defaultEmojis.cancel, expiryFunctions.deleteReactionMenu, msg.id),
+                    cfg.defaultEmojis.spiral: ReactionMenu.NonSaveableReactionMenuOption("Toggle All", cfg.defaultEmojis.spiral,
+                                                                                                addFunc=ReactionMenu.selectorSelectAllOptions, addArgs=msg.id,
+                                                                                                removeFunc=ReactionMenu.selectorDeselectAllOptions, removeArgs=msg.id)
+        }
         self.selectedOptions = {}
         for pageOptions in pages.values():
             for option in pageOptions.values():
-                self.selectedOptions[option] = False
+                if option.emoji not in controls:
+                    self.selectedOptions[option] = False
 
         for pageEmbed in pages:
-            if cfg.defaultEmojis.accept not in pages[pageEmbed]:
-                pages[pageEmbed][cfg.defaultEmojis.accept] = ReactionMenu.NonSaveableReactionMenuOption("Submit", cfg.defaultEmojis.accept, self.delete, None)
-
-            if cfg.defaultEmojis.cancel not in pages[pageEmbed]:
-                pages[pageEmbed][cfg.defaultEmojis.cancel] = ReactionMenu.NonSaveableReactionMenuOption("Cancel Game", cfg.defaultEmojis.cancel, expiryFunctions.deleteReactionMenu, msg.id)
-
-            if cfg.defaultEmojis.spiral not in pages[pageEmbed]:
-                pages[pageEmbed][cfg.defaultEmojis.spiral] = ReactionMenu.NonSaveableReactionMenuOption("Toggle All", cfg.defaultEmojis.spiral,
-                                                                                                addFunc=ReactionMenu.selectorSelectAllOptions, addArgs=msg.id,
-                                                                                                removeFunc=ReactionMenu.selectorDeselectAllOptions, removeArgs=msg.id)
+            for controlEmoji in controls:
+                if controlEmoji not in pages[pageEmbed]:
+                    pages[pageEmbed][controlEmoji] = controls[controlEmoji]
 
         super().__init__(msg, pages=pages, timeout=timeout, targetMember=targetMember, targetRole=targetRole, owningBasedUser=owningBasedUser, noCancel=True)
 
@@ -164,9 +164,9 @@ class MultiPageOptionPicker(PagedReactionMenu):
             for fieldIndex in range(len(pageEmbed.fields)):
                 field = pageEmbed.fields[fieldIndex]
                 if field.name == "Currently selected:":
-                    pageEmbed.set_field_at(fieldIndex, name=field.name, value=newSelectedStr)
+                    pageEmbed.set_field_at(fieldIndex, name=field.name, value=newSelectedStr, inline=False)
                 break
-
+        
         await self.updateMessage(noRefreshOptions=True)
 
 

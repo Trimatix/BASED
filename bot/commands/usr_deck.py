@@ -7,7 +7,7 @@ import asyncio
 
 from . import commandsDB as botCommands
 from .. import botState, lib
-from ..reactionMenus import PagedReactionMenu, ReactionMenu
+from ..reactionMenus import SDBExpansionsPicker, ReactionMenu
 from ..cfg import cfg
 from ..scheduling import TimedTask
 from ..game import sdbGame
@@ -113,13 +113,16 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
         if errs != "":
             await message.channel.send(errs)
 
-        whiteCount = sum(len(gameData["expansions"][expansion]["white"]) for expansion in gameData["expansions"] if "white" in gameData["expansions"][expansion])
-        blackCount = sum(len(gameData["expansions"][expansion]["black"]) for expansion in gameData["expansions"] if "black" in gameData["expansions"][expansion])
+        whiteCounts = {expansion: len(gameData["expansions"][expansion]["white"]) for expansion in gameData["expansions"]}
+        blackCounts = {expansion: len(gameData["expansions"][expansion]["black"]) for expansion in gameData["expansions"]}
+
+        totalWhite = sum(whiteCounts.values())
+        totalBlack = sum(blackCounts.values())
         
-        if int(whiteCount / cfg.cardsPerHand) < 2:
+        if int(totalWhite / cfg.cardsPerHand) < 2:
             await message.channel.send("Deck creation failed.\nDecks must have at least " + str(2 * cfg.cardsPerHand) + " white cards.")
             return
-        if blackCount == 0:
+        if totalBlack == 0:
             await message.channel.send("Deck creation failed.\nDecks must have at least 1 black card.")
             return
 
@@ -141,23 +144,11 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
         lib.jsonHandler.writeJSON(metaPath, deckMeta)
         now = datetime.utcnow()
         callingBGuild.decks[deckMeta["deck_name"].lower()] = {"meta_path": metaPath, "creator": message.author.id, "creation_date" : str(now.day).zfill(2) + "-" + str(now.month).zfill(2) + "-" + str(now.year), "plays": 0,
-                                                            "expansion_names" : list(deckMeta["expansions"].keys()), "spreadsheet_url": args, "white_count": whiteCount, "black_count": blackCount}
+                                                            "expansions" : {expansion: (whiteCounts[expansion], blackCounts[expansion]) for expansion in whiteCounts}, "spreadsheet_url": args, "white_count": totalWhite, "black_count": totalBlack}
 
         await message.channel.send("✅ Deck added: " + gameData["title"])
 
 botCommands.register("create", cmd_create, 0, allowDM=False, helpSection="decks", signatureStr="**create <spreadsheet link>**", forceKeepArgsCasing=True, shortHelp="Add a new deck to the server. Your cards must be given in a **public** google spreadsheet link.", longHelp="Add a new deck to the server. You must provide a link to a **public** google spreadsheet containing your new deck's cards.\n\n- Each sheet in the spreadsheet is an expansion pack\n- The **A** column of each sheet contains that expansion pack's white cards\n- The **B** columns contain black cards\n- Black cards should give spaces for white cards with **one underscore (_) per white card.**")
-
-
-async def cancelGame(menuID):
-    if menuID in botState.reactionMenusDB:
-        menu = botState.reactionMenusDB[menuID]
-        await menu.msg.channel.send("Game Cancelled.")
-        callingBGuild = botState.guildsDB.getGuild(menu.msg.guild.id)
-        if menu.msg.channel in callingBGuild.runningGames:
-            del callingBGuild.runningGames[menu.msg.channel]
-        await menu.msg.delete()
-        del botState.reactionMenusDB[menuID]
-
 
 
 async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
@@ -202,37 +193,13 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
             rounds = cfg.roundsPickerOptions[cfg.defaultEmojis.menuOptions.index(roundsResult[0])]
 
     expansionPickerMsg = roundsPickerMsg
-    numExpansions = len(callingBGuild.decks[args]["expansion_names"])
-
-    optionPages = {}
-    embedKeys = []
-    numPages = numExpansions // 5 + (0 if numExpansions % 5 == 0 else 1)
+    expansionsData = callingBGuild.decks[args]["expansions"]
+    
     menuTimeout = lib.timeUtil.timeDeltaFromDict(cfg.timeouts.expansionsPicker)
     menuTT = TimedTask.TimedTask(expiryDelta=menuTimeout, expiryFunction=sdbGame.startGameFromExpansionMenu, expiryFunctionArgs={"menuID": expansionPickerMsg.id, "deckName": args, "rounds": rounds})
 
-    for pageNum in range(numPages):
-        embedKeys.append(lib.discordUtil.makeEmbed(titleTxt="Select Expansion Packs", desc="Which expansions would you like to use?",
-                                                    footerTxt="Page " + str(pageNum + 1) + " of " + str(numPages) + \
-                                                        " | This menu will expire in " + lib.timeUtil.td_format_noYM(menuTimeout)))
-        embedKeys[-1].add_field(name="Currently selected:", value="​", inline=False)
-        optionPages[embedKeys[-1]] = {}
-
-    for expansionNum in range(numExpansions):
-        pageNum = expansionNum // 5
-        pageEmbed = embedKeys[pageNum]
-        optionEmoji = cfg.defaultEmojis.menuOptions[expansionNum % 5]
-        expansionName = callingBGuild.decks[args]["expansion_names"][expansionNum]
-        pageEmbed.add_field(name=optionEmoji.sendable + " : " + expansionName, value="​", inline=False)
-        optionPages[pageEmbed][optionEmoji] = ReactionMenu.NonSaveableSelecterMenuOption(expansionName, optionEmoji, expansionPickerMsg.id)
-
-    for page in embedKeys:
-        page.add_field(name=cfg.defaultEmojis.accept.sendable + " : Submit", value="​", inline=False)
-        page.add_field(name=cfg.defaultEmojis.cancel.sendable + " : Cancel", value="​", inline=False)
-        page.add_field(name=cfg.defaultEmojis.spiral.sendable + " : Toggle all", value="​", inline=False)
-        optionPages[page][cfg.defaultEmojis.cancel] = ReactionMenu.NonSaveableReactionMenuOption("Cancel", cfg.defaultEmojis.cancel, addFunc=cancelGame, addArgs=expansionPickerMsg.id)
-
-    expansionSelectorMenu = PagedReactionMenu.MultiPageOptionPicker(expansionPickerMsg,
-        pages=optionPages, timeout=menuTT, owningBasedUser=botState.usersDB.getOrAddID(message.author.id), targetMember=message.author)
+    expansionSelectorMenu = SDBExpansionsPicker.SDBExpansionsPicker(expansionPickerMsg, expansionsData,
+                                                                    timeout=menuTT, owningBasedUser=botState.usersDB.getOrAddID(message.author.id), targetMember=message.author)
 
     botState.reactionMenusDB[expansionPickerMsg.id] = expansionSelectorMenu
     botState.reactionMenusTTDB.scheduleTask(menuTT)
@@ -273,7 +240,7 @@ async def cmd_join(message : discord.Message, args : str, isDM : bool):
         await message.channel.send(":x: The game has not yet started.")
     elif callingBGuild.runningGames[message.channel].hasDCMember(message.author):
         await message.channel.send(":x: You are already a player in this game! Find your cards hand in our DMs.")
-    elif len(callingBGuild.runningGames[message.channel].players) == callingBGuild.runningGames[message.channel].deck.maxPlayers:
+    elif len(callingBGuild.runningGames[message.channel].players) == callingBGuild.runningGames[message.channel].maxPlayers:
         await message.channel.send(":x: This game is full!")
     else:
         await callingBGuild.runningGames[message.channel].dcMemberJoinGame(message.author)
