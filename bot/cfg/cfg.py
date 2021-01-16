@@ -133,3 +133,6 @@ mergedSubmissionsMenu_lineLength = 3
 cardContentFontSize = 90
 # Font size of smaller text to render on cards
 cardTitleFontSize = 40
+
+# Minimum number of players required to start a game
+minPlayerCount = 2

@@ -34,7 +34,7 @@ class SDBSignupMenu(ReactionMenu.ReactionMenu):
         super().__init__(msg, options = options,
                     titleTxt = game.owner.display_name + " is playing Super Deck Breaker!",
                     desc = "Deck: " + game.deck.name +
-                        "\nMax players: " + str(game.deck.maxPlayers) +
+                        "\nMax players: " + str(game.maxPlayers) +
                         "\nRounds: " + (("Best of " + str(game.rounds)) if game.rounds != -1 else "Free play") +
                         "\nExpansions: " + ", ".join(game.expansionNames) +
                         "\n\nGame beginning in " + lib.timeUtil.td_format_noYM(timeToJoin) + "!",
@@ -49,7 +49,7 @@ class SDBSignupMenu(ReactionMenu.ReactionMenu):
         sendChannel = reactingUser.dm_channel
         
         try:
-            if self.numSignups == self.game.deck.maxPlayers:
+            if self.numSignups == self.game.maxPlayers:
                 await sendChannel.send("This game is full!")
                 try:
                     await self.msg.remove_reaction(cfg.defaultEmojis.accept.sendable, reactingUser)
@@ -83,7 +83,7 @@ class SDBSignupMenu(ReactionMenu.ReactionMenu):
     async def endSignups(self):
         self.msg = await self.msg.channel.fetch_message(self.msg.id)
         reaction = [reaction for reaction in self.msg.reactions if lib.emojis.BasedEmoji.fromReaction(reaction.emoji) == cfg.defaultEmojis.accept]
-        if not reaction or self.numSignups < 2:
+        if not reaction or self.numSignups < cfg.minPlayerCount:
             await self.msg.channel.send(":x: " + self.game.owner.mention + " Game cancelled: Not enough players joined the game.")
             await expiryFunctions.deleteReactionMenu(self.msg.id)
         else:
