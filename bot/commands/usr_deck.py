@@ -268,8 +268,20 @@ async def cmd_redeal(message : discord.Message, args : str, isDM : bool):
         await message.channel.send(":x: There is no game currently running in this channel.")
     else:
         game = callingBGuild.runningGames[message.channel]
-        if game.
-        await callingBGuild.runningGames[message.channel].redealMember(message.author)
+        try:
+            player = game.playerFromMember(message.author)
+        except KeyError:
+            await message.channel.send(":x: You have not joined the game in this channel!")
+        else:
+            if not game.started:
+                await message.send(":x: Please wait until the first cards have been dealt.")
+            elif player.hasRedealt:
+                await message.channel.send(":x: You have already used your redeal for this game!")
+            else:
+                await lib.discordUtil.startLongProcess(message)
+                await game.redealPlayer(player)
+                await lib.discordUtil.endLongProcess(message)
+                await message.reply("✅ New cards dealt!")
 
 
 botCommands.register("redeal", cmd_redeal, 0, allowDM=False, helpSection="decks", signatureStr="**redeal**", shortHelp="Discard all of your cards and get a completely new hand! You may only do this once per game.")

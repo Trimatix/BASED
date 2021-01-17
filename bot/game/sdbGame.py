@@ -43,7 +43,6 @@ class SDBGame:
         self.rounds = rounds
         self.currentRound = 0
         self.maxPlayers = sum(len(deck.cards[expansion].white) for expansion in activeExpansions) // cfg.cardsPerHand
-        self.playerHasRedealt = {}
 
         # self.configOptions = []
         # self.configOptions.append(sdbGameConfig.SDBOwnerOption(self))
@@ -371,6 +370,16 @@ class SDBGame:
         except KeyError:
             return False
         return True
+
+
+    async def redealPlayer(self, player):
+        if player.hasRedealt:
+            raise ValueError("The given player has already redealt this game: " + player.dcUser.name + "#" + str(player.dcUser.id))
+        player.hasRedealt = True
+        for slot in player.hand:
+            if not slot.isEmpty:
+                await slot.removeCard(self.deck.emptyWhite, updateMessage = False)
+        await self.dealPlayerCards(player)
 
 
 async def startGameFromExpansionMenu(gameCfg : Dict[str, Union[str, int]]):
