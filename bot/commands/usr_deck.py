@@ -18,7 +18,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 import os
 from datetime import datetime
 from ..cardRenderer import make_cards
-from ..cardRenderer.lib import clear_deck_path
+from ..cardRenderer.lib import url_to_local_path
+import pathlib
 
 
 # use creds to create a client to interact with the Google Drive API
@@ -151,7 +152,8 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
         lib.jsonHandler.writeJSON(metaPath, deckMeta)
         now = datetime.utcnow()
         callingBGuild.decks[deckMeta["deck_name"].lower()] = {"meta_path": metaPath, "creator": message.author.id, "creation_date" : str(now.day).zfill(2) + "-" + str(now.month).zfill(2) + "-" + str(now.year), "plays": 0,
-                                                            "expansions" : {expansion: (whiteCounts[expansion], blackCounts[expansion]) for expansion in whiteCounts}, "spreadsheet_url": args, "white_count": totalWhite, "black_count": totalBlack}
+                                                            "expansions" : {expansion: (whiteCounts[expansion], blackCounts[expansion]) for expansion in whiteCounts}, "spreadsheet_url": args, "white_count": totalWhite, "black_count": totalBlack,
+                                                            "updating": False}
 
         await message.channel.send("✅ Deck added: " + gameData["title"])
 
@@ -170,6 +172,10 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
 
     if message.channel in callingBGuild.runningGames:
         await message.reply(":x: A game is already being played in this channel!")
+        return
+
+    if callingBGuild.decks[args]["updating"]:
+        await message.channel.send(":x: This deck is currently being updated!")
         return
     
     callingBGuild.runningGames[message.channel] = None
@@ -308,6 +314,10 @@ async def cmd_rename_deck(message : discord.Message, args : str, isDM : bool):
     if callingBGuild.decks[args]["creator"] != message.author.id:
         await message.channel.send(":x: You can only rename decks that you own!")
         return
+
+    if callingBGuild.decks[args]["updating"]:
+        await message.channel.send(":x: This deck is currently being updated!")
+        return
     
     await message.reply("Please give the new name for the deck, within " + str(cfg.timeouts.deckRenameSeconds) + "s: ")
     
@@ -351,6 +361,10 @@ async def cmd_delete_deck(message : discord.Message, args : str, isDM : bool):
     if callingBGuild.decks[args]["creator"] != message.author.id:
         await message.channel.send(":x: You can only delete decks that you own!")
         return
+
+    if callingBGuild.decks[args]["updating"]:
+        await message.channel.send(":x: This deck is currently being updated!")
+        return
     
     if os.path.exists(callingBGuild.decks[args]["meta_path"]):
         os.remove(callingBGuild.decks[args]["meta_path"])
@@ -372,3 +386,102 @@ async def cmd_delete_deck(message : discord.Message, args : str, isDM : bool):
 
 
 botCommands.register("delete", cmd_delete_deck, 0, allowDM=False, signatureStr="**delete <deck name>**", shortHelp="Delete a deck that you own from this server.", helpSection="decks")
+
+
+async def cmd_update_deck(message : discord.Message, args : str, isDM : bool):
+    if not args:
+        await message.channel.send(":x: Please give the name of the deck you would like to update!")
+        return
+
+    callingBGuild = botState.guildsDB.getGuild(message.guild.id)
+    if args not in callingBGuild.decks:
+        await message.channel.send(":x: Unknown deck: " + args)
+        return
+
+    if callingBGuild.decks[args]["creator"] != message.author.id:
+        await message.channel.send(":x: You can only update decks that you own!")
+        return
+
+    if callingBGuild.decks[args]["updating"]:
+        await message.channel.send(":x: This deck is already being updated!")
+        return
+
+    loadingMsg = await message.channel.send("Reading spreadsheet... " + cfg.defaultEmojis.loading.sendable)
+
+    try:
+        newCardData = collect_cards(callingBGuild.decks[args]["spreadsheet_url"])
+        await loadingMsg.edit(content="Reading spreadsheet... " + cfg.defaultEmojis.submit.sendable)
+    except gspread.SpreadsheetNotFound:
+        await message.channel.send(":x: Unrecognised spreadsheet! Please make sure the file exists and is public.")
+        return
+    else:
+        lowerExpansions = [expansion.lower() for expansion in newCardData["expansions"]]
+        for expansion in lowerExpansions:
+            if lowerExpansions.count(expansion) > 1:
+                await message.channel.send(":x: Deck update failed - duplicate expansion pack name found: " + expansion)
+                callingBGuild.decks[args]["updating"] = False
+                return
+        
+        unnamedFound = False
+        emptyExpansions = []
+        for expansion in newCardData["expansions"]:
+            if expansion == "":
+                unnamedFound = True
+            if len(newCardData["expansions"][expansion]["white"]) == 0 and len(newCardData["expansions"][expansion]["black"]) == 0:
+                emptyExpansions.append(expansion)
+
+        errs = ""
+        
+        if unnamedFound:
+            errs += "\nUnnamed expansion pack detected - skipping this expansion."
+            del newCardData["expansions"][""]
+
+        if len(emptyExpansions) != 0:
+            errs += "\nEmpty expansion packs detected - skipping these expansions: " + ", ".join(expansion for expansion in emptyExpansions)
+            for expansion in emptyExpansions:
+                del newCardData["expansions"][expansion]
+        
+        if errs != "":
+            await message.channel.send(errs)
+
+        whiteCounts = {expansion: len(newCardData["expansions"][expansion]["white"]) for expansion in newCardData["expansions"]}
+        blackCounts = {expansion: len(newCardData["expansions"][expansion]["black"]) for expansion in newCardData["expansions"]}
+
+        totalWhite = sum(whiteCounts.values())
+        totalBlack = sum(blackCounts.values())
+        
+        if int(totalWhite / cfg.cardsPerHand) < 2:
+            await message.channel.send("Deck update failed.\nDecks must have at least " + str(2 * cfg.cardsPerHand) + " white cards.")
+            callingBGuild.decks[args]["updating"] = False
+            return
+        if totalBlack == 0:
+            await message.channel.send("Deck update failed.\nDecks must have at least 1 black card.")
+            callingBGuild.decks[args]["updating"] = False
+            return
+
+        oldCardData = lib.jsonHandler.readJSON(callingBGuild.decks[args]["meta_path"])
+        deckID = os.path.splitext(os.path.split(callingBGuild.decks[args]["meta_path"])[1])[0]
+
+        cardStorageChannel = None if cfg.cardStorageMethod == "local" else botState.client.get_guild(cfg.cardsDCChannel["guild_id"]).get_channel(cfg.cardsDCChannel["channel_id"])
+
+        loadingMsg = await message.channel.send("Updating deck... " + cfg.defaultEmojis.loading.sendable)
+        results = await make_cards.update_deck(cfg.paths.decksFolder, oldCardData, newCardData, deckID, cfg.paths.cardFont, message.guild.id, emptyExpansions, cfg.cardStorageMethod, cardStorageChannel, message, contentFontSize=cfg.cardContentFontSize, titleFontSize=cfg.cardTitleFontSize)
+        oldCardData, changeLog = results[0], results[1]
+
+        await loadingMsg.edit(content="Updating deck... " + cfg.defaultEmojis.submit.sendable)
+        
+        lib.jsonHandler.writeJSON(callingBGuild.decks[args]["meta_path"], oldCardData)
+        now = datetime.utcnow()
+        callingBGuild.decks[args]["creation_date"] = str(now.day).zfill(2) + "-" + str(now.month).zfill(2) + "-" + str(now.year)
+        callingBGuild.decks[args]["expansions"] = {expansion: (whiteCounts[expansion], blackCounts[expansion]) for expansion in whiteCounts}
+        callingBGuild.decks[args]["white_count"] = totalWhite
+        callingBGuild.decks[args]["black_count"] = totalBlack
+
+        callingBGuild.decks[args]["updating"] = False
+        if changeLog == "":
+            await message.reply("Update complete, no changes found!")
+        else:
+            await message.channel.send("Update complete!\n" + changeLog)
+
+
+botCommands.register("update", cmd_update_deck, 0, allowDM=False, signatureStr="**update**", shortHelp="Update a deck that you own in this server with any changes to the spreadsheet.\nThis does not update the deck name.", helpSection="decks")
