@@ -349,11 +349,12 @@ async def on_message(message : discord.Message):
 
     # Check whether the command was requested in DMs
     isDM = message.channel.type in [discord.ChannelType.private, discord.ChannelType.group]
-    callingBGuild = botState.guildsDB.getGuild(message.guild.id) if isDM else None
 
     if isDM:
         commandPrefix = cfg.defaultCommandPrefix
+        callingBGuild = None
     else:
+        callingBGuild = botState.guildsDB.getGuild(message.guild.id)
         commandPrefix = callingBGuild.commandPrefix
 
     # For any messages beginning with commandPrefix
