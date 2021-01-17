@@ -90,49 +90,62 @@ def loadImages(imagePaths: List[str]) -> List[Image.Image]:
     return [Image.open(path) for path in imagePaths]
 
 
-async def buildMergedSubmissionsMenuImages(game: "sdbGame.SDBGame") -> Dict[Embed, Dict[lib.emojis.BasedEmoji, SDBWinningSubmissionOption]]:
+async def mergePlayerSubmissions(player: "sdbPlayer.SDBPlayer"):
+    cardImages = []
+    useLocal = cfg.cardStorageMethod == "local"
+    if useLocal:
+        try:
+            cardImages = loadImages(url_to_local_path(card.url) for card in player.submitCards)
+        except FileNotFoundError:
+            useLocal = False
+    
+    if not useLocal:
+        for card in player.submittedCards:
+            async with botState.httpClient.get(card.url) as resp:
+                if resp.status == 200:
+                    cardImages.append(Image.open(io.BytesIO(await resp.read())))
+
+    mergedImage = mergeImageTable(cardImages, cfg.mergedSubmissionsMenu_lineLength)
+
+    for img in cardImages:
+        img.close()
+
+    return mergedImage
+
+
+def mergedSubmissionImagePath(roundCardsDir, player):
+    return roundCardsDir + os.sep + player.dcUser.id + "." + IMG_FORMAT
+
+
+async def saveMergedPlayerSubmissionDiscord(storageChannel, im):
+    submissionBytes = io.BytesIO()
+    im.save(submissionBytes, format="JPEG")
+    submissionBytes.seek(0)
+    dcFile = File(submissionBytes, filename="merged-submissions.JPEG")
+    newMsg = await storageChannel.send(file=dcFile)
+    return newMsg.attachments[0].url
+
+
+def saveMergedPlayerSubmissionLocal(player, roundCardsDir, im):
+    cardPath = mergedSubmissionImagePath(roundCardsDir, player)
+    im.save(cardPath)
+    return local_file_url(cardPath)
+
+
+async def buildMergedSubmissionsMenuImages(game: "sdbGame.SDBGame") -> Dict[sdbPlayer.SDBPlayer, str]:
     mergedSubmissionImages = {}
-
-    async def mergePlayerSubmissions(player: "sdbPlayer.SDBPlayer"):
-        print("merge submissions for player: " + player.dcUser.display_name)
-        cardImages = []
-        useLocal = cfg.cardStorageMethod == "local"
-        if useLocal:
-            try:
-                cardImages = loadImages(url_to_local_path(card.url) for card in player.submitCards)
-            except FileNotFoundError:
-                useLocal = False
-        
-        if not useLocal:
-            for card in player.submittedCards:
-                async with botState.httpClient.get(card.url) as resp:
-                    if resp.status == 200:
-                        cardImages.append(Image.open(io.BytesIO(await resp.read())))
-
-        mergedSubmissionImages[player] = mergeImageTable(cardImages, cfg.mergedSubmissionsMenu_lineLength)
-        for img in cardImages:
-            img.close()
 
     for player in game.players:
         if not player.isChooser:
-            await mergePlayerSubmissions(player)
-    # with futures.ThreadPoolExecutor(len(psutil.Process().cpu_affinity())) as executor:
-    #     executor.map(
-    #         lambda player: mergePlayerSubmissions(player),
-    #         [player for player in game.players if not player.isChooser]
-    #     )
+            mergedSubmissionImages[player] = await mergePlayerSubmissions(player)
     
     uploadedSubmissionsImages = {}
-    storageChannel = botState.client.get_guild(cfg.cardsDCChannel["guild_id"]).get_channel(cfg.cardsDCChannel["channel_id"])
 
     if cfg.cardStorageMethod == "discord":
+        storageChannel = botState.client.get_guild(cfg.cardsDCChannel["guild_id"]).get_channel(cfg.cardsDCChannel["channel_id"])
+
         for player in mergedSubmissionImages:
-            submissionBytes = io.BytesIO()
-            mergedSubmissionImages[player].save(submissionBytes, format="JPEG")
-            submissionBytes.seek(0)
-            dcFile = File(submissionBytes, filename="merged-submissions.JPEG")
-            newMsg = await storageChannel.send(file=dcFile)
-            uploadedSubmissionsImages[player] = newMsg.attachments[0].url
+            uploadedSubmissionsImages[player] = await saveMergedPlayerSubmissionDiscord(storageChannel, mergedSubmissionImages[player])
     
     elif cfg.cardStorageMethod == "local":
         roundCardsDir = cfg.paths.cardsTemp + os.sep + str(game.channel.id) + os.sep + str(game.currentRound)
@@ -141,10 +154,8 @@ async def buildMergedSubmissionsMenuImages(game: "sdbGame.SDBGame") -> Dict[Embe
         os.makedirs(roundCardsDir)
 
         for player in mergedSubmissionImages:
-            cardHash = player.dcUser.id
-            cardPath = roundCardsDir + os.sep + str(cardHash) + "." + IMG_FORMAT
-            mergedSubmissionImages[player].save(cardPath)
-            uploadedSubmissionsImages[player] = local_file_url(cardPath)
+            uploadedSubmissionsImages[player] = saveMergedPlayerSubmissionLocal(player, roundCardsDir, mergedSubmissionImages[player])
+            
     
     else:
         raise ValueError("Unsupported cardStorageMethod: " + str(cfg.cardStorageMethod))
