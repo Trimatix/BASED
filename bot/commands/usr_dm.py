@@ -18,6 +18,7 @@ async def cmd_end_game(message : discord.Message, args : str, isDM : bool):
         game = callingBGuild.runningGames[message.channel]
         game.shutdownOverride = True
         game.shutdownOverrideReason = "The game was ended by the deck master."
+        del callingBGuild.runningGames[message.channel]
 
 
 botCommands.register("end-game", cmd_end_game, 0, allowDM=False, helpSection="deck master", signatureStr="**end-game**", shortHelp="Immediately end the game that's runnning in this channel.")
