@@ -11,18 +11,20 @@ class SDBCardSlot:
         self.player = player
 
     
-    async def setCard(self, newCard):
+    async def setCard(self, newCard, updateMessage = True):
         self.currentCard = newCard
         if self.player is not None:
             newCard.claim(self.player)
-        await self.message.edit(embed=lib.discordUtil.makeEmbed(img=newCard.url))
+        if updateMessage:
+            await self.message.edit(embed=lib.discordUtil.makeEmbed(img=newCard.url))
         self.isEmpty = False
     
 
-    async def removeCard(self, emptyCard):
+    async def removeCard(self, emptyCard, updateMessage = True):
         if self.player is not None:
             self.currentCard.revoke()
-        await self.message.edit(embed=lib.discordUtil.makeEmbed(img=emptyCard.url))
+        if updateMessage:
+            await self.message.edit(embed=lib.discordUtil.makeEmbed(img=emptyCard.url))
         self.isEmpty = True
 
 
@@ -41,6 +43,7 @@ class SDBPlayer:
         self.chooserSubmitError = None
         self.alreadySubmittedError = None
         self.configMenu = None
+        self.hasRedealt = False
 
 
     async def submitCards(self):

@@ -372,6 +372,16 @@ class SDBGame:
         return True
 
 
+    async def redealPlayer(self, player):
+        if player.hasRedealt:
+            raise ValueError("The given player has already redealt this game: " + player.dcUser.name + "#" + str(player.dcUser.id))
+        player.hasRedealt = True
+        for slot in player.hand:
+            if not slot.isEmpty:
+                await slot.removeCard(self.deck.emptyWhite, updateMessage = False)
+        await self.dealPlayerCards(player)
+
+
 async def startGameFromExpansionMenu(gameCfg : Dict[str, Union[str, int]]):
     if gameCfg["menuID"] in botState.reactionMenusDB:
         menu = botState.reactionMenusDB[gameCfg["menuID"]]
