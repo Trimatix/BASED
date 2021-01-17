@@ -1,3 +1,4 @@
+import shutil
 import discord
 # from urllib import request
 import aiohttp
@@ -17,6 +18,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import os
 from datetime import datetime
 from ..cardRenderer import make_cards
+from ..cardRenderer.lib import clear_deck_path
 
 
 # use creds to create a client to interact with the Google Drive API
@@ -332,6 +334,41 @@ async def cmd_rename_deck(message : discord.Message, args : str, isDM : bool):
                 lib.jsonHandler.writeJSON(callingBGuild.decks[newNameMsg.content]["meta_path"], deckMeta)
                 await newNameMsg.reply("✅ Deck renamed successfully!")
 
-    
 
 botCommands.register("rename", cmd_rename_deck, 0, allowDM=False, signatureStr="**rename <old deck name>**", shortHelp="Rename a deck that you own. Only give the current name of the deck, you will be asked for the new name afterwards.", helpSection="decks")
+
+
+async def cmd_delete_deck(message : discord.Message, args : str, isDM : bool):
+    if not args:
+        await message.channel.send(":x: Please give the name of the deck you would like to delete!")
+        return
+
+    callingBGuild = botState.guildsDB.getGuild(message.guild.id)
+    if args not in callingBGuild.decks:
+        await message.channel.send(":x: Unknown deck: " + args)
+        return
+
+    if callingBGuild.decks[args]["creator"] != message.author.id:
+        await message.channel.send(":x: You can only delete decks that you own!")
+        return
+    
+    if os.path.exists(callingBGuild.decks[args]["meta_path"]):
+        os.remove(callingBGuild.decks[args]["meta_path"])
+
+    cardsDir = os.path.splitext(callingBGuild.decks[args]["meta_path"])[0]
+    if os.path.isdir(cardsDir):
+        shutil.rmtree(cardsDir)
+        
+    del callingBGuild.decks[args]
+    if args in callingBGuild.activeDecks:
+        del callingBGuild.activeDecks[args]
+
+    for channel in callingBGuild.runningGames:
+        if callingBGuild.runningGames[channel].deck.name == args:
+            callingBGuild.runningGames[channel].shutdownOverride = True
+            await channel.send("This game's deck has been deleted by the owner, so this game will end after the current round.")
+
+    await message.channel.send("Deck removed!")
+
+
+botCommands.register("delete", cmd_delete_deck, 0, allowDM=False, signatureStr="**delete <deck name>**", shortHelp="Delete a deck that you own from this server.", helpSection="decks")
