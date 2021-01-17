@@ -120,7 +120,7 @@ cardsDCChannel = {"guild_id": 733652363235033088,
                     "channel_id": 796038447252766741}
 
 # Can be either "local" or "discord"
-cardStorageMethod = "discord"
+cardStorageMethod = "local"
 
 # Exactly one of botToken or botToken_envVarName must be given.
 # botToken contains a string of your bot token
