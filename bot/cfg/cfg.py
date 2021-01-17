@@ -44,7 +44,9 @@ timeouts = {
     # The time that the SDB expansions picker menu should be active for when stating a new game
     "expansionsPicker": {"minutes": 5},
     # The time allowed to pick a new deck master when relinquishing game ownership
-    "sdbPlayerSelectorSeconds": 300
+    "sdbPlayerSelectorSeconds": 300,
+    # The time to wait for a new deck name message in cmd_rename
+    "deckRenameSeconds": 180
 }
 
 paths = {
@@ -141,3 +143,6 @@ defaultOptionsPerPage = 5
 
 # Minimum number of players required to start a game
 minPlayerCount = 2
+
+# The maximum number of characters a deck name may consist of
+maxDeckNameLength = 30
