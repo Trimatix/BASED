@@ -1,5 +1,6 @@
 from .sdbDeck import SDBCard, WhiteCard
-from .. import lib
+from .. import lib, botState
+from ..reactionMenus import SDBDMConfigMenu
 
 
 class SDBCardSlot:
@@ -39,6 +40,7 @@ class SDBPlayer:
         self.isChooser = False
         self.chooserSubmitError = None
         self.alreadySubmittedError = None
+        self.configMenu = None
 
 
     async def submitCards(self):
@@ -87,3 +89,27 @@ class SDBPlayer:
 
     async def updatePlayMenu(self):
         await self.playMenu.updateEmbed(updateRequiredWhiteCards=(self.game.currentBlackCard is not None) and (not self.game.currentBlackCard.isEmpty))
+
+
+    def hasConfigMenu(self):
+        return self.configMenu is not None
+
+
+    async def closeConfigMenu(self):
+        if not self.hasConfigMenu():
+            raise RuntimeError("Attempted to closeConfigMenu when player has no config menu: " + self.dcUser.name + "#" + str(self.dcUser.id) + " in game " + self.game.guild.name + "->" + self.game.channel.name)
+        await self.configMenu.delete()
+    
+
+    async def makeConfigMenu(self, owningMsg=None):
+        if not self.dcUser == self.game.owner:
+            raise RuntimeError("Attempted to makeConfigMenu on a player who is not the game owner: " + self.dcUser.name + "#" + str(self.dcUser.id) + " in game " + self.game.guild.name + "->" + self.game.channel.name)
+        
+        if self.hasConfigMenu():
+            await self.closeConfigMenu()
+
+        cfgMenuMsg = await lib.discordUtil.sendDM("​", self.dcUser, owningMsg, reactOnDM=owningMsg is not None)
+        if cfgMenuMsg is not None:
+            self.configMenu = SDBDMConfigMenu.SDBDMConfigMenu(cfgMenuMsg, self.game)
+            botState.reactionMenusDB[cfgMenuMsg.id] = self.configMenu
+            await self.configMenu.updateMessage()

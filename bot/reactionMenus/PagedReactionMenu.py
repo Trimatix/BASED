@@ -3,10 +3,11 @@ from ..users import basedUser
 from . import ReactionMenu, expiryFunctions
 from discord import Message, Member, Role, Embed, Colour
 from .. import lib, botState
-from typing import Dict, List
+from typing import Any, Dict, List
 from ..scheduling import TimedTask
 from ..cfg import cfg
 import asyncio
+from types import FunctionType
 
 
 async def menuJumpToPage(data : dict):
@@ -184,7 +185,7 @@ class InlinePagedReactionMenu(PagedReactionMenu):
     
     def __init__(self, msg : Message, timeoutSeconds : int, pages : Dict[Embed, Dict[lib.emojis.BasedEmoji, ReactionMenu.ReactionMenuOption]] = {}, 
                     targetMember : Member = None, targetRole : Role = None, owningBasedUser : basedUser.BasedUser = None,
-                    noCancel : bool = False, returnTriggers : List[lib.emojis.BasedEmoji] = [], anon: bool = False):
+                    noCancel : bool = False, returnTriggers : List[ReactionMenu.ReactionMenuOption] = [], anon: bool = False):
         """
         :param discord.Message msg: the message where this menu is embedded
         :param int timeoutSeconds: The number of seconds until this menu expires
@@ -301,3 +302,69 @@ class InlinePagedReactionMenu(PagedReactionMenu):
             except asyncio.TimeoutError:
                 await self.msg.edit(content="This menu has now expired. Please try the command again.")
                 return []
+
+
+# class InlineMultiPageOptionPicker(InlinePagedReactionMenu):
+#     def __init__(self, msg: Message, timeoutSeconds: int, pages: Dict[Embed, Dict[lib.emojis.BasedEmoji, ReactionMenu.ReactionMenuOption]], targetMember: Member, targetRole: Role, owningBasedUser: basedUser.BasedUser, noCancel: bool, returnTriggers: List[lib.emojis.BasedEmoji], anon: bool):
+
+#     def __init__(self, msg : Message, pages : Dict[Embed, Dict[lib.emojis.BasedEmoji, ReactionMenu.NonSaveableSelecterMenuOption]] = {}, 
+#                     timeout : TimedTask.TimedTask = None, targetMember : Member = None, targetRole : Role = None, owningBasedUser : basedUser.BasedUser = None):
+        
+#         controls = {cfg.defaultEmojis.accept: ReactionMenu.NonSaveableReactionMenuOption("Submit", cfg.defaultEmojis.accept, self.delete, None),
+#                     cfg.defaultEmojis.cancel: ReactionMenu.NonSaveableReactionMenuOption("Cancel Game", cfg.defaultEmojis.cancel, expiryFunctions.deleteReactionMenu, msg.id),
+#                     cfg.defaultEmojis.spiral: ReactionMenu.NonSaveableReactionMenuOption("Toggle All", cfg.defaultEmojis.spiral,
+#                                                                                                 addFunc=ReactionMenu.selectorSelectAllOptions, addArgs=msg.id,
+#                                                                                                 removeFunc=ReactionMenu.selectorDeselectAllOptions, removeArgs=msg.id)
+#         }
+#         self.selectedOptions = {}
+#         for pageOptions in pages.values():
+#             for option in pageOptions.values():
+#                 if option.emoji not in controls:
+#                     self.selectedOptions[option] = False
+
+#         for pageEmbed in pages:
+#             for controlEmoji in controls:
+#                 if controlEmoji not in pages[pageEmbed]:
+#                     pages[pageEmbed][controlEmoji] = controls[controlEmoji]
+
+#         super().__init__(msg, timeoutSeconds, pages=pages, targetMember=targetMember, targetRole=targetRole, owningBasedUser=owningBasedUser, noCancel=True, returnTriggers=returnTriggers, anon=anon)
+
+
+#     async def updateSelectionsField(self):
+#         newSelectedStr = ", ".join(option.name for option in self.selectedOptions if self.selectedOptions[option])
+#         newSelectedStr = newSelectedStr if newSelectedStr else "​"
+
+#         for pageEmbed in self.pages:
+#             for fieldIndex in range(len(pageEmbed.fields)):
+#                 field = pageEmbed.fields[fieldIndex]
+#                 if field.name == "Currently selected:":
+#                     pageEmbed.set_field_at(fieldIndex, name=field.name, value=newSelectedStr)
+#                 break
+
+#         await self.updateMessage(noRefreshOptions=True)
+
+
+class NonSaveableValuedMenuOption(ReactionMenu.NonSaveableReactionMenuOption):
+    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, value: Any, addFunc: FunctionType = None, addArgs = None, removeFunc: FunctionType = None, removeArgs = None):
+        super().__init__(name, emoji, addFunc=addFunc, addArgs=addArgs, removeFunc=removeFunc, removeArgs=removeArgs)
+        self.value = value
+
+
+def makeTemplatePagedMenuPages(items: Dict[str, Any]) -> Dict[Embed, Dict[lib.emojis.BasedEmoji, NonSaveableValuedMenuOption]]:
+    numPages = int((len(items) - 1) / cfg.defaultOptionsPerPage) + 1
+    optionKeys = list(items.keys())
+    pages = {}
+    for pageNum in range(numPages):
+        pageEmbed = Embed()
+        pages[pageEmbed] = {}
+        if pageNum == numPages - 1:
+            pageOptionNamesIndices = range(pageNum, min(len(items), pageNum + cfg.defaultOptionsPerPage))
+        else:
+            pageOptionNamesIndices = range(pageNum, pageNum + cfg.defaultOptionsPerPage)
+        for optionIndex in pageOptionNamesIndices:
+            optionName = optionKeys[optionIndex]
+            optionEmoji = cfg.defaultEmojis.menuOptions[optionIndex]
+            pages[pageEmbed][optionEmoji] = NonSaveableValuedMenuOption(optionName, optionEmoji, items[optionName])
+            pageEmbed.add_field(name=optionEmoji.sendable + " : " + optionName, value="​", inline=False)
+    
+    return pages
