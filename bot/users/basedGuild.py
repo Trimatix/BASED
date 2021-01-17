@@ -69,7 +69,7 @@ class BasedGuild(serializable.Serializable):
         :return: A dictionary containing all information needed to reconstruct this BasedGuild
         :rtype: dict
         """
-        return {"commandPrefix" : self.commandPrefix, "decks": self.decks, "modRoleID": self.modRole.id}
+        return {"commandPrefix" : self.commandPrefix, "decks": self.decks, "modRoleID": self.modRole.id if self.modRole is not None else -1}
 
 
     @classmethod
