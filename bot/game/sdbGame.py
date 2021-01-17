@@ -1,4 +1,4 @@
-from discord.embeds import Embed
+from discord import Embed, File
 from .. import botState, lib
 from typing import Dict, Union
 from ..reactionMenus import expiryFunctions
@@ -229,13 +229,44 @@ class SDBGame:
                 raise RuntimeError("given selected options array of length " + str(len(winningOption)) + " but should be length 1")
             winningPlayer = winningOption[0].player
 
-        if cfg.submissionsPresentationMethod == "merged" and cfg.cardStorageMethod == "local":
-            roundCardsDir = cfg.paths.cardsTemp + os.sep + str(self.channel.id) + os.sep + str(self.currentRound)
-            if os.path.isdir(roundCardsDir):
-                shutil.rmtree(roundCardsDir)
-            os.makedirs(roundCardsDir)
+        winnerEmbed = lib.discordUtil.makeEmbed(titleTxt="Winning Submission", desc=winningPlayer.dcUser.mention)
+        await submissionsMenuMsg.delete()
 
-        await self.channel.send(winningPlayer.dcUser.mention + " wins the round!")
+        if self.currentBlackCard.currentCard.requiredWhiteCards == 1:
+            winnerEmbed.set_image(url=winningPlayer.submittedCards[0].url)
+            await self.channel.send(winningPlayer.dcUser.mention + " wins the round!", embed=winnerEmbed)
+        else:
+            if cfg.submissionsPresentationMethod == "merged":
+                if cfg.cardStorageMethod == "local":
+                    roundCardsDir = cfg.paths.cardsTemp + os.sep + str(self.channel.id) + os.sep + str(self.currentRound)
+                    winnerImagePath = SDBSubmissionsReviewMenu.mergedSubmissionImagePath(roundCardsDir, winningPlayer)
+                    winnerImage = File(winnerImagePath, filename="winning-submission.jpg")
+                    winnerEmbed.set_image(url="attachment://winning-submission.jpg")
+                    await self.channel.send(winningPlayer.dcUser.mention + " wins the round!", file=winnerImage, embed=winnerEmbed)
+
+                    if os.path.isdir(roundCardsDir):
+                        shutil.rmtree(roundCardsDir)
+                else:
+                    winnerEmbed.set_image(url=submissions[winningPlayer])
+                    await self.channel.send(winningPlayer.dcUser.mention + " wins the round!", embed=winnerEmbed)
+            else:
+                roundCardsDir = cfg.paths.cardsTemp + os.sep + str(self.channel.id) + os.sep + str(self.currentRound)
+                if os.path.isdir(roundCardsDir):
+                    shutil.rmtree(roundCardsDir)
+                os.makedirs(roundCardsDir)
+
+                winnerImagePath = SDBSubmissionsReviewMenu.mergedSubmissionImagePath(roundCardsDir, winningPlayer)
+                winnerImage = await SDBSubmissionsReviewMenu.mergePlayerSubmissions(winningPlayer)
+                winnerImage.save(winnerImagePath)
+                winnerImage.close()
+
+                winnerImage = File(winnerImagePath, filename="winning-submission.jpg")
+                winnerEmbed.set_image(url="attachment://winning-submission.jpg")
+                await self.channel.send(winningPlayer.dcUser.mention + " wins the round!", file=winnerImage, embed=winnerEmbed)
+
+                if os.path.isdir(roundCardsDir):
+                    shutil.rmtree(roundCardsDir)
+            
         winningPlayer.points += 1
 
 
