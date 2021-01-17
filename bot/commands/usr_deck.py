@@ -81,6 +81,11 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
         if gameData["title"] == "":
             await message.channel.send(":x: Your deck does not have a name! Please name the spreadsheet and try again.")
             return
+
+        if len(gameData["title"]) > cfg.maxDeckNameLength:
+            gameData["title"] = gameData["title"][:3]
+            await message.channel.send("The maximum deck name length is " + str(cfg.maxDeckNameLength) + " characters - your deck will be called '" + gameData["title"] + "'")
+
         if gameData["title"].lower() in callingBGuild.decks:
             await message.channel.send(":x: A deck already exists in this server with the name '" + gameData["title"] + "' - cannot add deck.")
             return
@@ -222,7 +227,8 @@ async def cmd_decks(message : discord.Message, args : str, isDM : bool):
         decksEmbed = lib.discordUtil.makeEmbed(titleTxt=message.guild.name, desc="__Card Decks__", footerTxt="Super Deck Breaker",
                                                 thumb=("https://cdn.discordapp.com/icons/" + str(message.guild.id) + "/" + message.guild.icon + ".png?size=64") if message.guild.icon is not None else "")
         for deckName in callingBGuild.decks:
-            decksEmbed.add_field(name=deckName.title(), value="Added " + callingBGuild.decks[deckName]["creation_date"] + " by <@" + str(callingBGuild.decks[deckName]["creator"]) + ">\n" + \
+            decksEmbed.add_field(name=deckName.title(), value="Added by: <@" + str(callingBGuild.decks[deckName]["creator"]) + ">\n" + \
+                                                                "Last updated " + callingBGuild.decks[deckName]["creation_date"] + "\n" + \
                                                                 str(callingBGuild.decks[deckName]["plays"]) + " plays | " + str(callingBGuild.decks[deckName]["white_count"] + \
                                                                 callingBGuild.decks[deckName]["black_count"]) + " cards | [sheet](" + callingBGuild.decks[deckName]["spreadsheet_url"] +")\n" + \
                                                                 "Max players: " + str(int(callingBGuild.decks[deckName]["white_count"] / cfg.cardsPerHand)))
@@ -285,3 +291,47 @@ async def cmd_redeal(message : discord.Message, args : str, isDM : bool):
 
 
 botCommands.register("redeal", cmd_redeal, 0, allowDM=False, helpSection="decks", signatureStr="**redeal**", shortHelp="Discard all of your cards and get a completely new hand! You may only do this once per game.")
+
+
+async def cmd_rename_deck(message : discord.Message, args : str, isDM : bool):
+    if not args:
+        await message.channel.send(":x: Please give the name of the deck you would like to rename!")
+        return
+
+    callingBGuild = botState.guildsDB.getGuild(message.guild.id)
+    if args not in callingBGuild.decks:
+        await message.channel.send(":x: Unknown deck: " + args)
+        return
+
+    if callingBGuild.decks[args]["creator"] != message.author.id:
+        await message.channel.send(":x: You can only rename decks that you own!")
+        return
+    
+    await message.reply("Please give the new name for the deck, within " + str(cfg.timeouts.deckRenameSeconds) + "s: ")
+    
+    def newDeckNameCheck(m):
+        return m.author == message.author and m.channel == message.channel
+    
+    try:
+        newNameMsg = await botState.client.wait_for("message", check=newDeckNameCheck, timeout=cfg.timeouts.deckRenameSeconds)
+    except asyncio.TimeoutError:
+        await message.reply(":x: You ran out of time! Please try this command again.")
+    else:
+        if len(newNameMsg.content) > cfg.maxDeckNameLength:
+            await newNameMsg.reply(":x: The maximum deck name length is " + str(cfg.maxDeckNameLength) + "! Please try this command again.")
+        else:
+            if newNameMsg.content == args:
+                await newNameMsg.reply("The deck is already called that! Please try this command again.")
+            if newNameMsg.content in callingBGuild.decks:
+                await newNameMsg.reply(":x: A deck with that name already exists! Please try this command again.")
+            else:
+                callingBGuild.decks[newNameMsg.content] = callingBGuild.decks[args]
+                del callingBGuild.decks[args]
+                deckMeta = lib.jsonHandler.readJSON(callingBGuild.decks[newNameMsg.content]["meta_path"])
+                deckMeta["deck_name"] = newNameMsg.content
+                lib.jsonHandler.writeJSON(callingBGuild.decks[newNameMsg.content]["meta_path"], deckMeta)
+                await newNameMsg.reply("✅ Deck renamed successfully!")
+
+    
+
+botCommands.register("rename", cmd_rename_deck, 0, allowDM=False, signatureStr="**rename <old deck name>**", shortHelp="Rename a deck that you own. Only give the current name of the deck, you will be asked for the new name afterwards.", helpSection="decks")
