@@ -42,6 +42,7 @@ class SDBGame:
         self.rounds = rounds
         self.currentRound = 0
         self.maxPlayers = sum(len(deck.cards[expansion].white) for expansion in activeExpansions) // cfg.cardsPerHand
+        self.playerHasRedealt = {}
 
 
     def allPlayersSubmitted(self):
