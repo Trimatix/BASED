@@ -275,6 +275,7 @@ class SDBGame:
             return
         for player in self.players:
             player.hasSubmitted = False
+            player.submittedCards = []
             await player.updatePlayMenu()
 
 
