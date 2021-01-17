@@ -245,7 +245,10 @@ class InlinePagedReactionMenu(PagedReactionMenu):
             #     guild = await botState.client.fetch_guild(reactPL.guild_id)
             #     user = guild.get_member(reactPL.user_id)
 
-        emoji = lib.emojis.BasedEmoji.fromReaction(reactPL.emoji, rejectInvalid=True)
+        try:
+            emoji = lib.emojis.BasedEmoji.fromReaction(reactPL.emoji, rejectInvalid=True)
+        except lib.exceptions.UnrecognisedBasedEmoji:
+            return False
 
 
         # _, user, emoji = await lib.discordUtil.reactionFromRaw(reactPL)

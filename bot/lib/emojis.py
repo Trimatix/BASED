@@ -11,7 +11,7 @@ from typing import Union
 
 err_UnknownEmoji = "❓"
 # True to raise an UnrecognisedCustomEmoji exception when requesting an unknown custom emoji
-raiseUnkownEmojis = True
+raiseUnkownEmojis = False
 logUnknownEmojis = True
 
 
