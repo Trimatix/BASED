@@ -51,6 +51,8 @@ class InlineSequentialSubmissionsReviewMenu(InlineSDBSubmissionsReviewMenu):
                     currentEmbed.set_image(url=player.submittedCards[cardNum].url)
                     if multiCard:
                         currentEmbed.set_footer(text="Card " + str(cardNum+1) + " | Player " + str(playerNum + 1) + " of " + str(numPlayers))
+                    else:
+                        currentEmbed.set_footer(text="Player " + str(playerNum + 1) + " of " + str(numPlayers))
                     
                     newOption = SDBWinningSubmissionOption(player)
                     pages[currentEmbed] = {cfg.defaultEmojis.accept: newOption}
