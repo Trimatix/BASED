@@ -285,6 +285,12 @@ async def on_ready():
     for guild in botState.client.guilds:
         if not botState.guildsDB.idExists(guild.id):
             botState.guildsDB.addID(guild.id)
+        else:
+            bGuild = botState.guildsDB.getGuild(guild.id)
+            if bGuild.modRoleID != -1:
+                bGuild.modRole = guild.get_role(bGuild.modRoleID)
+                if bGuild.modRole is None:
+                    bGuild.modRoleID = -1
 
     # Set help embed thumbnails
     for levelSection in botCommands.helpSectionEmbeds:
@@ -343,11 +349,12 @@ async def on_message(message : discord.Message):
 
     # Check whether the command was requested in DMs
     isDM = message.channel.type in [discord.ChannelType.private, discord.ChannelType.group]
+    callingBGuild = botState.guildsDB.getGuild(message.guild.id) if isDM else None
 
     if isDM:
         commandPrefix = cfg.defaultCommandPrefix
     else:
-        commandPrefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        commandPrefix = callingBGuild.commandPrefix
 
     # For any messages beginning with commandPrefix
     if message.content.lower().startswith(commandPrefix) and len(message.content) > len(commandPrefix):
@@ -368,6 +375,8 @@ async def on_message(message : discord.Message):
             accessLevel = 3
         elif message.author.permissions_in(message.channel).administrator:
             accessLevel = 2
+        elif callingBGuild is not None and callingBGuild.modRole is not None and callingBGuild.modRole in message.author.roles:
+            accessLevel = 1
         else:
             accessLevel = 0
 

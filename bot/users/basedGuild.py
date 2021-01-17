@@ -18,7 +18,7 @@ class BasedGuild(serializable.Serializable):
     :vartype dcGuild: discord.Guild
     """
 
-    def __init__(self, id : int, dcGuild: Guild, commandPrefix : str = cfg.defaultCommandPrefix, runningGames = {}, decks = {}):
+    def __init__(self, id : int, dcGuild: Guild, commandPrefix : str = cfg.defaultCommandPrefix, runningGames = {}, decks = {}, modRoleID = -1):
         """
         :param int id: The ID of the guild, directly corresponding to a discord guild's ID.
         :param discord.Guild guild: This guild's corresponding discord.Guild object
@@ -35,6 +35,8 @@ class BasedGuild(serializable.Serializable):
         self.runningGames = runningGames
         self.decks = decks
         self.activeDecks = {}
+        self.modRoleID = modRoleID
+        self.modRole = None
 
 
     async def startGameSignups(self, owner, channel, deckName, expansionNames, rounds):
@@ -67,7 +69,7 @@ class BasedGuild(serializable.Serializable):
         :return: A dictionary containing all information needed to reconstruct this BasedGuild
         :rtype: dict
         """
-        return {"commandPrefix" : self.commandPrefix, "decks": self.decks}
+        return {"commandPrefix" : self.commandPrefix, "decks": self.decks, "modRoleID": self.modRole.id}
 
 
     @classmethod
@@ -88,5 +90,5 @@ class BasedGuild(serializable.Serializable):
             raise lib.exceptions.NoneDCGuildObj("Could not get guild object for id " + str(id))
         
         if "commandPrefix" in guildDict:
-            return BasedGuild(id, dcGuild, commandPrefix=guildDict["commandPrefix"], decks=guildDict["decks"] if "decks" in guildDict else {})
-        return BasedGuild(id, dcGuild, decks=guildDict["decks"] if "decks" in guildDict else {})
+            return BasedGuild(id, dcGuild, commandPrefix=guildDict["commandPrefix"], decks=guildDict["decks"] if "decks" in guildDict else {}, modRoleID=guildDict["modRoleID"] if "modRoleID" in guildDict else -1)
+        return BasedGuild(id, dcGuild, decks=guildDict["decks"] if "decks" in guildDict else {}, modRoleID=guildDict["modRoleID"] if "modRoleID" in guildDict else -1)
