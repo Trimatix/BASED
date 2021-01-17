@@ -41,14 +41,16 @@ class InlineSequentialSubmissionsReviewMenu(InlineSDBSubmissionsReviewMenu):
         multiCard = game.currentBlackCard.currentCard.requiredWhiteCards > 1
         pages = {}
         returnTriggers = []
-        for player in game.players:
+        numPlayers = len(game.players)
+        for playerNum in range(numPlayers):
+            player = game.players[playerNum]
             if not player.isChooser:
                 for cardNum in range(len(player.submittedCards)):
                     currentEmbed = Embed()
-                    currentEmbed.title = player.dcUser.display_name
+                    currentEmbed.title = "Submissions"# player.dcUser.display_name
                     currentEmbed.set_image(url=player.submittedCards[cardNum].url)
                     if multiCard:
-                        currentEmbed.set_footer(text="Card " + str(cardNum+1))
+                        currentEmbed.set_footer(text="Card " + str(cardNum+1) + " | Player " + str(playerNum + 1) + " of " + str(numPlayers))
                     
                     newOption = SDBWinningSubmissionOption(player)
                     pages[currentEmbed] = {cfg.defaultEmojis.accept: newOption}
@@ -61,10 +63,13 @@ class InlineMergedSubmissionsReviewMenu(InlineSDBSubmissionsReviewMenu):
     def __init__(self, msg: Message, submissions: Dict["sdbPlayer.SDBPlayer", str], timeoutSeconds: int, chooserPlayer: "sdbPlayer.SDBPlayer"):
         pages = {}
         returnTriggers = []
-        for player in submissions:
+        numPlayers = len(submissions)
+        for playerNum in range(numPlayers):
+            player = submissions[playerNum]
             currentEmbed = Embed()
-            currentEmbed.title = player.dcUser.display_name
+            currentEmbed.title = "Submissions"# player.dcUser.display_name
             currentEmbed.set_image(url=submissions[player])
+            currentEmbed.set_footer(text="Player " + str(playerNum + 1) + " of " + str(numPlayers))
             
             newOption = SDBWinningSubmissionOption(player)
             pages[currentEmbed] = {cfg.defaultEmojis.accept: newOption}
