@@ -592,7 +592,7 @@ class InlineReactionMenu(ReactionMenu):
 
 
     def reactionClosesMenu(self, reactPL):
-        return (reactPL.message_id == self.msg.id and reactPL.user_id == self.targetMember.id) and (not self.returnTriggers or lib.emojis.BasedEmoji.fromPartial(reactPL.emoji) in self.returnTriggers)
+        return (reactPL.message_id == self.msg.id and reactPL.user_id == self.targetMember.id) and (not self.returnTriggers or lib.emojis.BasedEmoji.fromPartial(reactPL.emoji, rejectInvalid=False) in self.returnTriggers)
 
 
     async def doMenu(self):
@@ -607,7 +607,7 @@ class InlineReactionMenu(ReactionMenu):
             return []
         else:
             updatedMsg = await self.msg.channel.fetch_message(self.msg.id)
-            return [lib.emojis.BasedEmoji.fromReaction(react.emoji) for react in updatedMsg.reactions if self.targetMember in await react.users().flatten() and lib.emojis.BasedEmoji.fromReaction(react.emoji) in self.options]
+            return [lib.emojis.BasedEmoji.fromReaction(react.emoji, rejectInvalid=False) for react in updatedMsg.reactions if self.targetMember in await react.users().flatten() and lib.emojis.BasedEmoji.fromReaction(react.emoji, rejectInvalid=False) in self.options]
 
 
 class SelectorMenu(ReactionMenu):
