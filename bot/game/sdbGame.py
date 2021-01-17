@@ -14,6 +14,7 @@ from ..reactionMenus.PagedReactionMenu import InvalidClosingReaction
 import random
 import shutil
 import os
+# from . import sdbGameConfig
 
 from bot.reactionMenus import SDBSubmissionsReviewMenu
 
@@ -43,6 +44,9 @@ class SDBGame:
         self.currentRound = 0
         self.maxPlayers = sum(len(deck.cards[expansion].white) for expansion in activeExpansions) // cfg.cardsPerHand
         self.playerHasRedealt = {}
+
+        # self.configOptions = []
+        # self.configOptions.append(sdbGameConfig.SDBOwnerOption(self))
 
 
     def allPlayersSubmitted(self):
@@ -116,6 +120,16 @@ class SDBGame:
         self.players.append(player)
         await self.channel.send(member.display_name + " joined the game!")
 
+
+    async def setOwner(self, member, deleteOldCfgMenu=True):
+        if deleteOldCfgMenu:
+            currentPlayer = self.playerFromMember(self.owner)
+            if currentPlayer.hasConfigMenu():
+                await currentPlayer.closeConfigMenu()
+        self.owner = member
+        await self.channel.send("The deck master is now  " + self.owner.mention + "! 🙇‍♂️")
+        await self.owner.send("You are now deck master of the game in <#" + str(self.channel.id) + ">!\nThis means you are responsible for game admin, such as choosing to keep playing after every round.")
+
     
     async def dcMemberLeaveGame(self, member):
         player = None
@@ -169,15 +183,14 @@ class SDBGame:
                 newOwner = random.choice(self.players)
                 while newOwner == player or newOwner in self.playersLeftDuringSetup:
                     newOwner = random.choice(self.players)
-                self.owner = newOwner.dcUser
-                await self.channel.send("The deck master has left the game!\nAll hail the new deck master, " + self.owner.dcUser.mention + "!")
-                await self.owner.dcUser.send("You are now the deck master of the game in <#" + self.channel.id + ">!\nThis means you are responsible for game admin, such as choosing to keep playing after every round.")
+                await self.channel.send("The deck master has left the game!")
+                await self.setOwner(newOwner.dcUser)
 
 
     async def doGameIntro(self):
         if self.shutdownOverride:
             return
-        await self.channel.send("Welcome to Super Deck Breaker!\nThe deck master is now " + self.owner.mention + ".")
+        await self.channel.send("Welcome to Super Deck Breaker!")
 
 
     async def pickNewBlackCard(self):
@@ -339,16 +352,25 @@ class SDBGame:
         self.currentChooser = -1
         self.players[-1].isChooser = True
         await self.doGameIntro()
+        await self.setOwner(self.owner, deleteOldCfgMenu=False)
         await self.setupAllPlayerHands()
         self.started = True
         await self.playPhase()
 
 
-    def hasDCMember(self, member):
+    def playerFromMember(self, member):
         for player in self.players:
             if player.dcUser == member:
-                return True
-        return False
+                return player
+        raise KeyError("No player for member " + member.name + "#" + str(member.id))
+
+
+    def hasDCMember(self, member):
+        try:
+            self.playerFromMember(member)
+        except KeyError:
+            return False
+        return True
 
 
 async def startGameFromExpansionMenu(gameCfg : Dict[str, Union[str, int]]):
@@ -372,4 +394,3 @@ async def startGameFromExpansionMenu(gameCfg : Dict[str, Union[str, int]]):
             await callingBGuild.startGameSignups(menu.targetMember, playChannel, gameCfg["deckName"], expansionNames, rounds)
     else:
         botState.logger.log("sdbGame", "startGameFromExpansionMenu", "menu not in reactionMenusDB: " + str(gameCfg["menuID"]), category="reactionMenus", eventType="MENU_NOTFOUND")
-        

@@ -357,7 +357,7 @@ class ReactionMenu(serializable.Serializable):
             except HTTPException:
                 success = False
                 for i in range(3):
-                    asyncio.sleep(2)
+                    await asyncio.sleep(2)
                     try:
                         await self.msg.remove_reaction(emoji.sendable, member)
                     except HTTPException:
