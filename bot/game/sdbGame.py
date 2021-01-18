@@ -79,10 +79,18 @@ class SDBGame:
         if self.shutdownOverride:
             return
         loadingMsg = await self.channel.send("Setting up player hands... " + cfg.defaultEmojis.loading.sendable)
+        handDistributors = set()
+
+        def scheduleHandDistributor(self, player):
+            task = asyncio.ensure_future(self.setupPlayerHand(player))
+            handDistributors.add(task)
+            task.add_done_callback(handDistributors.remove)
+
         for player in self.players:
-            if self.shutdownOverride:
-                return
-            await self.setupPlayerHand(player)
+            scheduleHandDistributor(self, player)
+
+        if handDistributors:
+            await asyncio.wait(handDistributors)
         await loadingMsg.edit(content="Setting up player hands... " + cfg.defaultEmojis.submit.sendable)
 
 
@@ -104,10 +112,20 @@ class SDBGame:
             return
         loadingStr = "** **\n**__Round " + str(self.currentRound) + ((" of " + str(self.rounds)) if self.rounds != -1 else "") + "__**\nDealing cards... "
         loadingMsg = await self.channel.send(loadingStr + cfg.defaultEmojis.loading.sendable)
+
+        cardDistributors = set()
+
+        def scheduleCardDistributor(self, player):
+            task = asyncio.ensure_future(self.dealPlayerCards(player))
+            cardDistributors.add(task)
+            task.add_done_callback(cardDistributors.remove)
+
         for player in self.players:
-            if self.shutdownOverride:
-                return
-            await self.dealPlayerCards(player)
+            scheduleCardDistributor(self, player)
+
+        if cardDistributors:
+            await asyncio.wait(cardDistributors)
+
         await loadingMsg.edit(content=loadingStr + cfg.defaultEmojis.submit.sendable)
 
 
