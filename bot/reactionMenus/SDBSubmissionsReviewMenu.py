@@ -41,16 +41,19 @@ class InlineSequentialSubmissionsReviewMenu(InlineSDBSubmissionsReviewMenu):
         multiCard = game.currentBlackCard.currentCard.requiredWhiteCards > 1
         pages = {}
         returnTriggers = []
-        numPlayers = len(game.players)
+        numPlayers = len(game.players) - 1
+        winnerPassed = False
         for playerNum in range(numPlayers):
             player = game.players[playerNum]
-            if not player.isChooser:
+            if player.isChooser:
+                winnerPassed = True
+            else:
                 for cardNum in range(len(player.submittedCards)):
                     currentEmbed = Embed()
                     currentEmbed.title = "Submissions"# player.dcUser.display_name
                     currentEmbed.set_image(url=player.submittedCards[cardNum].url)
                     if multiCard:
-                        currentEmbed.set_footer(text="Card " + str(cardNum+1) + " | Player " + str(playerNum + 1) + " of " + str(numPlayers))
+                        currentEmbed.set_footer(text="Card " + str(cardNum+1) + " | Player " + str(playerNum + (0 if winnerPassed else 1)) + " of " + str(numPlayers))
                     else:
                         currentEmbed.set_footer(text="Player " + str(playerNum + 1) + " of " + str(numPlayers))
                     
