@@ -41,7 +41,7 @@ class InlineSequentialSubmissionsReviewMenu(InlineSDBSubmissionsReviewMenu):
         multiCard = game.currentBlackCard.currentCard.requiredWhiteCards > 1
         pages = {}
         returnTriggers = []
-        numPlayers = len(game.players) - 1
+        numPlayers = len(game.players)
         winnerPassed = False
         for playerNum in range(numPlayers):
             player = game.players[playerNum]
@@ -53,9 +53,9 @@ class InlineSequentialSubmissionsReviewMenu(InlineSDBSubmissionsReviewMenu):
                     currentEmbed.title = "Submissions"# player.dcUser.display_name
                     currentEmbed.set_image(url=player.submittedCards[cardNum].url)
                     if multiCard:
-                        currentEmbed.set_footer(text="Card " + str(cardNum+1) + " | Player " + str(playerNum + (0 if winnerPassed else 1)) + " of " + str(numPlayers))
+                        currentEmbed.set_footer(text="Card " + str(cardNum+1) + " | Player " + str(playerNum + (0 if winnerPassed else 1)) + " of " + str(numPlayers - 1))
                     else:
-                        currentEmbed.set_footer(text="Player " + str(playerNum + 1) + " of " + str(numPlayers))
+                        currentEmbed.set_footer(text="Player " + str(playerNum + (0 if winnerPassed else 1)) + " of " + str(numPlayers - 1))
                     
                     newOption = SDBWinningSubmissionOption(player)
                     pages[currentEmbed] = {cfg.defaultEmojis.accept: newOption}
