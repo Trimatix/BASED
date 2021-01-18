@@ -415,8 +415,8 @@ class SDBGame:
 
 
     async def startGame(self):
-        self.currentChooser = -1
-        self.players[-1].isChooser = True
+        self.currentChooser = self.currentChooser = random.randint(0, len(self.players) - 1)
+        self.players[self.currentChooser].isChooser = True
         await self.doGameIntro()
         await self.setOwner(self.owner, deleteOldCfgMenu=False)
         await self.setupAllPlayerHands()
