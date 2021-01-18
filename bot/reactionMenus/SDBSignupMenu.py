@@ -85,6 +85,7 @@ class SDBSignupMenu(ReactionMenu.ReactionMenu):
         reaction = [reaction for reaction in self.msg.reactions if lib.emojis.BasedEmoji.fromReaction(reaction.emoji, rejectInvalid=False) == cfg.defaultEmojis.accept]
         if not reaction or self.numSignups < cfg.minPlayerCount:
             await self.msg.channel.send(":x: " + self.game.owner.mention + " Game cancelled: Not enough players joined the game.")
+            del botState.guildsDB.getGuild(self.game.channel.guild.id).runningGames[self.game.channel]
             await expiryFunctions.deleteReactionMenu(self.msg.id)
         else:
             reaction = reaction[0]
