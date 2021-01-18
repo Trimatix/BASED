@@ -69,8 +69,9 @@ class InlineMergedSubmissionsReviewMenu(InlineSDBSubmissionsReviewMenu):
         pages = {}
         returnTriggers = []
         numPlayers = len(submissions)
+        players = list(submissions.keys())
         for playerNum in range(numPlayers):
-            player = submissions[playerNum]
+            player = players[playerNum]
             currentEmbed = Embed()
             currentEmbed.title = "Submissions"# player.dcUser.display_name
             currentEmbed.set_image(url=submissions[player])
