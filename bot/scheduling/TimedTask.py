@@ -197,17 +197,19 @@ class TimedTask:
         """
         # Update expiryTime
         self.expiryTime = datetime.utcnow()
-        # Call expiryFunction and reschedule if specified
-        if callExpiryFunc and self.hasExpiryFunction:
-            expiryFuncResults = await self.callExpiryFunction()
-        else:
-            expiryFuncResults = None
 
         if self.autoReschedule:
             await self.reschedule()
         # Mark for removal if not rescheduled
         else:
             self.gravestone = True
+
+        # Call expiryFunction and reschedule if specified
+        if callExpiryFunc and self.hasExpiryFunction:
+            expiryFuncResults = await self.callExpiryFunction()
+        else:
+            expiryFuncResults = None
+
         # Return expiry function results
         if callExpiryFunc and self.hasExpiryFunction:
             return expiryFuncResults
