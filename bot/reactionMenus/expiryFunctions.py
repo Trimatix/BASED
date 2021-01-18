@@ -12,8 +12,8 @@ from ..cfg import cfg
 
 
 async def _unscheduleMenu(menu):
-    if menu.id in botState.reactionMenusDB:
-        del botState.reactionMenusDB[menu.id]
+    if menu.msg.id in botState.reactionMenusDB:
+        del botState.reactionMenusDB[menu.msg.id]
         
     if menu.timeout is not None:
         if not menu.timeout.isExpired():
