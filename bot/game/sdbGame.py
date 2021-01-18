@@ -58,16 +58,19 @@ class SDBGame:
     async def setupPlayerHand(self, player):
         if self.shutdownOverride:
             return
+        emptyCardEmbed = Embed()
+        emptyCardEmbed.set_image(url=self.deck.emptyWhite.url)
         await lib.discordUtil.sendDM("```yaml\n" + self.owner.name + "'s game```\n<#" + str(self.channel.id) + ">\n\n__Your Hand__", player.dcUser, None, reactOnDM=False, exceptOnFail=True)
         for _ in range(cfg.cardsPerHand):
             if self.shutdownOverride:
                 return
-            cardSlotMsg = await player.dcUser.dm_channel.send("​")
+            cardSlotMsg = await player.dcUser.dm_channel.send("​", embed=emptyCardEmbed)
             cardSlot = sdbPlayer.SDBCardSlot(None, cardSlotMsg, player)
             player.hand.append(cardSlot)
             cardSelector = SDBCardSelector(cardSlotMsg, player, cardSlot)
             botState.reactionMenusDB[cardSlotMsg.id] = cardSelector
             await cardSelector.updateMessage()
+            player.selectorMenus.append(cardSelector)
         
         playMenuMsg = await player.dcUser.dm_channel.send("​")
         player.playMenu = SDBCardPlayMenu(playMenuMsg, player)
@@ -147,6 +150,12 @@ class SDBGame:
         await self.channel.send("The deck master is now  " + self.owner.mention + "! 🙇‍♂️")
         await self.owner.send("You are now deck master of the game in <#" + str(self.channel.id) + ">!\nThis means you are responsible for game admin, such as choosing to keep playing after every round.")
 
+
+    async def cancelPlayerSelectorMenus(self, player):
+        for menu in player.selectorMenus:
+            await menu.delete()
+        player.selectorMenus = []
+
     
     async def dcMemberLeaveGame(self, member):
         player = None
@@ -202,6 +211,9 @@ class SDBGame:
                     newOwner = random.choice(self.players)
                 await self.channel.send("The deck master has left the game!")
                 await self.setOwner(newOwner.dcUser)
+        
+        if player is not None:
+            await self.cancelPlayerSelectorMenus(player)
 
 
     async def doGameIntro(self):
@@ -323,16 +335,21 @@ class SDBGame:
                 winningplayers = [player]
             elif player.points == winningplayers[0].points:
                 winningplayers.append(player)
+
         resultsEmbed = lib.discordUtil.makeEmbed(titleTxt="Thanks For Playing!",
                                                     desc="Congats to the winner" + ("" if len(winningplayers) == 1 else "s") +
                                                     ", with " + str(winningplayers[0].points) + " point" +
                                                     (("" if winningplayers[0].points == 1 else "s")) +
                                                     (("" if len(winningplayers) == 1 else " each") + "!"))
         resultsEmbed.add_field(name="🏆 Winner" + ("" if len(winningplayers) == 1 else "s"), value=", ".join(player.dcUser.mention for player in winningplayers))
+
         if self.shutdownOverride:
             await self.channel.send(self.shutdownOverrideReason if self.shutdownOverrideReason else "The game was forcibly ended, likely due to an error.", embed=resultsEmbed)
         else:
             await self.channel.send(embed=resultsEmbed)
+
+        for player in self.players:
+            await self.cancelPlayerSelectorMenus(player)
 
 
     def getChooser(self):

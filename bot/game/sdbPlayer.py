@@ -44,6 +44,7 @@ class SDBPlayer:
         self.alreadySubmittedError = None
         self.configMenu = None
         self.hasRedealt = False
+        self.selectorMenus = []
 
 
     async def submitCards(self):
