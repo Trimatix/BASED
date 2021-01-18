@@ -257,7 +257,20 @@ async def cmd_join(message : discord.Message, args : str, isDM : bool):
     elif len(callingBGuild.runningGames[message.channel].players) == callingBGuild.runningGames[message.channel].maxPlayers:
         await message.channel.send(":x: This game is full!")
     else:
-        await callingBGuild.runningGames[message.channel].dcMemberJoinGame(message.author)
+        game = callingBGuild.runningGames[message.channel]
+        sendChannel = None
+
+        if message.author.dm_channel is None:
+            await message.author.create_dm()
+        sendChannel = message.author.dm_channel
+        
+        try:
+            await sendChannel.send("✅ You joined " + game.owner.name + "'s game!")
+        except discord.Forbidden:
+            await message.channel.send(":x: " + message.author.mention + " failed to join - I can't DM you! Please enable DMs from users who are not friends.")
+            return
+
+        await game.dcMemberJoinGame(message.author)
 
 
 botCommands.register("join", cmd_join, 0, allowDM=False, helpSection="decks", signatureStr="**join**", shortHelp="Join the game that is currently running in the channel where you call the command")
