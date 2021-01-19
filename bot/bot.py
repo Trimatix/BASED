@@ -387,7 +387,10 @@ async def on_message(message: discord.Message):
     if message.author.bot:
         return
     # Check whether the command was requested in DMs
-    isDM = message.channel.guild is None
+    try:
+        isDM = message.channel.guild is None
+    except AttributeError:
+        isDM = True
     # Get the context-relevant command prefix
     if isDM:
         commandPrefix = cfg.defaultCommandPrefix
