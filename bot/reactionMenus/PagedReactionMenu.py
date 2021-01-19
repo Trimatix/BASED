@@ -7,7 +7,7 @@ from ..scheduling import TimedTask
 from ..cfg import cfg
 
 
-async def menuJumpToPage(data : dict):
+async def menuJumpToPage(data: dict):
     await botState.reactionMenusDB[data["menuID"]].jumpToPage(data["pageNum"])
 
 
@@ -15,16 +15,20 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
     """A reaction menu that, instead of taking a list of options, takes a list of pages of options.
     """
     saveable = False
-    
-    def __init__(self, msg : Message, pages : Dict[Embed, Dict[lib.emojis.BasedEmoji, ReactionMenu.ReactionMenuOption]] = {}, 
-                    timeout : TimedTask.TimedTask = None, targetMember : Member = None, targetRole : Role = None, owningBasedUser : basedUser.BasedUser = None):
+
+    def __init__(self, msg: Message, pages: Dict[Embed, Dict[lib.emojis.BasedEmoji, ReactionMenu.ReactionMenuOption]] = {},
+                 timeout: TimedTask.TimedTask = None, targetMember: Member = None, targetRole: Role = None,
+                 owningBasedUser: basedUser.BasedUser = None):
         """
         :param discord.Message msg: the message where this menu is embedded
-        :param pages: A dictionary associating embeds with pages, where each page is a dictionary storing all options on that page and their behaviour (Default {})
+        :param pages: A dictionary associating embeds with pages, where each page is a dictionary
+                        storing all options on that page and their behaviour (Default {})
         :type pages: dict[Embed, dict[lib.emojis.BasedEmoji, ReactionMenuOption]]
         :param TimedTask timeout: The TimedTask responsible for expiring this menu (Default None)
-        :param discord.Member targetMember: The only discord.Member that is able to interact with this menu. All other reactions are ignored (Default None)
-        :param discord.Role targetRole: In order to interact with this menu, users must possess this role. All other reactions are ignored (Default None)
+        :param discord.Member targetMember: The only discord.Member that is able to interact with this menu.
+                                            All other reactions are ignored (Default None)
+        :param discord.Role targetRole: In order to interact with this menu, users must possess this role.
+                                            All other reactions are ignored (Default None)
         :param BasedUser owningBasedUser: The user who initiated this menu. No built in behaviour. (Default None)
         """
 
@@ -38,21 +42,24 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
         self.targetRole = targetRole
         self.owningBasedUser = owningBasedUser
 
-        nextOption = ReactionMenu.NonSaveableReactionMenuOption("Next Page", cfg.defaultEmojis.next, self.nextPage, None)
-        prevOption = ReactionMenu.NonSaveableReactionMenuOption("Previous Page", cfg.defaultEmojis.previous, self.previousPage, None)
-        cancelOption = ReactionMenu.NonSaveableReactionMenuOption("Close Menu", cfg.defaultEmojis.cancel, self.delete, None)
+        nextOption = ReactionMenu.NonSaveableReactionMenuOption("Next Page", cfg.defaultEmojis.next,
+                                                                self.nextPage, None)
+        prevOption = ReactionMenu.NonSaveableReactionMenuOption("Previous Page", cfg.defaultEmojis.previous,
+                                                                self.previousPage, None)
+        cancelOption = ReactionMenu.NonSaveableReactionMenuOption("Close Menu", cfg.defaultEmojis.cancel,
+                                                                self.delete, None)
 
-        self.firstPageControls = {  cfg.defaultEmojis.cancel:    cancelOption,
-                                    cfg.defaultEmojis.next:      nextOption}
+        self.firstPageControls = {cfg.defaultEmojis.cancel: cancelOption,
+                                  cfg.defaultEmojis.next: nextOption}
 
-        self.midPageControls = {    cfg.defaultEmojis.cancel:    cancelOption,
-                                    cfg.defaultEmojis.next:      nextOption,
-                                    cfg.defaultEmojis.previous:  prevOption}
+        self.midPageControls = {cfg.defaultEmojis.cancel: cancelOption,
+                                cfg.defaultEmojis.next: nextOption,
+                                cfg.defaultEmojis.previous: prevOption}
 
-        self.lastPageControls = {   cfg.defaultEmojis.cancel:    cancelOption,
-                                    cfg.defaultEmojis.previous:  prevOption}
+        self.lastPageControls = {cfg.defaultEmojis.cancel: cancelOption,
+                                 cfg.defaultEmojis.previous: prevOption}
 
-        self.onePageControls = {    cfg.defaultEmojis.cancel:    cancelOption}
+        self.onePageControls = {cfg.defaultEmojis.cancel: cancelOption}
 
         if len(self.pages) == 1:
             self.currentPageControls = self.onePageControls
@@ -71,6 +78,8 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
 
 
     def updateCurrentPage(self):
+        """Update the menu's options and controls for the current page.
+        """
         self.currentPage = list(self.pages.keys())[self.currentPageNum]
         self.options = list(self.pages.values())[self.currentPageNum]
 
@@ -87,6 +96,10 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
 
 
     async def nextPage(self):
+        """Set the menu to display the next page.
+
+        :raise RuntimeError: When the current page is the last page
+        """
         if self.currentPageNum == len(self.pages) - 1:
             raise RuntimeError("Attempted to nextPage while on the last page")
         self.currentPageNum += 1
@@ -100,6 +113,10 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
 
 
     async def previousPage(self):
+        """Set the menu to display the previous page.
+
+        :raise RuntimeError: When the current page is the first page
+        """
         if self.currentPageNum == 0:
             raise RuntimeError("Attempted to previousPage while on the first page")
         self.currentPageNum -= 1
@@ -111,8 +128,13 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
         if self.currentPageNum == len(self.pages) - 2:
             await self.msg.add_reaction(cfg.defaultEmojis.next.sendable)
 
-    
-    async def jumpToPage(self, pageNum : int):
+
+    async def jumpToPage(self, pageNum: int):
+        """Set the menu to display the given page number.
+
+        :param int pageNum: the zero-based index of the page to display
+        :raise IndexError: If the given page number is out of range
+        """
         if pageNum < 0 or pageNum > len(self.pages) - 1:
             raise IndexError("Page number out of range: " + str(pageNum))
         if pageNum != self.currentPageNum:
