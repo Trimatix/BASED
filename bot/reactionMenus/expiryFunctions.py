@@ -53,8 +53,8 @@ async def markExpiredMenu(menuID: int):
 
 
 async def markExpiredMenuAndRemoveOptions(menuID: int):
-    """Remove all option reactions from the menu message, replace the message content of the given menu with cfg.expiredMenuMsg,
-    and remove the menu from the active reaction menus DB.
+    """Remove all option reactions from the menu message, replace the message content of the given menu
+    with cfg.expiredMenuMsg, and remove the menu from the active reaction menus DB.
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
