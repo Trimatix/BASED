@@ -13,6 +13,8 @@ emojiVars = []
 # List of cfg.defaultEmojis keys that are List[UninitializedBasedEmoji]
 emojiListVars = []
 
+CFG_FILE_EXT = ".toml"
+
 # Populate and validate emojiVars and emojiListVars
 for varname, varvalue in cfg.defaultEmojis.items():
     # Populate emojiVars
@@ -72,7 +74,7 @@ def init():
     cfg.paths = ConfigProxy(cfg.paths)
 
 
-def makeDefaultCfg(fileName: str = "defaultCfg.toml"):
+def makeDefaultCfg(fileName: str = "defaultCfg" + CFG_FILE_EXT):
     """Create a config file containing all configurable variables with their default values.
     The name of the generated file may optionally be specified.
 
@@ -86,9 +88,9 @@ def makeDefaultCfg(fileName: str = "defaultCfg.toml"):
     :rtype: str
     """
     # Ensure fileName is toml
-    if not fileName.endswith(".toml"):
+    if not fileName.endswith(CFG_FILE_EXT):
         print(fileName)
-        raise ValueError("file name must end with .toml")
+        raise ValueError("file name must end with " + CFG_FILE_EXT)
 
     # Create missing directories
     fileName = os.path.abspath(os.path.normpath(fileName))
@@ -96,16 +98,15 @@ def makeDefaultCfg(fileName: str = "defaultCfg.toml"):
         os.makedirs(os.path.dirname(fileName))
 
     # If fileName already exists, make a new one by adding a number onto fileName.
-    fileName = fileName.split(".toml")[0]
+    fileName = fileName.split(CFG_FILE_EXT)[0]
     cfgPath = fileName
-    fileExt = ".toml"
     
     currentExt = 0
-    while os.path.exists(cfgPath + fileExt):
+    while os.path.exists(cfgPath + CFG_FILE_EXT):
         currentExt += 1
         cfgPath = fileName + "-" + str(currentExt)
 
-    cfgPath += fileExt
+    cfgPath += CFG_FILE_EXT
 
     # Read default config values
     defaults = {varname: varvalue for varname, varvalue in vars(cfg).items() if varname not in ignoredVarNames}
@@ -136,7 +137,7 @@ def loadCfg(cfgFile: str):
     :param str cfgFile: Path to the file to load. Can be relative or absolute.
     """
     # Ensure the given config is toml
-    if not cfgFile.endswith(".toml"):
+    if not cfgFile.endswith(CFG_FILE_EXT):
         raise ValueError("config files must be TOML")
     
     # Load from toml to dictionary
