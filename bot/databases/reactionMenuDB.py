@@ -1,4 +1,3 @@
-from ..reactionMenus import ReactionMenu
 from .. import botState
 
 # ReactionMenu subclasses that cannot be saved to dictionary

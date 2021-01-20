@@ -1,7 +1,7 @@
 # TODO: Write a targettable ReactionMenuOption subclass, that implements targetMember and targetRole on a per-option basis.
 # Use this to write ReactionRolePickers with multipleChoice=False!
 
-from ..scheduling.TimedTask import TimedTask
+from ..scheduling.timedTask import TimedTask
 import inspect
 from discord import Embed, Colour, NotFound, HTTPException, Forbidden, Member, User, Message, Role
 from ..cfg import cfg

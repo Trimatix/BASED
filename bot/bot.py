@@ -23,8 +23,8 @@ import aiohttp
 
 from . import lib, botState, logging
 from .databases import guildDB, reactionMenuDB, userDB
-from .scheduling.TimedTask import TimedTask
-from .scheduling.TimedTaskHeap import TimedTaskHeap
+from .scheduling.timedTask import TimedTask
+from .scheduling.timedTaskHeap import TimedTaskHeap
 
 
 async def checkForUpdates():

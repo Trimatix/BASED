@@ -1,7 +1,7 @@
 # Typing imports
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 import inspect
 from types import FunctionType
 
