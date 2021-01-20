@@ -54,12 +54,12 @@ class BasedGuild(serializable.Serializable):
         """
         if "id" not in kwargs:
             raise NameError("Required kwarg missing: id")
-        id = kwargs["id"]
+        guildID = kwargs["id"]
 
-        dcGuild = botState.client.get_guild(id)
+        dcGuild = botState.client.get_guild(guildID)
         if not isinstance(dcGuild, Guild):
-            raise lib.exceptions.NoneDCGuildObj("Could not get guild object for id " + str(id))
+            raise lib.exceptions.NoneDCGuildObj("Could not get guild object for id " + str(guildID))
 
         if "commandPrefix" in guildDict:
-            return BasedGuild(id, dcGuild, commandPrefix=guildDict["commandPrefix"])
-        return BasedGuild(id, dcGuild)
+            return BasedGuild(guildID, dcGuild, commandPrefix=guildDict["commandPrefix"])
+        return BasedGuild(guildID, dcGuild)

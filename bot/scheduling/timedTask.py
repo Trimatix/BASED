@@ -37,7 +37,7 @@ class TimedTask:
     """
 
     def __init__(self, issueTime: datetime = None, expiryTime: datetime = None, expiryDelta: timedelta = None,
-                 expiryFunction: FunctionType = None, expiryFunctionArgs={}, autoReschedule: bool = False):
+                 expiryFunction: FunctionType = None, expiryFunctionArgs = None, autoReschedule: bool = False):
         """
         :param datetime.datetime issueTime: The datetime when this task was created. (Default now)
         :param datetime.datetime expiryTime: The datetime when this task should expire. (Default None)
@@ -61,8 +61,8 @@ class TimedTask:
 
         self.expiryFunction = expiryFunction
         self.hasExpiryFunction = expiryFunction is not None
-        self.expiryFunctionArgs = expiryFunctionArgs
-        self.hasExpiryFunctionArgs = expiryFunctionArgs != {}
+        self.hasExpiryFunctionArgs = expiryFunctionArgs is not None
+        self.expiryFunctionArgs = expiryFunctionArgs if self.hasExpiryFunctionArgs else {}
         self.autoReschedule = autoReschedule
 
         # A task's 'gravestone' is marked as True when the TimedTask will no longer execute and
@@ -191,8 +191,10 @@ class TimedTask:
         # Update the task's issueTime to now
         self.issueTime = datetime.utcnow()
         # Create the new expiryTime from now + expirydelta
-        self.expiryTime = self.issueTime + \
-            (self.expiryDelta if expiryDelta is None else expiryDelta) if expiryTime is None else expiryTime
+        if expiryTime is not None:
+            self.expiryTime = expiryTime
+        else:
+            self.expiryTime = self.issueTime + (self.expiryDelta if expiryDelta is None else expiryDelta)
         # reset the gravestone to False, in case the task had been expired and marked for removal
         self.gravestone = False
 
@@ -241,15 +243,16 @@ class DynamicRescheduleTask(TimedTask):
                                 You probably want this to be True, otherwise you may as well use a TimedTask. Default: False
     """
 
-    def __init__(self, delayTimeGenerator, delayTimeGeneratorArgs={}, issueTime=None, expiryTime=None,
-                        expiryFunction=None, expiryFunctionArgs={}, autoReschedule=False):
+    def __init__(self, delayTimeGenerator, delayTimeGeneratorArgs = None, issueTime : datetime = None,
+                        expiryTime : datetime = None, expiryFunction : FunctionType = None,
+                        expiryFunctionArgs = None, autoReschedule : bool = False):
         # Initialise TimedTask-inherited attributes
         super(DynamicRescheduleTask, self).__init__(expiryDelta=delayTimeGenerator(delayTimeGeneratorArgs),
                                                     issueTime=issueTime, expiryTime=expiryTime, expiryFunction=expiryFunction,
                                                     expiryFunctionArgs=expiryFunctionArgs, autoReschedule=autoReschedule)
         self.delayTimeGenerator = delayTimeGenerator
-        self.delayTimeGeneratorArgs = delayTimeGeneratorArgs
-        self.hasDelayTimeGeneratorArgs = delayTimeGeneratorArgs != {}
+        self.hasDelayTimeGeneratorArgs = delayTimeGeneratorArgs is not None
+        self.delayTimeGeneratorArgs = delayTimeGeneratorArgs if self.hasDelayTimeGeneratorArgs else {}
         self.asyncDelayTimeGenerator = inspect.iscoroutinefunction(delayTimeGenerator)
 
     async def callDelayTimeGenerator(self) -> timedelta:

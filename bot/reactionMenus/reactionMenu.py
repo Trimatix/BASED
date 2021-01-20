@@ -278,7 +278,7 @@ class ReactionMenu(serializable.Serializable):
     """
     saveable = False
 
-    def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = {},
+    def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = None,
                  titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: TimedTask = None,
                  footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "",
                  authorName: str = "", targetMember: Member = None, targetRole: Role = None):
@@ -309,7 +309,7 @@ class ReactionMenu(serializable.Serializable):
         # discord.message
         self.msg = msg
         # Dict of lib.emojis.BasedEmoji: ReactionMenuOption
-        self.options = options
+        self.options = options if options is not None else {}
 
         self.titleTxt = titleTxt
         self.desc = desc
@@ -348,12 +348,13 @@ class ReactionMenu(serializable.Serializable):
         :param discord.Member member: The member that added the emoji reaction
         :return: The result of the corresponding menu option's addFunc, if any
         """
-        if self.targetMember is not None:
-            if member != self.targetMember:
-                return
-        if self.targetRole is not None:
-            if self.targetRole not in member.roles:
-                return
+        if (self.targetMember is not None and \
+                member != self.targetMember):
+            return
+
+        if self.targetRole is not None and \
+                self.targetRole not in member.roles:
+            return
 
         return await self.options[emoji].add(member)
 
@@ -372,12 +373,13 @@ class ReactionMenu(serializable.Serializable):
         :param discord.Member member: The member that removed the emoji reaction
         :return: The result of the corresponding menu option's removeFunc, if any
         """
-        if self.targetMember is not None:
-            if member != self.targetMember:
-                return
-        if self.targetRole is not None:
-            if self.targetRole not in member.roles:
-                return
+        if self.targetMember is not None and \
+                member != self.targetMember:
+            return
+
+        if self.targetRole is not None and \
+                self.targetRole not in member.roles:
+            return
 
         return await self.options[emoji].remove(member)
 
@@ -513,7 +515,7 @@ class CancellableReactionMenu(ReactionMenu):
     :vartype cancelEmoji: lib.emojis.BasedEmoji
     """
 
-    def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = {},
+    def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = None,
                     cancelEmoji: lib.emojis.BasedEmoji = cfg.defaultEmojis.cancel,
                     titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: TimedTask = None,
                     footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "", authorName: str = "",
@@ -583,7 +585,7 @@ class SingleUserReactionMenu(ReactionMenu):
     """
 
     def __init__(self, msg: Message, targetMember: Union[Member, User], timeoutSeconds: int,
-                 options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = {},
+                 options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = None,
                  returnTriggers: List[lib.emojis.BasedEmoji] = [], titleTxt: str = "", desc: str = "",
                  col: Colour = Colour.blue(), footerTxt: str = "", img: str = "", thumb: str = "",
                  icon: str = "", authorName: str = ""):
@@ -627,8 +629,7 @@ class SingleUserReactionMenu(ReactionMenu):
         """
         await self.updateMessage()
         try:
-            reactPL = await botState.client.wait_for("raw_reaction_add", check=self.reactionClosesMenu,
-                                                        timeout=self.timeoutSeconds)
+            await botState.client.wait_for("raw_reaction_add", check=self.reactionClosesMenu, timeout=self.timeoutSeconds)
             currentEmbed = self.msg.embeds[0]
             currentEmbed.set_footer(text="This menu has now expired.")
             await self.msg.edit(embed=currentEmbed)
