@@ -5,12 +5,28 @@
     alt="Bot Advanced Schematic - Easy Discord! (BASED)"
   />
 </p>
-
 <p align="center">
   <a href="https://github.com/Trimatix/BASED/actions"
     ><img
       src="https://img.shields.io/github/workflow/status/Trimatix/BASED/BASED"
       alt="GitHub Actions workflow status"
+  /></a>
+</p>
+<p align="center">
+  <a href="https://sonarcloud.io/dashboard?id=Trimatix_BASED"
+    ><img
+      src="https://sonarcloud.io/api/project_badges/measure?project=Trimatix_BASED&metric=bugs"
+      alt="SonarCloud bugs analysis"
+  /></a>
+  <a href="https://sonarcloud.io/dashboard?id=Trimatix_BASED"
+    ><img
+      src="https://sonarcloud.io/api/project_badges/measure?project=Trimatix_BASED&metric=code_smells"
+      alt="SonarCloud code smells analysis"
+  /></a>
+  <a href="https://sonarcloud.io/dashboard?id=Trimatix_BASED"
+    ><img
+      src="https://sonarcloud.io/api/project_badges/measure?project=Trimatix_BASED&metric=alert_status"
+      alt="SonarCloud quality gate status"
   /></a>
 </p>
 
