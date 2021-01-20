@@ -22,7 +22,7 @@ class TimedTaskHeap:
     :vartype asyncExpiryFunction: bool
     """
 
-    def __init__(self, expiryFunction: FunctionType = None, expiryFunctionArgs={}):
+    def __init__(self, expiryFunction: FunctionType = None, expiryFunctionArgs = None):
         """
         :param function expiryFunction: function reference to call upon the expiry of any
                                         TimedTask managed by this heap. (Default None)
@@ -34,8 +34,8 @@ class TimedTaskHeap:
 
         self.expiryFunction = expiryFunction
         self.hasExpiryFunction = expiryFunction is not None
-        self.expiryFunctionArgs = expiryFunctionArgs
-        self.hasExpiryFunctionArgs = expiryFunctionArgs != {}
+        self.hasExpiryFunctionArgs = expiryFunctionArgs is not None
+        self.expiryFunctionArgs = expiryFunctionArgs if self.hasExpiryFunctionArgs else {}
 
         # Track whether or not the expiryFunction is a coroutine and needs to be awaited
         self.asyncExpiryFunction = inspect.iscoroutinefunction(expiryFunction)
