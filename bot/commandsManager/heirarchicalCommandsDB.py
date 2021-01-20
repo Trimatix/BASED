@@ -28,13 +28,13 @@ class HeirarchicalCommandsDB:
             raise ValueError("Cannot create a HeirarchicalCommandsDB with less than one access level")
         self.numAccessLevels = numAccessLevels
         self.clear()
-        self.helpSections = [{"miscellaneous": []} for accessLevel in range(self.numAccessLevels)]
+        self.helpSections = [{"miscellaneous": []} for _ in range(self.numAccessLevels)]
         self.helpSectionEmbeds = [{"miscellaneous": [Embed(title=cfg.userAccessLevels[accessLevel] + " Commands",
                                                             description=cfg.helpIntro + "\n__Miscellaneous__",
                                                             colour=Colour.blue())]}
                                                                     for accessLevel in range(self.numAccessLevels)]
         self.helpSectionEmbeds[0]["miscellaneous"][0].set_footer(text="Page 1 of 1")
-        self.totalEmbeds = [1 for level in range(numAccessLevels)]
+        self.totalEmbeds = [1 for _ in range(numAccessLevels)]
 
     def register(self, command: str, function: FunctionType, accessLevel: int, aliases: List[str] = [],
                  forceKeepArgsCasing: bool = False, forceKeepCommandCasing: bool = False, allowDM: bool = True,
@@ -176,7 +176,7 @@ class HeirarchicalCommandsDB:
     def clear(self):
         """Remove all command registrations from the database.
         """
-        self.commands = [{} for i in range(self.numAccessLevels)]
+        self.commands = [{} for _ in range(self.numAccessLevels)]
 
 
     def addHelpSection(self, accessLevel: int, sectionName: str):
