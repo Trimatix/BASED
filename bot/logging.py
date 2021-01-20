@@ -5,6 +5,9 @@ import traceback
 from typing import Tuple
 
 
+LOG_TIME_FORMAT = "(%d/%m/%H:%M)"
+
+
 class Logger:
     """A general event logging object.
     Takes strings describing events, categorises them, sorts them by time added,
@@ -91,7 +94,7 @@ class Logger:
 
         logsSaved = ""
         files = {}
-        nowStr = datetime.utcnow().strftime("(%d/%m/%H:%M)")
+        nowStr = datetime.utcnow().strftime(LOG_TIME_FORMAT)
 
         for category in self.logs:
             if bool(self.logs[category]):
@@ -157,13 +160,13 @@ class Logger:
 
         now = datetime.utcnow()
         if noPrintEvent:
-            eventStr = now.strftime("(%d/%m/%H:%M)") + "-[" + str(classStr).upper() + \
+            eventStr = now.strftime(LOG_TIME_FORMAT) + "-[" + str(classStr).upper() + \
                 "::" + str(funcStr).upper() + "]>" + str(eventType)
             if not noPrint:
                 print(eventStr)
             self.logs[category][now] = eventStr + ": " + str(event) + ("\n" + trace if trace != "" else "") + "\n\n"
         else:
-            eventStr = now.strftime("(%d/%m/%H:%M)") + "-[" + str(classStr).upper() + \
+            eventStr = now.strftime(LOG_TIME_FORMAT) + "-[" + str(classStr).upper() + \
                 "::" + str(funcStr).upper() + "]>" + str(eventType) + ": " + str(event)
             if not noPrint:
                 print(eventStr)
