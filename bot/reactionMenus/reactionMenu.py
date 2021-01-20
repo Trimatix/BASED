@@ -3,7 +3,7 @@
 
 from ..scheduling.timedTask import TimedTask
 import inspect
-from discord import Embed, Colour, NotFound, HTTPException, Forbidden, Member, User, Message, Role
+from discord import Embed, Colour, NotFound, HTTPException, Forbidden, Member, User, Message, Role, RawReactionActionEvent
 from ..cfg import cfg
 from .. import botState, lib
 from abc import abstractmethod
@@ -567,8 +567,19 @@ class CancellableReactionMenu(ReactionMenu):
 
 
 class SingleUserReactionMenu(ReactionMenu):
-    """
-    An in-place menu solution
+    """An in-place menu solution.
+    
+    InlineReactionMenus do not need to be recorded in the reactionMenusDB, but instead have a
+    doMenu coroutine which should be awaited. Once execution returns, doMenu will return a list containing all of the
+    currently selected options.
+    
+    This menu style is only available for use by single users - hence the requirement for targetMember.
+    returnTriggers is given as a kwarg, but if no returnTriggers are given, then the menu will only expire due ot timeout.
+
+    :var returnTriggers: A list of emojis which, when reacted with, trigger the expiry of the menu.
+    :vartype returnTriggers: List[lib.emojis.BasedEmoji]
+    :var timeoutSeconds: The number of seconds that this menu should last before timing out
+    :vartype timeoutSeconds: int
     """
 
     def __init__(self, msg: Message, targetMember: Union[Member, User], timeoutSeconds: int,
@@ -577,7 +588,7 @@ class SingleUserReactionMenu(ReactionMenu):
                  col: Colour = Colour.blue(), footerTxt: str = "", img: str = "", thumb: str = "",
                  icon: str = "", authorName: str = ""):
         """
-        :param returnTriggers: List of menu options that trigger the returning of the menu
+        :param returnTriggers: A list of emojis which, when reacted with, trigger the expiry of the menu.
         :type returnTriggers: List[lib.emojis.BasedEmoji]
         :param int timeoutSeconds: The number of seconds that this menu should last before timing out
         """
@@ -589,12 +600,31 @@ class SingleUserReactionMenu(ReactionMenu):
         self.timeoutSeconds = timeoutSeconds
 
 
-    def reactionClosesMenu(self, reactPL):
-        return (reactPL.message_id == self.msg.id and reactPL.user_id == self.targetMember.id) and \
-                (not self.returnTriggers or lib.emojis.BasedEmoji.fromPartial(reactPL.emoji) in self.returnTriggers)
+    def reactionClosesMenu(self, reactPL: RawReactionActionEvent) -> bool:
+        """Decide whether a reaction should trigger the expiry of the menu.
+        The reaction should be given in the form of a RawReactionActionEvent payload, from a discord.on_raw_reaction_add event
+
+        :param discord.RawReactionActionEvent reactPL: The raw payload representing the reaction addition
+        :return: True if the reaction should close the menu. I.e, a returnTrigger emoji was added by the targetMember.
+        :rtype: bool
+        """
+        try:
+            return (reactPL.message_id == self.msg.id and reactPL.user_id == self.targetMember.id) and \
+                    (not self.returnTriggers or lib.emojis.BasedEmoji.fromPartial(reactPL.emoji) in self.returnTriggers)
+        except lib.exceptions.UnrecognisedCustomEmoji:
+            return False
 
 
-    async def doMenu(self):
+    async def doMenu(self) -> List[lib.emojis.BasedEmoji]:
+        """Coroutine that executes the menu.
+
+        Once execution returns to the calling thread, doMenu will have returned a list of emojis that
+        are currently selected by the targetMember. If your option behaviour removes any reactions,
+        these will not be present in the returned list.
+
+        :return: A list of emojis with which targetMember has reacted to the member with, at the time of expiry.
+        :rtype: List[lib.emojis.BasedEmoji]
+        """
         await self.updateMessage()
         try:
             reactPL = await botState.client.wait_for("raw_reaction_add", check=self.reactionClosesMenu,
