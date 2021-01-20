@@ -629,8 +629,7 @@ class SingleUserReactionMenu(ReactionMenu):
         """
         await self.updateMessage()
         try:
-            reactPL = await botState.client.wait_for("raw_reaction_add", check=self.reactionClosesMenu,
-                                                        timeout=self.timeoutSeconds)
+            await botState.client.wait_for("raw_reaction_add", check=self.reactionClosesMenu, timeout=self.timeoutSeconds)
             currentEmbed = self.msg.embeds[0]
             currentEmbed.set_footer(text="This menu has now expired.")
             await self.msg.edit(embed=currentEmbed)
