@@ -515,7 +515,7 @@ class CancellableReactionMenu(ReactionMenu):
     :vartype cancelEmoji: lib.emojis.BasedEmoji
     """
 
-    def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = {},
+    def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = None,
                     cancelEmoji: lib.emojis.BasedEmoji = cfg.defaultEmojis.cancel,
                     titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: TimedTask = None,
                     footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "", authorName: str = "",
@@ -585,7 +585,7 @@ class SingleUserReactionMenu(ReactionMenu):
     """
 
     def __init__(self, msg: Message, targetMember: Union[Member, User], timeoutSeconds: int,
-                 options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = {},
+                 options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = None,
                  returnTriggers: List[lib.emojis.BasedEmoji] = [], titleTxt: str = "", desc: str = "",
                  col: Colour = Colour.blue(), footerTxt: str = "", img: str = "", thumb: str = "",
                  icon: str = "", authorName: str = ""):
