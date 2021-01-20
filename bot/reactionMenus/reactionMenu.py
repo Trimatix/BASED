@@ -351,7 +351,7 @@ class ReactionMenu(serializable.Serializable):
         if (self.targetMember is not None and \
                 member != self.targetMember):
             return
-            
+
         if self.targetRole is not None and \
                 self.targetRole not in member.roles:
             return
@@ -373,12 +373,13 @@ class ReactionMenu(serializable.Serializable):
         :param discord.Member member: The member that removed the emoji reaction
         :return: The result of the corresponding menu option's removeFunc, if any
         """
-        if self.targetMember is not None:
-            if member != self.targetMember:
-                return
-        if self.targetRole is not None:
-            if self.targetRole not in member.roles:
-                return
+        if self.targetMember is not None and \
+                member != self.targetMember:
+            return
+
+        if self.targetRole is not None and \
+                self.targetRole not in member.roles:
+            return
 
         return await self.options[emoji].remove(member)
 
