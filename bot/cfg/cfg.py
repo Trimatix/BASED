@@ -14,14 +14,14 @@ defaultEmojis = {
     "next": UninitializedBasedEmoji('⏩'),
     "previous": UninitializedBasedEmoji('⏪'),
     "numbers": [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
-                    UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
-                    UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"), 
-                    UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")],
+                UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
+                UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"),
+                UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")],
 
-    # The default emojis to list in a reaction menu     
+    # The default emojis to list in a reaction menu
     "menuOptions": [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
                     UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
-                    UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"), 
+                    UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"),
                     UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")]
 }
 
@@ -29,7 +29,7 @@ timeouts = {
     "helpMenu": {"minutes": 3},
     "BASED_updateCheckFrequency": {"days": 1},
     # The time to wait inbetween database autosaves.
-    "dataSaveFrequency": {"hours":1}
+    "dataSaveFrequency": {"hours": 1}
 }
 
 paths = {
@@ -52,9 +52,9 @@ helpIntro = "Here are my commands!"
 maxCommandsPerHelpPage = 5
 
 # List of module names from the commands package to import
-includedCommandModules = (  "usr_misc",
-                            "admn_misc",
-                            "dev_misc")
+includedCommandModules = ("usr_misc",
+                          "admn_misc",
+                          "dev_misc")
 
 # Text to edit into expired menu messages
 expiredMenuMsg = "😴 This role menu has now expired."

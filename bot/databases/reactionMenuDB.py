@@ -24,10 +24,12 @@ class ReactionMenuDB(dict):
         return data
 
 
-async def fromDict(dbDict : dict) -> ReactionMenuDB:
-    """Factory function constructing a new ReactionMenuDB from dictionary-serialized format; the opposite of ReactionMenuDB.toDict
+async def fromDict(dbDict: dict) -> ReactionMenuDB:
+    """Factory function constructing a new ReactionMenuDB from dictionary-serialized format;
+    the opposite of ReactionMenuDB.toDict
 
-    :param dict dbDict: A dictionary containing all info needed to reconstruct a ReactionMenuDB, in accordance with ReactionMenuDB.toDict
+    :param dict dbDict: A dictionary containing all info needed to reconstruct a ReactionMenuDB,
+                        in accordance with ReactionMenuDB.toDict
     :return: A new ReactionMenuDB instance as described by dbDict
     :rtype: ReactionMenuDB
     """
@@ -44,5 +46,5 @@ async def fromDict(dbDict : dict) -> ReactionMenuDB:
             #     # newDB[int(msgID)] = ReactionInventoryPicker.fromDict(dbDict[msgID], msg=msg)
             #     continue
             continue
-    
+
     return newDB

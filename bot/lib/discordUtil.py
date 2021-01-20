@@ -5,12 +5,13 @@ if TYPE_CHECKING:
 
 from . import stringTyping, emojis, exceptions
 from .. import botState
-from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, Reaction, User, DMChannel, GroupChannel, TextChannel
+from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, Reaction, User
+from discord import DMChannel, GroupChannel, TextChannel
 import random
 from ..cfg import cfg
 
 
-def getMemberFromRef(uRef : str, dcGuild : Guild) -> Union[Member, None]:
+def getMemberFromRef(uRef: str, dcGuild: Guild) -> Union[Member, None]:
     """Attempt to find a member of a given discord guild object from a string or integer.
     uRef can be one of:
     - A user mention <@123456> or <@!123456>
@@ -18,11 +19,14 @@ def getMemberFromRef(uRef : str, dcGuild : Guild) -> Union[Member, None]:
     - A user name Carl
     - A user name and discriminator Carl#0324
 
-    If the passed user reference is none of the above, or a matching user cannot be found in the requested guild, None is returned.
+    If the passed user reference is none of the above, or a matching user cannot be found in the requested guild,
+    None is returned.
 
-    :param str uRef: A string or integer indentifying a user within dcGuild either by mention, ID, name, or name and discriminator
+    :param str uRef: A string or integer indentifying a user within dcGuild either by mention, ID, name,
+                    or name and discriminator
     :param discord.Guild dcGuild: A discord.guild in which to search for a member matching uRef
-    :return: Either discord.member of a member belonging to dcGuild and matching uRef, or None if uRef is invalid or no matching user could be found
+    :return: Either discord.member of a member belonging to dcGuild and matching uRef, or None if uRef is invalid
+                or no matching user could be found
     :rtype: discord.Member or None
     """
     # Handle user mentions
@@ -38,8 +42,8 @@ def getMemberFromRef(uRef : str, dcGuild : Guild) -> Union[Member, None]:
     return dcGuild.get_member_named(uRef)
 
 
-def makeEmbed(titleTxt : str = "", desc : str = "", col : Colour = Colour.blue(), footerTxt : str = "", footerIcon : str = "",
-        img : str = "", thumb : str = "", authorName : str = "", icon : str = "") -> Embed:
+def makeEmbed(titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), footerTxt: str = "", footerIcon: str = "",
+              img: str = "", thumb: str = "", authorName: str = "", icon: str = "") -> Embed:
     """Factory function building a simple discord embed from the provided arguments.
 
     :param str titleTxt: The title of the embed (Default "")
@@ -65,7 +69,7 @@ def makeEmbed(titleTxt : str = "", desc : str = "", col : Colour = Colour.blue()
     return embed
 
 
-async def startLongProcess(message : Message):
+async def startLongProcess(message: Message):
     """Indicates that a long process is starting, by adding a reaction to the given message.
 
     :param discord.Message message: The message to react to
@@ -76,7 +80,7 @@ async def startLongProcess(message : Message):
         pass
 
 
-async def endLongProcess(message : Message):
+async def endLongProcess(message: Message):
     """Indicates that a long process has finished, by removing a reaction from the given message.
 
     :param discord.Message message: The message to remove the reaction from
@@ -96,7 +100,7 @@ def randomColour():
     return Colour.from_rgb(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
 
 
-async def reactionFromRaw(payload : RawReactionActionEvent) -> Tuple[Message, Union[User, Member],  emojis.BasedEmoji]:
+async def reactionFromRaw(payload: RawReactionActionEvent) -> Tuple[Message, Union[User, Member], emojis.BasedEmoji]:
     """Retrieve complete Reaction and user info from a RawReactionActionEvent payload.
 
     :param RawReactionActionEvent payload: Payload describing the reaction action
@@ -116,7 +120,7 @@ async def reactionFromRaw(payload : RawReactionActionEvent) -> Tuple[Message, Un
             if guild is None:
                 return None, None, None
             channel = guild.get_channel(payload.channel_id)
-        
+
         # Individual handling for each channel type for efficiency
         if isinstance(channel, DMChannel):
             if channel.recipient.id == payload.user_id:
@@ -135,15 +139,15 @@ async def reactionFromRaw(payload : RawReactionActionEvent) -> Tuple[Message, Un
             user = channel.guild.get_member(payload.user_id)
         else:
             return None, None, None
-        
+
         # Fetch the reacted message (api call)
         message = await channel.fetch_message(payload.message_id)
-    
+
     # If a reacting member was given, the guild can be inferred from the member.
     else:
         user = payload.member
         message = await payload.member.guild.get_channel(payload.channel_id).fetch_message(payload.message_id)
-    
+
     if message is None:
         return None, None, None
 
