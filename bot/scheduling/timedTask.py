@@ -37,7 +37,7 @@ class TimedTask:
     """
 
     def __init__(self, issueTime: datetime = None, expiryTime: datetime = None, expiryDelta: timedelta = None,
-                 expiryFunction: FunctionType = None, expiryFunctionArgs={}, autoReschedule: bool = False):
+                 expiryFunction: FunctionType = None, expiryFunctionArgs = None, autoReschedule: bool = False):
         """
         :param datetime.datetime issueTime: The datetime when this task was created. (Default now)
         :param datetime.datetime expiryTime: The datetime when this task should expire. (Default None)
@@ -61,8 +61,8 @@ class TimedTask:
 
         self.expiryFunction = expiryFunction
         self.hasExpiryFunction = expiryFunction is not None
-        self.expiryFunctionArgs = expiryFunctionArgs
-        self.hasExpiryFunctionArgs = expiryFunctionArgs != {}
+        self.hasExpiryFunctionArgs = expiryFunctionArgs is not None
+        self.expiryFunctionArgs = expiryFunctionArgs if self.hasExpiryFunctionArgs else {}
         self.autoReschedule = autoReschedule
 
         # A task's 'gravestone' is marked as True when the TimedTask will no longer execute and
