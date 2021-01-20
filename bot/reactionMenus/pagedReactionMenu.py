@@ -16,7 +16,7 @@ class PagedReactionMenu(reactionMenu.ReactionMenu):
     """
     saveable = False
 
-    def __init__(self, msg: Message, pages: Dict[Embed, Dict[lib.emojis.BasedEmoji, reactionMenu.ReactionMenuOption]] = {},
+    def __init__(self, msg: Message, pages: Dict[Embed, Dict[lib.emojis.BasedEmoji, reactionMenu.ReactionMenuOption]] = None,
                  timeout: timedTask.TimedTask = None, targetMember: Member = None, targetRole: Role = None,
                  owningBasedUser: basedUser.BasedUser = None):
         """
@@ -32,7 +32,7 @@ class PagedReactionMenu(reactionMenu.ReactionMenu):
         :param BasedUser owningBasedUser: The user who initiated this menu. No built in behaviour. (Default None)
         """
 
-        self.pages = pages
+        self.pages = pages if pages is not None else {}
         self.msg = msg
         self.currentPageNum = 0
         self.currentPage = None
