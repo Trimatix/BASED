@@ -223,8 +223,11 @@ class BasedEmoji(serializable.Serializable):
     @classmethod
     def fromStr(cls, s: str, rejectInvalid: bool = False) -> BasedEmoji:
         """Construct a BasedEmoji object from a string containing either a unicode emoji or a discord custom emoji.
+        
         s may also be a BasedEmoji (returns s), a dictionary-serialized BasedEmoji (returns BasedEmoji.fromDict(s)), or
         only an ID of a discord custom emoji (may be either str or int)
+
+        If 
 
         :param str s: A string containing only one of: A unicode emoji, a discord custom emoji, or
                         the ID of a discord custom emoji.
@@ -246,7 +249,7 @@ class BasedEmoji(serializable.Serializable):
         elif stringTyping.isInt(s):
             return BasedEmoji(id=int(s), rejectInvalid=rejectInvalid)
         else:
-            return None
+            raise TypeError("Expected s of type str, dict or BasedEmoji, got " + type(s).__name__)
 
 
     @classmethod
