@@ -348,12 +348,13 @@ class ReactionMenu(serializable.Serializable):
         :param discord.Member member: The member that added the emoji reaction
         :return: The result of the corresponding menu option's addFunc, if any
         """
-        if self.targetMember is not None:
-            if member != self.targetMember:
-                return
-        if self.targetRole is not None:
-            if self.targetRole not in member.roles:
-                return
+        if (self.targetMember is not None and \
+                member != self.targetMember):
+            return
+            
+        if self.targetRole is not None and \
+                self.targetRole not in member.roles:
+            return
 
         return await self.options[emoji].add(member)
 
