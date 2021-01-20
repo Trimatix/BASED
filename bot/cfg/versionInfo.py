@@ -16,7 +16,15 @@ BASED_API_URL = "https://api.github.com/repos/" + "/".join([BASED_REPO_USER, BAS
 
 
 class UpdatesCheckFailed(Exception):
-    pass
+    """Exception to indicate that checking for updates failed. This could be for several reasons,
+    e.g if the GitHub API is down.
+    
+    The reason for the failure should be given in the constructor.
+
+    :param str reason: The reason that the updates check failed
+    """
+    def __init__(self, reason: str, *args) -> None:
+        super().__init__(reason, *args)
 
 
 class UpdateCheckResults:
@@ -58,7 +66,6 @@ def getBASEDVersion() -> Dict[str, Union[str, float]]:
 async def getNewestTagOnRemote(httpClient: aiohttp.ClientSession, url: str) -> str:
     """Fetch the name of the latest tag on the given git remote.
     If the remote has no tags, empty string is returned.
-    Python port of lukechild's shell gist: https://gist.github.com/lukechilds/a83e1d7127b78fef38c2914c4ececc3c
 
     :param aiohttp.ClientSession httpClient: The ClientSession to request git info with
     :param str url: URL to the git remote to check
@@ -71,7 +78,7 @@ async def getNewestTagOnRemote(httpClient: aiohttp.ClientSession, url: str) -> s
             respJSON = await resp.json()
             return respJSON[0]["tag_name"]
         except (IndexError, KeyError, aiohttp.ContentTypeError, aiohttp.ClientResponseError):
-            raise UpdatesCheckFailed()
+            raise UpdatesCheckFailed("Could not fetch latest release info from GitHub. Is the GitHub API down?")
 
 
 # Version of BASED currently installed
@@ -83,7 +90,8 @@ async def checkForUpdates(httpClient: aiohttp.ClientSession) -> UpdateCheckResul
     Could be easily extended to check your own bot repository for updates as well.
 
     :param aiohttp.ClientSession httpClient: The ClientSession to request git info with
-    :return: The latest BASED version and whether or not this installation is up to date, if the scheduled check time has been reached. UpdateCheckResults indicating that no check was performed otherwise.
+    :return: The latest BASED version and whether or not this installation is up to date, if the scheduled check time
+             has been reached. UpdateCheckResults indicating that no check was performed otherwise.
     :rtype: UpdateCheckResults
     """
     # Fetch the next scheduled updates check from file
