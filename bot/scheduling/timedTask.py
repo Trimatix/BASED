@@ -191,8 +191,10 @@ class TimedTask:
         # Update the task's issueTime to now
         self.issueTime = datetime.utcnow()
         # Create the new expiryTime from now + expirydelta
-        self.expiryTime = self.issueTime + \
-            (self.expiryDelta if expiryDelta is None else expiryDelta) if expiryTime is None else expiryTime
+        if expiryTime is not None:
+            self.expiryTime = expiryTime
+        else:
+            self.expiryTime = self.issueTime + (self.expiryDelta if expiryDelta is None else expiryDelta)
         # reset the gravestone to False, in case the task had been expired and marked for removal
         self.gravestone = False
 
