@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, TYPE_CHECKING, Tuple
+from typing import Union, TYPE_CHECKING, Tuple, Dict
 if TYPE_CHECKING:
     from discord import Member, Guild, Message
 
@@ -149,3 +149,83 @@ async def reactionFromRaw(payload: RawReactionActionEvent) -> Tuple[Message, Uni
         return None, None, None
 
     return message, user, emoji
+
+
+def messageArgsFromStr(msgStr: str) -> Dict[str, Union[str, Embed]]:
+    """Transform a string description of the arguments to pass to a discord.Message constructor into type-correct arguments.
+
+    To specify message content, simply place it at the beginning of msgStr.
+    To specify an embed, give the kwarg embed=
+        To give kwargs for the embed, give the kwarg name, an equals sign, then value of the kwarg encased in single quotes.
+
+        Use makeEmbed-compliant kwarg names as follows:
+            titleTxt for the embed title
+            desc for the embed description
+            footerTxt for the text content of the footer
+            footerIcon for the URL to the image to display to the left of footerTxt
+            thumb for the URL to the image to display in the top right of the embed
+            img for the URL to the image to display in the main embed content
+            authorName for smaller text to display in place of the title 
+            icon for the URL to the image to display to the left of authorName
+        
+        To give fields for the embed, give field names and values separated by a new line.
+        {NL} in any field will be replaced with a new line.
+
+    :param str msgStr: A string description of the message args to create, as defined above
+    :return: The message content from msgStr, and an embed as described by the kwargs and fields in msgStr.
+    :rtype: Dict[str, Union[str, Embed]]
+    """
+    msgEmbed = None
+
+    try:
+        embedIndex = msgStr.index("embed=")
+    except ValueError:
+        msgText = msgStr
+    else:
+        msgText, msgStr = msgStr[:embedIndex], msgStr[embedIndex + len("embed="):]
+
+        embedKwargs = { "titleTxt":     "",
+                        "desc":         "",
+                        "footerTxt":    "",
+                        "footerIcon":   "",
+                        "thumb":        "",
+                        "img":          "",
+                        "authorName":   "",
+                        "icon":         ""}
+
+        for argName in embedKwargs:
+            try:
+                startStr = argName + "='"
+                startIndex = msgStr.index(startStr) + len(startStr)
+                endIndex = startIndex + \
+                    msgStr[msgStr.index(startStr) + len(startStr):].index("'")
+                embedKwargs[argName] = msgStr[startIndex:endIndex]
+                msgStr = msgStr[endIndex + 2:]
+            except ValueError:
+                pass
+            
+        msgEmbed = makeEmbed(**embedKwargs)
+
+        try:
+            msgStr.index('\n')
+            fieldsExist = True
+        except ValueError:
+            fieldsExist = False
+        while fieldsExist:
+            nextNL = msgStr.index('\n')
+            try:
+                closingNL = nextNL + msgStr[nextNL + 1:].index('\n')
+            except ValueError:
+                fieldsExist = False
+            else:
+                msgEmbed.add_field(name=msgStr[:nextNL].replace("{NL}", "\n"),
+                                            value=msgStr[nextNL + 1:closingNL + 1].replace("{NL}", "\n"),
+                                            inline=False)
+                msgStr = msgStr[closingNL + 2:]
+
+            if not fieldsExist:
+                msgEmbed.add_field(name=msgStr[:nextNL].replace("{NL}", "\n"),
+                                            value=msgStr[nextNL + 1:].replace("{NL}", "\n"),
+                                            inline=False)
+
+    return {"content": msgText, "embed": msgEmbed}
