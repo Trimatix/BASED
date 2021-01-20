@@ -1,9 +1,9 @@
 from ..users import basedUser
-from .import ReactionMenu
+from .import reactionMenu
 from discord import Message, Member, Role, Embed
 from .. import lib, botState
 from typing import Dict
-from ..scheduling import TimedTask
+from ..scheduling import timedTask
 from ..cfg import cfg
 
 
@@ -11,13 +11,13 @@ async def menuJumpToPage(data: dict):
     await botState.reactionMenusDB[data["menuID"]].jumpToPage(data["pageNum"])
 
 
-class PagedReactionMenu(ReactionMenu.ReactionMenu):
+class PagedReactionMenu(reactionMenu.ReactionMenu):
     """A reaction menu that, instead of taking a list of options, takes a list of pages of options.
     """
     saveable = False
 
-    def __init__(self, msg: Message, pages: Dict[Embed, Dict[lib.emojis.BasedEmoji, ReactionMenu.ReactionMenuOption]] = {},
-                 timeout: TimedTask.TimedTask = None, targetMember: Member = None, targetRole: Role = None,
+    def __init__(self, msg: Message, pages: Dict[Embed, Dict[lib.emojis.BasedEmoji, reactionMenu.ReactionMenuOption]] = {},
+                 timeout: timedTask.TimedTask = None, targetMember: Member = None, targetRole: Role = None,
                  owningBasedUser: basedUser.BasedUser = None):
         """
         :param discord.Message msg: the message where this menu is embedded
@@ -42,11 +42,11 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
         self.targetRole = targetRole
         self.owningBasedUser = owningBasedUser
 
-        nextOption = ReactionMenu.NonSaveableReactionMenuOption("Next Page", cfg.defaultEmojis.next,
+        nextOption = reactionMenu.NonSaveableReactionMenuOption("Next Page", cfg.defaultEmojis.next,
                                                                 self.nextPage, None)
-        prevOption = ReactionMenu.NonSaveableReactionMenuOption("Previous Page", cfg.defaultEmojis.previous,
+        prevOption = reactionMenu.NonSaveableReactionMenuOption("Previous Page", cfg.defaultEmojis.previous,
                                                                 self.previousPage, None)
-        cancelOption = ReactionMenu.NonSaveableReactionMenuOption("Close Menu", cfg.defaultEmojis.cancel,
+        cancelOption = reactionMenu.NonSaveableReactionMenuOption("Close Menu", cfg.defaultEmojis.cancel,
                                                                 self.delete, None)
 
         self.firstPageControls = {cfg.defaultEmojis.cancel: cancelOption,

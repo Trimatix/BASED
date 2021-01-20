@@ -3,8 +3,8 @@ import discord
 from . import commandsDB as botCommands
 from .. import botState, lib
 from ..cfg import cfg
-from ..reactionMenus import PagedReactionMenu, expiryFunctions
-from ..scheduling import TimedTask
+from ..reactionMenus import pagedReactionMenu, expiryFunctions
+from ..scheduling import timedTask
 
 
 async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAccessLevel: int):
@@ -45,7 +45,7 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
                 return
             owningUser.helpMenuOwned = True
             menuMsg = await sendChannel.send("‎")
-            helpTT = TimedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(
+            helpTT = timedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(
                 cfg.timeouts.helpMenu), expiryFunction=expiryFunctions.expireHelpMenu, expiryFunctionArgs=menuMsg.id)
             botState.reactionMenusTTDB.scheduleTask(helpTT)
             indexEmbed = lib.discordUtil.makeEmbed(titleTxt=cfg.userAccessLevels[userAccessLevel] + " Commands",
@@ -63,7 +63,7 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
                 # pages[indexEmbed][cfg.defaultEmojis.menuOptions[sectionNum + 1]] =
                 #                 ReactionMenu.NonSaveableReactionMenuOption(list(
                 #                     botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title(),
-                #                     cfg.defaultEmojis.menuOptions[sectionNum + 1], addFunc=PagedReactionMenu.menuJumpToPage,
+                #                     cfg.defaultEmojis.menuOptions[sectionNum + 1], addFunc=pagedReactionMenu.menuJumpToPage,
                 #                     addArgs={"menuID": menuMsg.id, "pageNum": sectionNum})
             indexEmbed.add_field(name="Contents", value=sectionsStr)
             pageNum = 0
@@ -75,7 +75,7 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
                         botCommands.totalEmbeds[userAccessLevel]) + " | This menu will expire in " +
                         lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
                     pages[newEmbed] = {}
-            helpMenu = PagedReactionMenu.PagedReactionMenu(
+            helpMenu = pagedReactionMenu.PagedReactionMenu(
                 menuMsg, pages, timeout=helpTT, targetMember=message.author, owningBasedUser=owningUser)
             await helpMenu.updateMessage()
             botState.reactionMenusDB[menuMsg.id] = helpMenu
@@ -93,7 +93,7 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
                     return
                 owningUser.helpMenuOwned = True
                 menuMsg = await sendChannel.send("‎")
-                helpTT = TimedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(
+                helpTT = timedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(
                     cfg.timeouts.helpMenu), expiryFunction=expiryFunctions.expireHelpMenu, expiryFunctionArgs=menuMsg.id)
                 botState.reactionMenusTTDB.scheduleTask(helpTT)
                 pages = {}
@@ -102,7 +102,7 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
                     newEmbed.set_footer(text=helpEmbed.footer.text + " | This menu will expire in " +
                                         lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
                     pages[newEmbed] = {}
-                helpMenu = PagedReactionMenu.PagedReactionMenu(
+                helpMenu = pagedReactionMenu.PagedReactionMenu(
                     menuMsg, pages, timeout=helpTT, targetMember=message.author, owningBasedUser=owningUser)
                 await helpMenu.updateMessage()
                 botState.reactionMenusDB[menuMsg.id] = helpMenu

@@ -1,4 +1,4 @@
-from . import TimedTask
+from . import timedTask
 from heapq import heappop, heappush
 import inspect
 from types import FunctionType
@@ -50,7 +50,7 @@ class TimedTaskHeap:
             heappop(self.tasksHeap)
 
 
-    def scheduleTask(self, task: TimedTask.TimedTask):
+    def scheduleTask(self, task: timedTask.TimedTask):
         """Schedule a new task onto this heap.
 
         :param TimedTask task: the task to schedule
@@ -58,7 +58,7 @@ class TimedTaskHeap:
         heappush(self.tasksHeap, task)
 
 
-    def unscheduleTask(self, task: TimedTask.TimedTask):
+    def unscheduleTask(self, task: timedTask.TimedTask):
         """Forcebly remove a task from the heap without 'expiring' it - no expiry functions or auto-rescheduling are called.
         This method overrides task autoRescheduling, forcibly removing the task from the heap entirely.
 
