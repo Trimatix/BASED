@@ -243,15 +243,16 @@ class DynamicRescheduleTask(TimedTask):
                                 You probably want this to be True, otherwise you may as well use a TimedTask. Default: False
     """
 
-    def __init__(self, delayTimeGenerator, delayTimeGeneratorArgs={}, issueTime=None, expiryTime=None,
-                        expiryFunction=None, expiryFunctionArgs={}, autoReschedule=False):
+    def __init__(self, delayTimeGenerator, delayTimeGeneratorArgs = None, issueTime : datetime = None,
+                        expiryTime : datetime = None, expiryFunction : FunctionType = None,
+                        expiryFunctionArgs = None, autoReschedule : bool = False):
         # Initialise TimedTask-inherited attributes
         super(DynamicRescheduleTask, self).__init__(expiryDelta=delayTimeGenerator(delayTimeGeneratorArgs),
                                                     issueTime=issueTime, expiryTime=expiryTime, expiryFunction=expiryFunction,
                                                     expiryFunctionArgs=expiryFunctionArgs, autoReschedule=autoReschedule)
         self.delayTimeGenerator = delayTimeGenerator
-        self.delayTimeGeneratorArgs = delayTimeGeneratorArgs
-        self.hasDelayTimeGeneratorArgs = delayTimeGeneratorArgs != {}
+        self.hasDelayTimeGeneratorArgs = delayTimeGeneratorArgs is not None
+        self.delayTimeGeneratorArgs = delayTimeGeneratorArgs if self.hasDelayTimeGeneratorArgs else {}
         self.asyncDelayTimeGenerator = inspect.iscoroutinefunction(delayTimeGenerator)
 
     async def callDelayTimeGenerator(self) -> timedelta:
