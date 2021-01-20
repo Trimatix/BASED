@@ -69,6 +69,8 @@ class BasedEmoji(serializable.Serializable):
         :param str unicode: The unicode emoji that this object should represent.
         :param bool rejectInvalid: When true, an exception is guaranteed to raise if an invalid emoji is requested,
                                     regardless of raiseUnknownEmojis (Default False)
+        :raise exceptions.UnrecognisedCustomEmoji: When rejectInvalid=True is present in kwargs, and a custom emoji
+                                                    is given that does not exist or the client cannot access.                                   
         """
 
         if id == -1 and unicode == "":
@@ -156,6 +158,8 @@ class BasedEmoji(serializable.Serializable):
                                 a unicode emoji string (for unicode emojis)
         :param bool rejectInvalid: When true, an exception is guaranteed to raise if an invalid emoji is requested,
                                     regardless of raiseUnknownEmojis (Default False)
+        :raise exceptions.UnrecognisedCustomEmoji: When rejectInvalid=True is present in kwargs, and a custom emoji
+                                                    is given that does not exist or the client cannot access.                                   
         :return: A new BasedEmoji object as described in emojiDict
         :rtype: BasedEmoji
         """
@@ -175,6 +179,8 @@ class BasedEmoji(serializable.Serializable):
 
         :param bool rejectInvalid: When true, an exception is guaranteed to raise if an invalid emoji is requested,
                                     regardless of raiseUnknownEmojis (Default False)
+        :raise exceptions.UnrecognisedCustomEmoji: When rejectInvalid=True is present in kwargs, and a custom emoji
+                                                    is given that does not exist or the client cannot access.                                   
         :return: A BasedEmoji representing e
         :rtype: BasedEmoji
         """
@@ -194,6 +200,8 @@ class BasedEmoji(serializable.Serializable):
         :type e: Union[Emoji, PartialEmoji, str]
         :param bool rejectInvalid: When true, an exception is guaranteed to raise if an invalid emoji is requested,
                                     regardless of raiseUnknownEmojis (Default False)
+        :raise exceptions.UnrecognisedCustomEmoji: When rejectInvalid=True is present in kwargs, and a custom emoji
+                                                    is given that does not exist or the client cannot access.                                   
         :return: A BasedEmoji representing e
         :rtype: BasedEmoji
         """
@@ -222,6 +230,8 @@ class BasedEmoji(serializable.Serializable):
                         the ID of a discord custom emoji.
         :param bool rejectInvalid: When true, an exception is guaranteed to raise if an invalid emoji is requested,
                                     regardless of raiseUnknownEmojis (Default False)
+        :raise exceptions.UnrecognisedCustomEmoji: When rejectInvalid=True is present in kwargs, and a custom emoji
+                                                    is given that does not exist or the client cannot access.                                   
         :return: A BasedEmoji representing the given string emoji
         :rtype: BasedEmoji
         """
@@ -240,21 +250,22 @@ class BasedEmoji(serializable.Serializable):
 
 
     @classmethod
-    def fromUninitialized(cls, e: UninitializedBasedEmoji) -> BasedEmoji:
+    def fromUninitialized(cls, e: UninitializedBasedEmoji, rejectInvalid=True) -> BasedEmoji:
         """Construct a BasedEmoji object from an UninitializedBasedEmoji object.
-        Always throws an exception if the emoji is unrecognised.
 
         :param UninitializedBasedEmoji e: The emoji to initialize
+        :raise exceptions.UnrecognisedCustomEmoji: When rejectInvalid=True is present in kwargs, and a custom emoji
+                                                    is given that does not exist or the client cannot access.       
         :return: A BasedEmoji representing the given emoji
         :rtype: BasedEmoji
         """
         # Create BasedEmoji instances based on the type of the uninitialized value
         if isinstance(e.value, int):
-            return BasedEmoji(id=e.value, rejectInvalid=True)
+            return BasedEmoji(id=e.value, rejectInvalid=rejectInvalid)
         elif isinstance(e.value, str):
-            return BasedEmoji.fromStr(e.value, rejectInvalid=True)
+            return BasedEmoji.fromStr(e.value, rejectInvalid=rejectInvalid)
         elif isinstance(e.value, dict):
-            return BasedEmoji.fromDict(e.value, rejectInvalid=True)
+            return BasedEmoji.fromDict(e.value, rejectInvalid=rejectInvalid)
         # Unrecognised uninitialized value
         else:
             raise ValueError("Unrecognised UninitializedBasedEmoji value type. Expecting int, str or dict, given '" +
