@@ -42,7 +42,8 @@ paths = {
     "logsFolder": "saveData" + "/" + "logs"
 }
 
-# Names of user access levels to be used in help menus. Also determines the number of access levels available, e.g when registering commands
+# Names of user access levels to be used in help menus.
+# Also determines the number of access levels available, e.g when registering commands
 userAccessLevels = ["user", "mod", "admin", "dev"]
 
 # Message to print alongside cmd_help menus
