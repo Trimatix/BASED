@@ -9,7 +9,7 @@ class ReactionMenuDB(dict):
     """A database of ReactionMenu instances.
     Currently just an extension of dict to add toDict()."""
 
-    def toDict(self, **kwargs) -> str:
+    def toDict(self, **kwargs) -> dict:
         """Serialise all saveable ReactionMenus in this DB into a single dictionary.
 
         :return: A dictionary containing full dictionary descriptions of all saveable ReactionMenu instances in this database
