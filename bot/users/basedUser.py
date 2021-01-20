@@ -57,6 +57,6 @@ class BasedUser(serializable.Serializable):
         """
         if "id" not in kwargs:
             raise NameError("Required kwarg not given: id")
-        id = kwargs["id"]
+        userID = kwargs["id"]
 
-        return BasedUser(id)
+        return BasedUser(userID)
