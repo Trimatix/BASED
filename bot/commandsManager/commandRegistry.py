@@ -27,7 +27,7 @@ class CommandRegistry:
     """
 
     def __init__(self, ident: str, func: FunctionType, forceKeepArgsCasing: bool, forceKeepCommandCasing: bool,
-                    allowDM: bool, allowHelp: bool, aliases: List[str] = [], signatureStr: str = "", shortHelp: str = "",
+                    allowDM: bool, allowHelp: bool, aliases: List[str] = None, signatureStr: str = "", shortHelp: str = "",
                     longHelp: str = "", helpSection: str = "miscellaneous"):
         """
         :param str ident: The string command name by which this command is identified and called
@@ -49,7 +49,7 @@ class CommandRegistry:
         self.forceKeepCommandCasing = forceKeepCommandCasing
         self.allowDM = allowDM
         self.allowHelp = allowHelp
-        self.aliases = aliases
+        self.aliases = aliases if aliases is not None else []
         self.signatureStr = signatureStr
         self.shortHelp = shortHelp
         self.longHelp = longHelp
