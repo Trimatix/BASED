@@ -278,7 +278,7 @@ class ReactionMenu(serializable.Serializable):
     """
     saveable = False
 
-    def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = {},
+    def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = None,
                  titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: TimedTask = None,
                  footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "",
                  authorName: str = "", targetMember: Member = None, targetRole: Role = None):
@@ -309,7 +309,7 @@ class ReactionMenu(serializable.Serializable):
         # discord.message
         self.msg = msg
         # Dict of lib.emojis.BasedEmoji: ReactionMenuOption
-        self.options = options
+        self.options = options if options is not None else {}
 
         self.titleTxt = titleTxt
         self.desc = desc
