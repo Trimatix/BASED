@@ -29,7 +29,6 @@ class TimedTaskHeap:
         :param expiryFunctionArgs: an object to pass to expiryFunction when calling. There is no type requirement,
                                     but a dictionary is recommended as a close representation of KWArgs. (Default {})
         """
-        # self.taskType = taskType
         self.tasksHeap = []
 
         self.expiryFunction = expiryFunction
