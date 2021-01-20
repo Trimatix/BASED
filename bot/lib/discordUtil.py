@@ -91,15 +91,6 @@ async def endLongProcess(message: Message):
         pass
 
 
-def randomColour():
-    """Generate a completely random discord.Colour.
-
-    :return: A discord.Colour with randomized r, g and b components.
-    :rtype: discord.Colour
-    """
-    return Colour.from_rgb(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-
-
 async def reactionFromRaw(payload: RawReactionActionEvent) -> Tuple[Message, Union[User, Member], emojis.BasedEmoji]:
     """Retrieve complete Reaction and user info from a RawReactionActionEvent payload.
 
