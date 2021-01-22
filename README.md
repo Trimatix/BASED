@@ -69,14 +69,14 @@ If a bot token is provided by the default config values (found in `cfg/cfg.py`),
 - Generate a default config file with all variables and their defaults, by running `makeDefaultConfig.py`.
   - You can optionally specify the file name (or path to the file name) to generate into, e.g `python makeDefaultConfig.py configs/myBotConfig.py`.
 - Any emoji can be either unicode or custom.
-  - give custom emojis as the integer emoji ID.
-  - give unicode emojis as a string containing a single unicode emoji character.
+  - Give custom emojis as the integer emoji ID.
+  - Give unicode emojis as a string containing a single unicode emoji character.
   
 ### Providing your bot token
 
 The bot token can now be given in a config variable, or in an environment variable whose name is specified in config:
-- specify your token directly, in the `botToken` config var, or
-- give the name of the environment variable containing your token, in `botToken_envVarName`
+- Specify your token directly, in the `botToken` config var, or
+- Give the name of the environment variable containing your token, in `botToken_envVarName`
 
 You must give exactly one of these variables, either in the default config values (`cfg/cfg.py`), or in a toml config file.
     
