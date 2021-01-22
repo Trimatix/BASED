@@ -52,16 +52,17 @@ BASED is a template project for creating advanced discord bots using python.
 3. Provide your bot token (see the [Configuring Your Bot](https://github.com/Trimatix/BASED#configuring-your-bot) section below).
 4. Build your bot directly over BASED.
 
-This project is already working as is, with a connected client instance, dynamic commands importing and calling, scheduler and database initialization, and reactionMenu interaction using client events. To test the base project, try running the bot, and calling the `.help` command.
+The project is already working as is, with a connected client instance, dynamic commands importing and calling, scheduler and database initialization, and reactionMenu interaction using client events.<br>
+To test the base project, try running the bot, and calling the `.help` command.
 
-See the `commands` module for examples of adding new commands.
+See the `commands` module for examples of adding new commands.<br>
 If you add a new commands module, enable it by adding the module name to the `enabledCommandsModules` config variable.
 
 BASED is *not* a library, it is a *template* to be used as a starting point for your project.
 
 # Configuring Your Bot
 
-BASED v0.3 adds the ability to configure all of the bot's cfg attributes externally with toml.
+BASED v0.3 adds the ability to configure all of the bot's cfg attributes externally with toml.<br>
 If a bot token is provided by the default config values (found in `cfg/cfg.py`), use of a config file is entirely optional.
 
 - All config variables are optional.
@@ -82,7 +83,7 @@ You must give exactly one of these variables, either in the default config value
 
 # Running Your Bot
 ### Option 1: Direct
-To run your bot, simply run `main.py`.
+To run your bot, simply run `main.py`.<br>
 To load a config.toml, provide a path to your config in command line args, e.g `python main.py myConfig.toml`.
 
 ### Option 2: Shell launch loop
