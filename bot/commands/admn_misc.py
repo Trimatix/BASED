@@ -1,8 +1,9 @@
 import discord
 
-from . import commandsDB as botCommands
+# from . import commandsDB as botCommands
 from . import util_help
 from .. import botState
+from ..botState import client
 import time
 
 
@@ -15,7 +16,7 @@ async def admin_cmd_admin_help(message: discord.Message, args: str, isDM: bool):
     """
     await util_help.util_autohelp(message, args, isDM, 2)
 
-botCommands.register("admin-help", admin_cmd_admin_help, 2, signatureStr="**admin-help** *[page number, section or command]*",
+client.botCommands.register("admin-help", admin_cmd_admin_help, 2, signatureStr="**admin-help** *[page number, section or command]*",
                      shortHelp="Display information about admin-only commands.\nGive a specific command for detailed " +
                                 "info about it, or give a page number or give a section name for brief info.",
                      longHelp="Display information about admin-only commands.\nGive a specific command for detailed " +
@@ -39,7 +40,7 @@ async def admin_cmd_set_prefix(message: discord.Message, args: str, isDM: bool):
         callingBGuild.commandPrefix = args
         await message.channel.send("Command prefix set.")
 
-botCommands.register("set-prefix", admin_cmd_set_prefix, 2, signatureStr="**set-prefix <prefix>**",
+client.botCommands.register("set-prefix", admin_cmd_set_prefix, 2, signatureStr="**set-prefix <prefix>**",
                      shortHelp="Set the prefix you would like to use for bot commands in this server.")
 
 
@@ -56,5 +57,5 @@ async def admin_cmd_ping(message: discord.Message, args: str, isDM: bool):
     duration = (end - start) * 1000
     await msg.edit(content='Pong! {:.2f}ms'.format(duration))
 
-botCommands.register("ping", admin_cmd_ping, 2, signatureStr="**ping**",
+client.botCommands.register("ping", admin_cmd_ping, 2, signatureStr="**ping**",
                      shortHelp="Test the bot's response latency in milliseconds.")

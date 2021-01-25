@@ -17,6 +17,8 @@ import traceback
 import asyncio
 import signal
 import aiohttp
+import importlib
+from typing import List
 
 
 # BASED Imports
@@ -25,6 +27,7 @@ from . import lib, botState, logging
 from .databases import guildDB, reactionMenuDB, userDB
 from .scheduling.timedTask import TimedTask
 from .scheduling.timedTaskHeap import TimedTaskHeap
+from .commandsManager.heirarchicalCommandsDB import HeirarchicalCommandsDB
 
 
 async def checkForUpdates():
@@ -89,7 +92,7 @@ def setHelpEmbedThumbnails():
     """Loads the bot application's profile picture into all help menu embeds as the embed thumbnail.
     If no profile picture is set for the application, the default profile picture is used instead.
     """
-    for levelSection in botCommands.helpSectionEmbeds:
+    for levelSection in botState.client.botCommands.helpSectionEmbeds:
         for helpSection in levelSection.values():
             for embed in helpSection:
                 embed.set_thumbnail(url=botState.client.user.avatar_url_as(size=64))
@@ -167,6 +170,31 @@ class BasedClient(ClientBaseClass):
         self.storeNone = not(storeUsers or storeGuilds or storeMenus)
         self.launchTime = datetime.utcnow()
         self.killer = GracefulKiller()
+        self.botCommands: HeirarchicalCommandsDB = None
+
+
+    def loadCommands(self):
+        self.botCommands = HeirarchicalCommandsDB(len(cfg.userAccessLevels))
+        self.botCommands.clear()
+        if cfg.commandsPackage and not cfg.commandsPackage.startswith("."):
+            prefix = "." + cfg.commandsPackage
+        else:
+            prefix = cfg.commandsPackage
+
+        for modName in cfg.includedCommandModules:
+            if not modName:
+                raise ValueError("Invalid commands module in cfg.includedCommandsModules: \"\"")
+            if modName.startswith("."):
+                modPath = prefix + modName
+            else:
+                modPath = prefix + "." + modName
+            try:
+                importlib.import_module(modPath, "bot")
+            except ImportError:
+                print("attempted: " + modPath)
+                raise ImportError("Unrecognised commands module in cfg.includedCommandModules. \n" +
+                                    "Please ensure the file exists, and spelling/capitalization are correct: '" + modName + "'")
+
 
     def saveAllDBs(self):
         """Save all of the bot's savedata to file.
@@ -221,8 +249,9 @@ botState.client = BasedClient(storeUsers=True,
                               storeMenus=True)
 
 # commands DB
-from . import commands
-botCommands = commands.loadCommands()
+# from . import commands
+# botCommands = commands.loadCommands()
+botState.client.loadCommands()
 
 
 ####### DATABASE FUNCTIONS #####
@@ -414,7 +443,7 @@ async def on_message(message: discord.Message):
         accessLevel = inferUserPermissions(message)
         try:
             # Call the requested command
-            commandFound = await botCommands.call(command, message, args, accessLevel, isDM=isDM)
+            commandFound = await botState.client.botCommands.call(command, message, args, accessLevel, isDM=isDM)
         # If a non-DMable command was called from DMs, send an error message
         except lib.exceptions.IncorrectCommandCallContext:
             await err_nodm(message, "", isDM)

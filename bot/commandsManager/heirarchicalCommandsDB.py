@@ -1,7 +1,7 @@
 # Typing imports
 from types import FunctionType
 from discord import Message, Embed, Colour
-from typing import List
+from typing import List, Dict
 from ..cfg import cfg
 from .commandRegistry import CommandRegistry
 
@@ -35,6 +35,7 @@ class HeirarchicalCommandsDB:
                                                                     for accessLevel in range(self.numAccessLevels)]
         self.helpSectionEmbeds[0]["miscellaneous"][0].set_footer(text="Page 1 of 1")
         self.totalEmbeds = [1 for _ in range(numAccessLevels)]
+        self.commands: List[Dict[str, CommandRegistry]] = []
 
     def register(self, command: str, function: FunctionType, accessLevel: int, aliases: List[str] = [],
                  forceKeepArgsCasing: bool = False, forceKeepCommandCasing: bool = False, allowDM: bool = True,
@@ -143,6 +144,33 @@ class HeirarchicalCommandsDB:
                     self.helpSectionEmbeds[accessLevel][helpSection][pageNum].set_footer(
                         text="Page " + str(pageNum + 1) + " of " + str(len(self.helpSectionEmbeds[accessLevel][helpSection])))
                 self.totalEmbeds[accessLevel] += 1
+
+
+    def remove(self, command: str, accessLevel: int):
+        if accessLevel < 0 or accessLevel > self.numAccessLevels + 1:
+            raise IndexError("Unsupported accessLevel. Given " + str(accessLevel) + ", but the DB has " + str(self.numAccessLevels) + " access levels.")
+        if command not in self.commands[accessLevel]:
+            raise KeyError("Could not find command '" + command + "' in access level " + str(accessLevel))
+        registry = self.commands[accessLevel][command]
+        for alias in registry.aliases:
+            for aliasCase in [alias] + ([] if registry.forceKeepCommandCasing else [alias.lower()]):
+                try:
+                    del self.commands[accessLevel][aliasCase]
+                except KeyError:
+                    pass
+            if registry.allowHelp:
+                self.helpSectionEmbeds[accessLevel][registry.helpSection].remove(registry)
+                for embed in self.helpSectionEmbeds[accessLevel][registry.helpSection]:
+                    for fieldIndex in range(len(embed.fields)):
+                        if embed.fields[fieldIndex].name == registry.signatureStr:
+                            embed.remove_field(fieldIndex)
+                    if len(embed.fields) == 0:
+                        self.helpSectionEmbeds[accessLevel][registry.helpSection].remove(embed)
+                        self.totalEmbeds[accessLevel] -= 1
+                        for pageNum in range(len(self.helpSectionEmbeds[accessLevel][registry.helpSection])):
+                            self.helpSectionEmbeds[accessLevel][registry.helpSection][pageNum].set_footer(
+                                text="Page " + str(pageNum + 1) + " of " + str(len(self.helpSectionEmbeds[accessLevel][registry.helpSection])))
+                
 
 
     async def call(self, command: str, message: Message, args: str, accessLevel: int, isDM: bool = False):
