@@ -1,23 +1,32 @@
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .bot import BasedClient
+    from .databases.userDB import UserDB
+    from .databases.guildDB import GuildDB
+    from .databases.reactionMenuDB import ReactionMenuDB
+    from .logging import Logger
+    from .scheduling.timedTask import TimedTask
+    from .scheduling.timedTaskHeap import TimedTaskHeap
+
 class ShutDownState:
     restart = 0
     shutdown = 1
     update = 2
 
 
-client = None
+client: "BasedClient" = None
 
-usersDB = None
-guildsDB = None
-reactionMenusDB = None
+usersDB: "UserDB" = None
+guildsDB: "GuildDB" = None
 
-logger = None
+logger: "Logger" = None
 
-dbSaveTT = None
+dbSaveTT: "TimedTask" = None
 
 # Reaction Menus
-reactionMenusDB = None
-reactionMenusTTDB = None
+reactionMenusDB: "ReactionMenuDB" = None
+reactionMenusTTDB: "TimedTaskHeap" = None
 
-shutdown = ShutDownState.restart
+shutdown: "ShutDownState" = ShutDownState.restart
 
-updatesCheckTT = None
+updatesCheckTT: "TimedTask" = None

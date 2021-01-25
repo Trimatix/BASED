@@ -2,8 +2,9 @@ import discord
 import traceback
 from datetime import datetime
 
-from . import commandsDB as botCommands
+# from . import commandsDB as botCommands
 from .. import botState, lib
+from ..botState import client
 
 from . import util_help
 
@@ -17,7 +18,7 @@ async def dev_cmd_dev_help(message: discord.Message, args: str, isDM: bool):
     """
     await util_help.util_autohelp(message, args, isDM, 3)
 
-botCommands.register("dev-help", dev_cmd_dev_help, 3, signatureStr="**dev-help** *[page number, section or command]*",
+client.botCommands.register("dev-help", dev_cmd_dev_help, 3, signatureStr="**dev-help** *[page number, section or command]*",
                         shortHelp="Display information about developer-only commands.\nGive a specific command for " +
                                     "detailed info about it, or give a page number or give a section name for brief info.",
                         longHelp="Display information about developer-only commands.\nGive a specific command for " +
@@ -36,7 +37,7 @@ async def dev_cmd_sleep(message: discord.Message, args: str, isDM: bool):
     await message.channel.send("shutting down.")
     await botState.client.shutdown()
 
-botCommands.register("bot-sleep", dev_cmd_sleep, 3, allowDM=True, useDoc=True)
+client.botCommands.register("bot-sleep", dev_cmd_sleep, 3, allowDM=True, useDoc=True)
 
 
 async def dev_cmd_restart(message: discord.Message, args: str, isDM: bool):
@@ -50,7 +51,7 @@ async def dev_cmd_restart(message: discord.Message, args: str, isDM: bool):
     await message.channel.send("restarting...")
     await botState.client.shutdown()
 
-botCommands.register("bot-restart", dev_cmd_restart, 3, allowDM=True, useDoc=True)
+client.botCommands.register("bot-restart", dev_cmd_restart, 3, allowDM=True, useDoc=True)
 
 
 async def dev_cmd_save(message: discord.Message, args: str, isDM: bool):
@@ -70,7 +71,7 @@ async def dev_cmd_save(message: discord.Message, args: str, isDM: bool):
     print(datetime.now().strftime("%H:%M:%S: Data saved manually!"))
     await message.channel.send("saved!")
 
-botCommands.register("save", dev_cmd_save, 3, allowDM=True, useDoc=True)
+client.botCommands.register("save", dev_cmd_save, 3, allowDM=True, useDoc=True)
 
 
 async def dev_cmd_say(message: discord.Message, args: str, isDM: bool):
@@ -85,7 +86,7 @@ async def dev_cmd_say(message: discord.Message, args: str, isDM: bool):
     else:
         await message.channel.send(**lib.discordUtil.messageArgsFromStr(args))
 
-botCommands.register("say", dev_cmd_say, 3, forceKeepArgsCasing=True, allowDM=True, useDoc=True)
+client.botCommands.register("say", dev_cmd_say, 3, forceKeepArgsCasing=True, allowDM=True, useDoc=True)
 
 
 async def dev_cmd_bot_update(message: discord.Message, args: str, isDM: bool):
@@ -99,4 +100,4 @@ async def dev_cmd_bot_update(message: discord.Message, args: str, isDM: bool):
     await message.channel.send("updating and restarting...")
     await botState.client.shutdown()
 
-botCommands.register("bot-update", dev_cmd_bot_update, 3, allowDM=True, useDoc=True)
+client.botCommands.register("bot-update", dev_cmd_bot_update, 3, allowDM=True, useDoc=True)

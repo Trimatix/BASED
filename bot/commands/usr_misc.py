@@ -3,10 +3,11 @@ from bot.cfg import versionInfo
 import discord
 from datetime import datetime
 
-from . import commandsDB as botCommands
+# from . import commandsDB as botCommands
 from . import util_help
 from .. import lib
 from ..cfg import versionInfo
+from ..botState import client
 
 
 async def cmd_help(message: discord.Message, args: str, isDM: bool):
@@ -19,7 +20,7 @@ async def cmd_help(message: discord.Message, args: str, isDM: bool):
     """
     await util_help.util_autohelp(message, args, isDM, 0)
 
-botCommands.register("help", cmd_help, 0, allowDM=True, signatureStr="**help** *[page number, section or command]*",
+client.botCommands.register("help", cmd_help, 0, allowDM=True, signatureStr="**help** *[page number, section or command]*",
                      shortHelp="Show usage information for available commands.\nGive a specific command for detailed info " +
                                 "about it, or give a page number or give a section name for brief info.",
                      longHelp="Show usage information for available commands.\nGive a specific command for detailed info " +
@@ -54,5 +55,5 @@ async def cmd_source(message: discord.Message, args: str, isDM: bool):
                        value="Please ask the bot developer to post the bot's invite link here!")
     await message.channel.send(embed=srcEmbed)
 
-botCommands.register("source", cmd_source, 0, allowDM=True, signatureStr="**source**",
+client.botCommands.register("source", cmd_source, 0, allowDM=True, signatureStr="**source**",
                      shortHelp="Show links to the project's GitHub page.")

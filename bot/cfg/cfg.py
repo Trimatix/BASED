@@ -52,10 +52,16 @@ helpIntro = "Here are my commands!"
 # Maximum number of commands each cmd_help menu may contain
 maxCommandsPerHelpPage = 5
 
-# List of module names from the commands package to import
+# List of module names from the commands package to import.
+# These will be treated as relative import names/paths, i.e the bot will attempt import each string in this list as a module.
 includedCommandModules = ("usr_misc",
                           "admn_misc",
                           "dev_misc")
+
+# Optional: A prefix to use for all includedCommandModules.
+# I.e instead of importing each includedCommandModule, the bot will import each
+# commandsPackage.includedCommandModule. 
+commandsPackage = "commands"
 
 # Text to edit into expired menu messages
 expiredMenuMsg = "😴 This role menu has now expired."

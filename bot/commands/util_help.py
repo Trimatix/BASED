@@ -1,10 +1,11 @@
 import discord
 
-from . import commandsDB as botCommands
+# from . import commandsDB as client.botCommands
 from .. import botState, lib
 from ..cfg import cfg
 from ..reactionMenus import pagedReactionMenu, expiryFunctions
 from ..scheduling import timedTask
+from ..botState import client
 
 
 async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAccessLevel: int):
@@ -26,11 +27,11 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
         sendDM = False
 
     if lib.stringTyping.isInt(args):
-        if int(args) < 1 or int(args) > len(botCommands.helpSectionEmbeds[userAccessLevel]):
+        if int(args) < 1 or int(args) > len(client.botCommands.helpSectionEmbeds[userAccessLevel]):
             await message.channel.send(":x: Section number must be between 1 and " +
-                                        str(len(botCommands.helpSectionEmbeds[userAccessLevel])) + "!")
+                                        str(len(client.botCommands.helpSectionEmbeds[userAccessLevel])) + "!")
             return
-        args = list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[int(args) - 1]
+        args = list(client.botCommands.helpSectionEmbeds[userAccessLevel].keys())[int(args) - 1]
     elif args == "misc":
         args = "miscellaneous"
 
@@ -55,24 +56,24 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
                                                                 lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
             sectionsStr = ""
             pages = {indexEmbed: {}}
-            for sectionNum in range(len(botCommands.helpSectionEmbeds[userAccessLevel])):
+            for sectionNum in range(len(client.botCommands.helpSectionEmbeds[userAccessLevel])):
                 sectionsStr += "\n" + str(sectionNum + 1) + ") " + \
-                    list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title()
+                    list(client.botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title()
                 # sectionsStr += "\n" + cfg.defaultEmojis.menuOptions[sectionNum + 1].sendable + " : " +
-                #                 list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title()
+                #                 list(client.botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title()
                 # pages[indexEmbed][cfg.defaultEmojis.menuOptions[sectionNum + 1]] =
                 #                 ReactionMenu.NonSaveableReactionMenuOption(list(
-                #                     botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title(),
+                #                     client.botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title(),
                 #                     cfg.defaultEmojis.menuOptions[sectionNum + 1], addFunc=pagedReactionMenu.menuJumpToPage,
                 #                     addArgs={"menuID": menuMsg.id, "pageNum": sectionNum})
             indexEmbed.add_field(name="Contents", value=sectionsStr)
             pageNum = 0
-            for helpSectionEmbedList in botCommands.helpSectionEmbeds[userAccessLevel].values():
+            for helpSectionEmbedList in client.botCommands.helpSectionEmbeds[userAccessLevel].values():
                 for helpEmbed in helpSectionEmbedList:
                     pageNum += 1
                     newEmbed = helpEmbed.copy()
                     newEmbed.set_footer(text="Page " + str(pageNum) + " of " + str(
-                        botCommands.totalEmbeds[userAccessLevel]) + " | This menu will expire in " +
+                        client.botCommands.totalEmbeds[userAccessLevel]) + " | This menu will expire in " +
                         lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
                     pages[newEmbed] = {}
             helpMenu = pagedReactionMenu.PagedReactionMenu(
@@ -80,9 +81,9 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
             await helpMenu.updateMessage()
             botState.reactionMenusDB[menuMsg.id] = helpMenu
 
-        elif args in botCommands.helpSectionEmbeds[userAccessLevel]:
-            if len(botCommands.helpSectionEmbeds[userAccessLevel][args]) == 1:
-                await sendChannel.send(embed=botCommands.helpSectionEmbeds[userAccessLevel][args][0])
+        elif args in client.botCommands.helpSectionEmbeds[userAccessLevel]:
+            if len(client.botCommands.helpSectionEmbeds[userAccessLevel][args]) == 1:
+                await sendChannel.send(embed=client.botCommands.helpSectionEmbeds[userAccessLevel][args][0])
             else:
                 owningUser = botState.usersDB.getOrAddID(message.author.id)
                 if owningUser.helpMenuOwned:
@@ -97,7 +98,7 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
                     cfg.timeouts.helpMenu), expiryFunction=expiryFunctions.expireHelpMenu, expiryFunctionArgs=menuMsg.id)
                 botState.reactionMenusTTDB.scheduleTask(helpTT)
                 pages = {}
-                for helpEmbed in botCommands.helpSectionEmbeds[userAccessLevel][args]:
+                for helpEmbed in client.botCommands.helpSectionEmbeds[userAccessLevel][args]:
                     newEmbed = helpEmbed.copy()
                     newEmbed.set_footer(text=helpEmbed.footer.text + " | This menu will expire in " +
                                         lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
@@ -107,20 +108,20 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
                 await helpMenu.updateMessage()
                 botState.reactionMenusDB[menuMsg.id] = helpMenu
 
-        elif args in botCommands.commands[userAccessLevel] and botCommands.commands[userAccessLevel][args].allowHelp:
+        elif args in client.botCommands.commands[userAccessLevel] and client.botCommands.commands[userAccessLevel][args].allowHelp:
             helpEmbed = lib.discordUtil.makeEmbed(titleTxt=cfg.userAccessLevels[userAccessLevel] + " Commands",
                                                     desc=cfg.helpIntro +
-                                                    "\n__" + botCommands.commands[userAccessLevel][args].helpSection.title() +
+                                                    "\n__" + client.botCommands.commands[userAccessLevel][args].helpSection.title() +
                                                     "__", col=discord.Colour.blue(),
                                                     thumb=botState.client.user.avatar_url_as(size=64))
-            helpEmbed.add_field(name=botCommands.commands[userAccessLevel][args].signatureStr,
-                                value=botCommands.commands[userAccessLevel][args].longHelp, inline=False)
-            helpEmbed.add_field(name="DMable", value="Yes" if botCommands.commands[userAccessLevel][args].allowDM else "No")
-            if botCommands.commands[userAccessLevel][args].aliases:
+            helpEmbed.add_field(name=client.botCommands.commands[userAccessLevel][args].signatureStr,
+                                value=client.botCommands.commands[userAccessLevel][args].longHelp, inline=False)
+            helpEmbed.add_field(name="DMable", value="Yes" if client.botCommands.commands[userAccessLevel][args].allowDM else "No")
+            if client.botCommands.commands[userAccessLevel][args].aliases:
                 aliasesStr = ""
-                for alias in botCommands.commands[userAccessLevel][args].aliases[:-1]:
+                for alias in client.botCommands.commands[userAccessLevel][args].aliases[:-1]:
                     aliasesStr += alias + ", "
-                aliasesStr += botCommands.commands[userAccessLevel][args].aliases[-1]
+                aliasesStr += client.botCommands.commands[userAccessLevel][args].aliases[-1]
                 helpEmbed.add_field(name="Alaises", value=aliasesStr)
             await message.channel.send(embed=helpEmbed)
 
