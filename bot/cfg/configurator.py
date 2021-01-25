@@ -64,9 +64,14 @@ def init():
     """
     # Normalize all paths and create missing directories
     for varname in cfg.paths:
+        # Normalize path
         cfg.paths[varname] = os.path.normpath(cfg.paths[varname])
-        if not os.path.isdir(os.path.dirname(cfg.paths[varname])):
-            os.makedirs(os.path.dirname(cfg.paths[varname]))
+        # If the path is a file, get the path to the parent directory
+        pathSplit = os.path.splitext(cfg.paths[varname])
+        pathDir = os.path.dirname(pathSplit[0]) if pathSplit[1] else pathSplit[0]
+        # Create missing directories
+        if pathDir and not os.path.isdir(pathDir):
+            os.makedirs(pathDir)
     
     # Load ConfigProxys
     cfg.defaultEmojis = ConfigProxy(cfg.defaultEmojis)

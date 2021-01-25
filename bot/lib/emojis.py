@@ -14,6 +14,7 @@ err_UnknownEmoji = "❓"
 # True to raise an UnrecognisedCustomEmoji exception when requesting an unknown custom emoji
 raiseUnkownEmojis = False
 logUnknownEmojis = True
+emojiLang = "en"
 
 
 def strIsUnicodeEmoji(c: str) -> bool:
@@ -23,7 +24,7 @@ def strIsUnicodeEmoji(c: str) -> bool:
     :return: True if c contains exactly one character, and that character is a unicode emoji. False otherwise.
     :rtype: bool
     """
-    return c in UNICODE_EMOJI
+    return c in UNICODE_EMOJI[emojiLang]
 
 
 def strIsCustomEmoji(s: str) -> bool:
