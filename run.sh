@@ -32,5 +32,4 @@ while [ $? -ne 1 ] do
         fi
     fi
     eval "$runbot"
-    fi
 done
