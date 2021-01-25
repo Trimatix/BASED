@@ -14,10 +14,10 @@ logger = None
 
 dbSaveTT = None
 
-# Reaction Menus
 reactionMenusDB = None
-reactionMenusTTDB = None
 
 shutdown = ShutDownState.restart
 
 updatesCheckTT = None
+
+taskScheduler = None

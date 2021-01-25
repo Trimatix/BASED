@@ -25,6 +25,7 @@ from . import lib, botState, logging
 from .databases import guildDB, reactionMenuDB, userDB
 from .scheduling.timedTask import TimedTask
 from .scheduling.timedTaskHeap import TimedTaskHeap
+from bot.scheduling import timedTaskHeap
 
 
 async def checkForUpdates():
@@ -168,6 +169,7 @@ class BasedClient(ClientBaseClass):
         self.launchTime = datetime.utcnow()
         self.killer = GracefulKiller()
 
+
     def saveAllDBs(self):
         """Save all of the bot's savedata to file.
         This currently saves:
@@ -194,6 +196,7 @@ class BasedClient(ClientBaseClass):
         - logs out of discord
         - saves all savedata to file
         """
+        botState.taskScheduler.stopTaskChecking()
         if self.storeMenus:
             # expire non-saveable reaction menus
             menus = list(botState.reactionMenusDB.values())
@@ -321,6 +324,8 @@ async def on_ready():
     TODO: Implement dynamic timedtask checking period
     """
     botState.httpClient = aiohttp.ClientSession()
+    botState.taskScheduler = timedTaskHeap.AutoCheckingTimedTaskHeap(asyncio.get_running_loop())
+    botState.taskScheduler.startTaskChecking()
 
     ##### EMOJI INITIALIZATION #####
 
@@ -341,13 +346,16 @@ async def on_ready():
     setHelpEmbedThumbnails()
 
     # Schedule reaction menu expiry
-    botState.reactionMenusTTDB = TimedTaskHeap()
+    # botState.reactionMenusTTDB = TimedTaskHeap()
     # Schedule database saving
     botState.dbSaveTT = TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(cfg.timeouts.dataSaveFrequency),
                                     autoReschedule=True, expiryFunction=botState.client.saveAllDBs)
     # Schedule BASED updates checking
     botState.updatesCheckTT = TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(cfg.timeouts.BASED_updateCheckFrequency),
                                         autoReschedule=True, expiryFunction=checkForUpdates)
+
+    botState.taskScheduler.scheduleTask(botState.dbSaveTT)
+    botState.taskScheduler.scheduleTask(botState.updatesCheckTT)
 
     # Check for upates to BASED
     print("BASED " + versionInfo.BASED_VERSION + " loaded.\nClient logged in as {0.user}".format(botState.client))
@@ -360,13 +368,13 @@ async def on_ready():
 
     # Main loop: execute regular tasks while the bot is logged in
     while botState.client.loggedIn:
+        await asyncio.sleep(cfg.timedTaskLatenessThresholdSeconds)
+        
         if cfg.timedTaskCheckingType == "fixed":
-            await asyncio.sleep(cfg.timedTaskLatenessThresholdSeconds)
+            await botState.dbSaveTT.doExpiryCheck()
+            await botState.reactionMenusTTDB.doTaskChecking()
+            await botState.updatesCheckTT.doExpiryCheck()
         # elif cfg.timedTaskCheckingType == "dynamic":
-
-        await botState.dbSaveTT.doExpiryCheck()
-        await botState.reactionMenusTTDB.doTaskChecking()
-        await botState.updatesCheckTT.doExpiryCheck()
 
         # termination signal received from OS. Trigger graceful shutdown with database saving
         if botState.client.killer.kill_now:
