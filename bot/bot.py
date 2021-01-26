@@ -323,9 +323,30 @@ async def on_ready():
 
     TODO: Implement dynamic timedtask checking period
     """
+    ##### CLIENT INITIALIZATION #####
+    
     botState.httpClient = aiohttp.ClientSession()
-    botState.taskScheduler = timedTaskHeap.AutoCheckingTimedTaskHeap(asyncio.get_running_loop())
-    botState.taskScheduler.startTaskChecking()
+
+    if cfg.timedTaskCheckingType == "fixed":
+        botState.taskScheduler = timedTaskHeap.TimedTaskHeap()
+    elif cfg.timedTaskCheckingType == "dynamic":
+        botState.taskScheduler = timedTaskHeap.AutoCheckingTimedTaskHeap(asyncio.get_running_loop())
+        botState.taskScheduler.startTaskChecking()
+    else:
+        raise ValueError("Unsupported cfg.timedTaskCheckingType: " + str(cfg.timedTaskCheckingType))
+
+    # Set help embed thumbnails
+    setHelpEmbedThumbnails()
+
+    # Check for upates to BASED
+    print("BASED " + versionInfo.BASED_VERSION + " loaded.\nClient logged in as {0.user}".format(botState.client))
+    await checkForUpdates()
+
+    # Set custom bot status
+    await botState.client.change_presence(activity=discord.Game("BASED APP"))
+    # bot is now logged in
+    botState.client.loggedIn = True
+
 
     ##### EMOJI INITIALIZATION #####
 
@@ -337,16 +358,17 @@ async def on_ready():
         if isinstance(varValue, lib.emojis.UninitializedBasedEmoji):
             raise RuntimeError("Uninitialized emoji still remains in cfg after emoji initialization: '" + varName + "'")
 
+
+    ##### LOAD USER DATA #####
+
     # Load save data. If the specified files do not exist, an empty database will be created instead.
     botState.usersDB = loadUsersDB(cfg.paths.usersDB)
     botState.guildsDB = loadGuildsDB(cfg.paths.guildsDB)
     botState.reactionMenusDB = await loadReactionMenusDB(cfg.paths.reactionMenusDB)
 
-    # Set help embed thumbnails
-    setHelpEmbedThumbnails()
 
-    # Schedule reaction menu expiry
-    # botState.reactionMenusTTDB = TimedTaskHeap()
+    ##### SCHEDULING #####
+
     # Schedule database saving
     botState.dbSaveTT = TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(cfg.timeouts.dataSaveFrequency),
                                     autoReschedule=True, expiryFunction=botState.client.saveAllDBs)
@@ -357,23 +379,14 @@ async def on_ready():
     botState.taskScheduler.scheduleTask(botState.dbSaveTT)
     botState.taskScheduler.scheduleTask(botState.updatesCheckTT)
 
-    # Check for upates to BASED
-    print("BASED " + versionInfo.BASED_VERSION + " loaded.\nClient logged in as {0.user}".format(botState.client))
-    await checkForUpdates()
 
-    # Set custom bot status
-    await botState.client.change_presence(activity=discord.Game("BASED APP"))
-    # bot is now logged in
-    botState.client.loggedIn = True
-
-    # Main loop: execute regular tasks while the bot is logged in
+    ##### MAIN LOOP #####
+    
     while botState.client.loggedIn:
         await asyncio.sleep(cfg.timedTaskLatenessThresholdSeconds)
         
         if cfg.timedTaskCheckingType == "fixed":
-            await botState.dbSaveTT.doExpiryCheck()
-            await botState.reactionMenusTTDB.doTaskChecking()
-            await botState.updatesCheckTT.doExpiryCheck()
+            await botState.taskScheduler.doTaskChecking()
         # elif cfg.timedTaskCheckingType == "dynamic":
 
         # termination signal received from OS. Trigger graceful shutdown with database saving
