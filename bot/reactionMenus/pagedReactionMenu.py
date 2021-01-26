@@ -11,7 +11,7 @@ async def menuJumpToPage(data: dict):
     await botState.reactionMenusDB[data["menuID"]].jumpToPage(data["pageNum"])
 
 
-class PagedReactionMenu(reactionMenu.ReactionMenu):
+class PagedReactionMenu(reactionMenu.PassiveReactionMenu):
     """A reaction menu that, instead of taking a list of options, takes a list of pages of options.
     """
     saveable = False
