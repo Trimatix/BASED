@@ -47,7 +47,7 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
             menuMsg = await sendChannel.send("‎")
             helpTT = timedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(
                 cfg.timeouts.helpMenu), expiryFunction=expiryFunctions.expireHelpMenu, expiryFunctionArgs=menuMsg.id)
-            botState.reactionMenusTTDB.scheduleTask(helpTT)
+            botState.taskScheduler.scheduleTask(helpTT)
             indexEmbed = lib.discordUtil.makeEmbed(titleTxt=cfg.userAccessLevels[userAccessLevel] + " Commands",
                                                     desc="Select " + cfg.defaultEmojis.next.sendable + " to go to page one.",
                                                     thumb=botState.client.user.avatar_url_as(size=64),
@@ -95,7 +95,7 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
                 menuMsg = await sendChannel.send("‎")
                 helpTT = timedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(
                     cfg.timeouts.helpMenu), expiryFunction=expiryFunctions.expireHelpMenu, expiryFunctionArgs=menuMsg.id)
-                botState.reactionMenusTTDB.scheduleTask(helpTT)
+                botState.taskScheduler.scheduleTask(helpTT)
                 pages = {}
                 for helpEmbed in botCommands.helpSectionEmbeds[userAccessLevel][args]:
                     newEmbed = helpEmbed.copy()

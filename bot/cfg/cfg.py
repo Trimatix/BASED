@@ -60,9 +60,11 @@ includedCommandModules = ("usr_misc",
 # Text to edit into expired menu messages
 expiredMenuMsg = "😴 This role menu has now expired."
 
-# Can currently only be "fixed"
-timedTaskCheckingType = "fixed"
-# Number of seconds by with the expiry of a timedtask may acceptably be late
+# Use "fixed" to check for task expiry every timedTaskLatenessThresholdSeconds (polling-based scheduler)
+# Use "dynamic" to check for task expiry exactly at the time of task expiry (interrupts-based scheduler)
+timedTaskCheckingType = "dynamic"
+# Number of seconds by with the expiry of a timedtask may acceptably be late.
+# Regardless of timedTaskCheckingType, this is used for the termination signal checking period.
 timedTaskLatenessThresholdSeconds = 10
 
 # Whether or not to check for updates to BASED
