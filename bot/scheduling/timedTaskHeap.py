@@ -180,6 +180,7 @@ class AutoCheckingTimedTaskHeap(TimedTaskHeap):
                     pass
                 else:
                     await self.doTaskChecking()
+
             else:
                 self.sleepTask = None
                 self.active = False
