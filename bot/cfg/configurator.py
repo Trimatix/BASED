@@ -165,6 +165,27 @@ def loadCfg(cfgFile: str):
                 elif varname in emojiListVars:
                     cfg.defaultEmojis[emojiName] = [UninitializedBasedEmoji(item)
                                                     for item in config["defaultEmojis"][emojiName]]
+        # timeouts must be special-cased to avoid losing variables if not all are specified
+        elif varname == "timeouts":
+            for timeoutName in config[varname]:
+                newValue = config[varname][timeoutName]
+                # Get default value for variable
+                default = cfg.timeouts[timeoutName]
+                # Ensure new value is of the correct type
+                if type(newValue) != type(default):
+                    try:
+                        # Attempt casts for incorrect types - useful for things like ints instead of floats.
+                        newValue = type(default)(newValue)
+                        print("[WARNING] Casting config variable timeouts." + timeoutName + " from " \
+                                + type(newValue).__name__ + " to " + type(default).__name__)
+                    except Exception:
+                        # Where a variable is of the wrong type and cannot be casted, raise an exception.
+                        raise TypeError("Unexpected type for config variable timeouts." + timeoutName + ": Expected " \
+                                        + type(default).__name__ + ", received " + type(newValue).__name__)
+
+                # Not an emoji and correct type, so set variable.
+                else:
+                    cfg.timeouts[timeoutName] = newValue
         else:
             # Get default value for variable
             default = getattr(cfg, varname)
