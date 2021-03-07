@@ -77,7 +77,6 @@ If a bot token is provided by the default config values (found in `cfg/cfg.py`),
   - Give custom emojis as the integer emoji ID.
   - Give unicode emojis as a string containing a single unicode emoji character.
 
-# Running Your Bot
 ### Providing your bot token
 
 The bot token can now be given in a config variable, or in an environment variable whose name is specified in config:
@@ -86,7 +85,7 @@ The bot token can now be given in a config variable, or in an environment variab
 
 You must give exactly one of these variables, either in the default config values (`cfg/cfg.py`), or in a toml config file.
 
-### Launching
+# Running Your Bot
 
 To run your bot, simply run `main.py`.<br>
 To load a config.toml, provide a path to your config in command line args, e.g `python main.py myConfig.toml`.
