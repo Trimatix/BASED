@@ -1,5 +1,5 @@
 from __future__ import annotations
-from emoji import UNICODE_EMOJI
+import emoji
 from .. import botState
 from . import stringTyping, exceptions
 import traceback
@@ -14,7 +14,9 @@ err_UnknownEmoji = "❓"
 # True to raise an UnrecognisedCustomEmoji exception when requesting an unknown custom emoji
 raiseUnkownEmojis = False
 logUnknownEmojis = True
-emojiLang = "en"
+# Assumption of the maximum number of unicode characters in an emoji, just to put a cap on the time complexity of
+# strisUnicodeEmoji. 10 characters makes sense as a 5-long ZWJ sequence plus a variation selector.
+MAX_EMOJI_LEN = 10
 
 
 def strIsUnicodeEmoji(c: str) -> bool:
@@ -24,7 +26,7 @@ def strIsUnicodeEmoji(c: str) -> bool:
     :return: True if c contains exactly one character, and that character is a unicode emoji. False otherwise.
     :rtype: bool
     """
-    return c in UNICODE_EMOJI[emojiLang]
+    return len(c) <= MAX_EMOJI_LEN and emoji.emoji_count(c) == 1
 
 
 def strIsCustomEmoji(s: str) -> bool:
