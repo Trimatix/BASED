@@ -76,7 +76,8 @@ If a bot token is provided by the default config values (found in `cfg/cfg.py`),
 - Any emoji can be either unicode or custom.
   - Give custom emojis as the integer emoji ID.
   - Give unicode emojis as a string containing a single unicode emoji character.
-  
+
+# Running Your Bot
 ### Providing your bot token
 
 The bot token can now be given in a config variable, or in an environment variable whose name is specified in config:
@@ -84,23 +85,12 @@ The bot token can now be given in a config variable, or in an environment variab
 - Give the name of the environment variable containing your token, in `botToken_envVarName`
 
 You must give exactly one of these variables, either in the default config values (`cfg/cfg.py`), or in a toml config file.
-    
 
-# Running Your Bot
-### Option 1: Direct
+### Launching
+
 To run your bot, simply run `main.py`.<br>
 To load a config.toml, provide a path to your config in command line args, e.g `python main.py myConfig.toml`.
-
-### Option 2: Shell launch loop
-Alternatively, automatic restarting and updating of the bot are provided by using one of the two looping bot launching scripts, `run.bat` and `run.sh`.<br>
-Your bot will be rebooted automatically after critical errors, or on use of the `dev_cmd_restart` command.
-> The script will not restart your bot on receipt of interrupt and termination signals (`SIGINT`/`SIGTERM`).
-
-If your bot is a git repository, give your run script the `-g` optional argument to enable `dev_cmd_update`.<br>
-Running `dev_cmd_update` will shut down the bot, run `git pull`, and restart the bot again.
-- If conflicts are encountered with merging commits, the pull will be cancelled entirely.
-- This error will not be announced to discord, and you should check your console to ensure that it was successful.
-  > (or implement a bot version checking command)
+> This path can be either absolute, or relative to the project root directory
 
 
 # How to Update Your BASED Fork
