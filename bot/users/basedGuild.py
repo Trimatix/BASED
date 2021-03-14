@@ -92,5 +92,5 @@ class BasedGuild(serializable.Serializable):
             raise lib.exceptions.NoneDCGuildObj("Could not get guild object for id " + str(guildID))
 
         if "commandPrefix" in guildDict:
-            return BasedGuild(id, dcGuild, commandPrefix=guildDict["commandPrefix"], decks=guildDict["decks"] if "decks" in guildDict else {}, modRoleID=guildDict["modRoleID"] if "modRoleID" in guildDict else -1)
-        return BasedGuild(id, dcGuild, decks=guildDict["decks"] if "decks" in guildDict else {}, modRoleID=guildDict["modRoleID"] if "modRoleID" in guildDict else -1)
+            return BasedGuild(guildID, dcGuild, commandPrefix=guildDict["commandPrefix"], decks=guildDict["decks"] if "decks" in guildDict else {}, modRoleID=guildDict["modRoleID"] if "modRoleID" in guildDict else -1)
+        return BasedGuild(guildID, dcGuild, decks=guildDict["decks"] if "decks" in guildDict else {}, modRoleID=guildDict["modRoleID"] if "modRoleID" in guildDict else -1)
