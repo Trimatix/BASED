@@ -84,7 +84,7 @@ class GuildDB(serializable.Serializable):
         """
         # Ensure guild is not yet in the database
         if self.guildExists(guild):
-            raise KeyError("Attempted to add a guild that already exists: " + guild.id)
+            raise KeyError("Attempted to add a guild that already exists: " + str(guild.id))
         self.guilds[guild.id] = guild
 
 
