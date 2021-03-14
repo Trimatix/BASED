@@ -185,12 +185,12 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
     for optNum in range(len(cfg.roundsPickerOptions)):
         emoji = cfg.defaultEmojis.menuOptions[optNum]
         roundsNum = cfg.roundsPickerOptions[optNum]
-        options[emoji] = ReactionMenu.DummyReactionMenuOption("Best of " + str(roundsNum), emoji)
-    options[cfg.defaultEmojis.spiral] = ReactionMenu.DummyReactionMenuOption("Free play", cfg.defaultEmojis.spiral)
-    options[cfg.defaultEmojis.cancel] = ReactionMenu.DummyReactionMenuOption("Cancel", cfg.defaultEmojis.cancel)
+        options[emoji] = reactionMenu.DummyReactionMenuOption("Best of " + str(roundsNum), emoji)
+    options[cfg.defaultEmojis.spiral] = reactionMenu.DummyReactionMenuOption("Free play", cfg.defaultEmojis.spiral)
+    options[cfg.defaultEmojis.cancel] = reactionMenu.DummyReactionMenuOption("Cancel", cfg.defaultEmojis.cancel)
 
     roundsPickerMsg = await message.channel.send("​")
-    roundsResult = await ReactionMenu.InlineReactionMenu(roundsPickerMsg, message.author, cfg.timeouts.numRoundsPickerSeconds,
+    roundsResult = await reactionMenu.InlineReactionMenu(roundsPickerMsg, message.author, cfg.timeouts.numRoundsPickerSeconds,
                                                     options=options, returnTriggers=list(options.keys()), titleTxt="Game Length", desc="How many rounds would you like to play?",
                                                     footerTxt=args.title() + " | This menu will expire in " + str(cfg.timeouts.numRoundsPickerSeconds) + "s").doMenu()
     
@@ -209,7 +209,7 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
     expansionsData = callingBGuild.decks[args]["expansions"]
     
     menuTimeout = lib.timeUtil.timeDeltaFromDict(cfg.timeouts.expansionsPicker)
-    menuTT = TimedTask.TimedTask(expiryDelta=menuTimeout, expiryFunction=sdbGame.startGameFromExpansionMenu, expiryFunctionArgs={"menuID": expansionPickerMsg.id, "deckName": args, "rounds": rounds})
+    menuTT = timedTask.TimedTask(expiryDelta=menuTimeout, expiryFunction=sdbGame.startGameFromExpansionMenu, expiryFunctionArgs={"menuID": expansionPickerMsg.id, "deckName": args, "rounds": rounds})
 
     expansionSelectorMenu = SDBExpansionsPicker.SDBExpansionsPicker(expansionPickerMsg, expansionsData,
                                                                     timeout=menuTT, owningBasedUser=botState.usersDB.getOrAddID(message.author.id), targetMember=message.author)
