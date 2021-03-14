@@ -45,6 +45,7 @@ class SDBPlayer:
         self.configMenu = None
         self.hasRedealt = False
         self.selectorMenus = []
+        self.cardsSubmittedMsg = None
 
 
     async def submitCards(self):
@@ -82,6 +83,7 @@ class SDBPlayer:
                 await slot.removeCard(self.game.deck.emptyWhite)
 
             self.hasSubmitted = True
+            self.cardsSubmittedMsg = await self.dcUser.send("✅ Cards submitted!")
 
 
     def hasCard(self, card):
