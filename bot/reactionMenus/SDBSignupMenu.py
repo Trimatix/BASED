@@ -28,7 +28,7 @@ class SDBSignupMenu(reactionMenu.ReactionMenu):
                     cfg.defaultEmojis.submit: reactionMenu.NonSaveableReactionMenuOption("Force start game", cfg.defaultEmojis.submit, addFunc=ownerOnlyStartGame, addArgs=self),
                     cfg.defaultEmojis.cancel: reactionMenu.NonSaveableReactionMenuOption("Cancel game", cfg.defaultEmojis.cancel, addFunc=ownerOnlyCancelGame, addArgs=self)}
         timeout = timedTask.TimedTask(expiryDelta=timeToJoin, expiryFunction=self.endSignups)
-        botState.reactionMenusTTDB.scheduleTask(timeout)
+        botState.taskScheduler.scheduleTask(timeout)
         self.numSignups = 0
         
         super().__init__(msg, options = options,

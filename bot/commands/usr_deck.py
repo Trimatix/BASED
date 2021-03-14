@@ -215,7 +215,7 @@ async def cmd_start_game(message : discord.Message, args : str, isDM : bool):
                                                                     timeout=menuTT, owningBasedUser=botState.usersDB.getOrAddID(message.author.id), targetMember=message.author)
 
     botState.reactionMenusDB[expansionPickerMsg.id] = expansionSelectorMenu
-    botState.reactionMenusTTDB.scheduleTask(menuTT)
+    botState.taskScheduler.scheduleTask(menuTT)
     try:
         await expansionSelectorMenu.updateMessage()
     except discord.NotFound:
