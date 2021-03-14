@@ -102,7 +102,7 @@ def inferUserPermissions(message: discord.Message) -> int:
     :return: message.author's access level, as an index of cfg.userAccessLevels
     :rtype: int
     """
-    callingBGuild = botState.guildsDB.getGuild(message.guild.id) if botState.guildDB.idExists(message.guild.id) else None 
+    callingBGuild = botState.guildsDB.getGuild(message.guild.id) if botState.guildsDB.idExists(message.guild.id) else None 
     if message.author.id in cfg.developers:
         return 3
     elif message.author.permissions_in(message.channel).administrator:
