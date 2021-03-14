@@ -8,9 +8,9 @@ import asyncio
 
 from . import commandsDB as botCommands
 from .. import botState, lib
-from ..reactionMenus import SDBExpansionsPicker, ReactionMenu
+from ..reactionMenus import SDBExpansionsPicker, reactionMenu
 from ..cfg import cfg
-from ..scheduling import TimedTask
+from ..scheduling import timedTask
 from ..game import sdbGame
 
 import gspread

@@ -30,7 +30,6 @@ timeouts = {
     "helpMenu": {"minutes": 3},
     "BASED_updateCheckFrequency": {"days": 1},
     # The time to wait inbetween database autosaves.
-<<<<<<< HEAD
     "dataSaveFrequency": {"hours":1},
     # Number of seconds to wait inbetween each check for complete submissions
     "allSubmittedCheckPeriodSeconds": 10,
@@ -48,9 +47,6 @@ timeouts = {
     "sdbPlayerSelectorSeconds": 300,
     # The time to wait for a new deck name message in cmd_rename
     "deckRenameSeconds": 180
-=======
-    "dataSaveFrequency": {"hours": 1}
->>>>>>> 8501930fbd42ca514b1f1791f2b8b46617434219
 }
 
 paths = {
@@ -86,15 +82,9 @@ helpIntro = "Here are my commands!"
 maxCommandsPerHelpPage = 5
 
 # List of module names from the commands package to import
-<<<<<<< HEAD
 includedCommandModules = (  "usr_misc", "usr_deck", "usr_dm",
                             "admn_misc", "admin_deck",
                             "dev_misc")
-=======
-includedCommandModules = ("usr_misc",
-                          "admn_misc",
-                          "dev_misc")
->>>>>>> 8501930fbd42ca514b1f1791f2b8b46617434219
 
 # Text to edit into expired menu messages
 expiredMenuMsg = "😴 This role menu has now expired."

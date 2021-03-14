@@ -7,10 +7,10 @@ from ..cfg import cfg
 from . import sdbPlayer, sdbDeck
 import asyncio
 from ..reactionMenus.SDBSubmissionsReviewMenu import InlineSequentialSubmissionsReviewMenu
-from ..reactionMenus.ConfirmationReactionMenu import InlineConfirmationMenu
+from ..reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 from ..reactionMenus.SDBCardPlayMenu import SDBCardPlayMenu
 from ..reactionMenus.SDBCardSelector import SDBCardSelector
-from ..reactionMenus.PagedReactionMenu import InvalidClosingReaction
+from ..reactionMenus.pagedReactionMenu import InvalidClosingReaction
 import random
 import shutil
 import os

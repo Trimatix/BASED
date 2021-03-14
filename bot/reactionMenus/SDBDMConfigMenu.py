@@ -1,16 +1,16 @@
 from bot import botState
-from . import ReactionMenu, PagedReactionMenu
+from . import reactionMenu, pagedReactionMenu
 from discord import Message, Member, Role, Embed, User
 from typing import Dict, Union
 from .. import lib
-from ..scheduling import TimedTask
+from ..scheduling import timedTask
 from ..users import basedUser
 from ..game import sdbGame
 import random
 from ..cfg import cfg
 
 
-class SDBDMConfigMenu(PagedReactionMenu.PagedReactionMenu):
+class SDBDMConfigMenu(pagedReactionMenu.PagedReactionMenu):
     def __init__(self, msg: Message, game: "sdbGame.SDBGame"):
         self.game = game
         self.paused = False
@@ -19,7 +19,7 @@ class SDBDMConfigMenu(PagedReactionMenu.PagedReactionMenu):
         pageOneEmbed.title = "Deck Master Admin Menu"
         ownerEmoji = lib.emojis.BasedEmoji(unicode="👑")
         pageOneEmbed.add_field(name=ownerEmoji.sendable + " : Relinquish Deck Master", value="Hand game ownership to another user.")
-        pages[pageOneEmbed][ownerEmoji] = ReactionMenu.NonSaveableReactionMenuOption("Relinquish Deck Master", ownerEmoji, addFunc=self.reliquishOwner)
+        pages[pageOneEmbed][ownerEmoji] = reactionMenu.NonSaveableReactionMenuOption("Relinquish Deck Master", ownerEmoji, addFunc=self.reliquishOwner)
         super().__init__(msg, pages=pages, targetMember=game.owner)
 
 
@@ -50,9 +50,9 @@ class SDBDMConfigMenu(PagedReactionMenu.PagedReactionMenu):
         playerPickerMsg = await lib.discordUtil.sendDM("​", self.game.owner, self.msg, reactOnDM=False)
         newOwner = None
         if playerPickerMsg is not None:
-            pages = PagedReactionMenu.makeTemplatePagedMenuPages({str(player.dcUser): player.dcUser for player in self.game.players if player.dcUser != self.game.owner})
+            pages = pagedReactionMenu.makeTemplatePagedMenuPages({str(player.dcUser): player.dcUser for player in self.game.players if player.dcUser != self.game.owner})
             for pageEmbed in pages:
-                randomPlayerOption = PagedReactionMenu.NonSaveableValuedMenuOption("Pick Random Player", cfg.defaultEmojis.spiral, None)
+                randomPlayerOption = pagedReactionMenu.NonSaveableValuedMenuOption("Pick Random Player", cfg.defaultEmojis.spiral, None)
                 pages[pageEmbed][cfg.defaultEmojis.spiral] = randomPlayerOption
                 pageEmbed.add_field(name=cfg.defaultEmojis.spiral.sendable + " : Pick Random Player", value="​", inline=False)
                 pageEmbed.title = "New Deck Master"
@@ -64,8 +64,8 @@ class SDBDMConfigMenu(PagedReactionMenu.PagedReactionMenu):
                 allOptions += [option for option in page.values()]
 
             try:
-                playerSelection = await PagedReactionMenu.InlinePagedReactionMenu(playerPickerMsg, cfg.timeouts.sdbPlayerSelectorSeconds, pages=pages, targetMember=self.game.owner, noCancel=True, returnTriggers=allOptions).doMenu()
-            except PagedReactionMenu.InvalidClosingReaction as e:
+                playerSelection = await pagedReactionMenu.InlinePagedReactionMenu(playerPickerMsg, cfg.timeouts.sdbPlayerSelectorSeconds, pages=pages, targetMember=self.game.owner, noCancel=True, returnTriggers=allOptions).doMenu()
+            except pagedReactionMenu.InvalidClosingReaction as e:
                 await self.game.channel.send("An unexpected error occurred when picking the new deck master.\nPicking one at random...")
                 botState.logger.log("SDBDMConfigMenu", "relinquishOwner", "Invalid closing reaction: " + e.emoji.sendable, category="reactionMenus", eventType="InvalidClosingReaction")
             else:
