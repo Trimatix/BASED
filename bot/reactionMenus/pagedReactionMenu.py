@@ -1,39 +1,42 @@
 from datetime import datetime
 from ..users import basedUser
-from . import ReactionMenu, expiryFunctions
+from .import reactionMenu, expiryFunctions
 from discord import Message, Member, Role, Embed, Colour
 from .. import lib, botState
 from typing import Any, Dict, List
-from ..scheduling import TimedTask
+from ..scheduling import timedTask
 from ..cfg import cfg
 import asyncio
 from types import FunctionType
 
 
-async def menuJumpToPage(data : dict):
+async def menuJumpToPage(data: dict):
     await botState.reactionMenusDB[data["menuID"]].jumpToPage(data["pageNum"])
 
 
-class PagedReactionMenu(ReactionMenu.ReactionMenu):
+class PagedReactionMenu(reactionMenu.ReactionMenu):
     """A reaction menu that, instead of taking a list of options, takes a list of pages of options.
     """
     saveable = False
-    
-    def __init__(self, msg : Message, pages : Dict[Embed, Dict[lib.emojis.BasedEmoji, ReactionMenu.ReactionMenuOption]] = {}, 
-                    timeout : TimedTask.TimedTask = None, targetMember : Member = None, targetRole : Role = None, owningBasedUser : basedUser.BasedUser = None,
-                    noCancel : bool = False, anon: bool = False):
+
+    def __init__(self, msg: Message, pages: Dict[Embed, Dict[lib.emojis.BasedEmoji, reactionMenu.ReactionMenuOption]] = None,
+                 timeout: timedTask.TimedTask = None, targetMember: Member = None, targetRole: Role = None,
+                 owningBasedUser: basedUser.BasedUser = None, noCancel : bool = False, anon: bool = False):
         """
         :param discord.Message msg: the message where this menu is embedded
-        :param pages: A dictionary associating embeds with pages, where each page is a dictionary storing all options on that page and their behaviour (Default {})
+        :param pages: A dictionary associating embeds with pages, where each page is a dictionary
+                        storing all options on that page and their behaviour (Default {})
         :type pages: dict[Embed, dict[lib.emojis.BasedEmoji, ReactionMenuOption]]
         :param TimedTask timeout: The TimedTask responsible for expiring this menu (Default None)
-        :param discord.Member targetMember: The only discord.Member that is able to interact with this menu. All other reactions are ignored (Default None)
-        :param discord.Role targetRole: In order to interact with this menu, users must possess this role. All other reactions are ignored (Default None)
+        :param discord.Member targetMember: The only discord.Member that is able to interact with this menu.
+                                            All other reactions are ignored (Default None)
+        :param discord.Role targetRole: In order to interact with this menu, users must possess this role.
+                                            All other reactions are ignored (Default None)
         :param BasedUser owningBasedUser: The user who initiated this menu. No built in behaviour. (Default None)
         """
         super().__init__(msg, anon=anon)
 
-        self.pages = pages
+        self.pages = pages if pages is not None else {}
         self.msg = msg
         self.currentPageNum = 0
         self.currentPage = None
@@ -43,8 +46,8 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
         self.targetRole = targetRole
         self.owningBasedUser = owningBasedUser
 
-        nextOption = ReactionMenu.NonSaveableReactionMenuOption("Next Page", cfg.defaultEmojis.next, self.nextPage, None)
-        prevOption = ReactionMenu.NonSaveableReactionMenuOption("Previous Page", cfg.defaultEmojis.previous, self.previousPage, None)
+        nextOption = reactionMenu.NonSaveableReactionMenuOption("Next Page", cfg.defaultEmojis.next, self.nextPage, None)
+        prevOption = reactionMenu.NonSaveableReactionMenuOption("Previous Page", cfg.defaultEmojis.previous, self.previousPage, None)
 
         self.firstPageControls = {  cfg.defaultEmojis.next:      nextOption}
 
@@ -56,7 +59,7 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
         self.onePageControls = {}
 
         if not noCancel:
-            cancelOption = ReactionMenu.NonSaveableReactionMenuOption("Close Menu", cfg.defaultEmojis.cancel, self.delete, None)
+            cancelOption = reactionMenu.NonSaveableReactionMenuOption("Close Menu", cfg.defaultEmojis.cancel, self.delete, None)
             for optionsDict in [self.firstPageControls, self.midPageControls, self.lastPageControls, self.onePageControls]:
                 optionsDict[cfg.defaultEmojis.cancel] = cancelOption
 
@@ -77,6 +80,8 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
 
 
     def updateCurrentPage(self):
+        """Update the menu's options and controls for the current page.
+        """
         self.currentPage = list(self.pages.keys())[self.currentPageNum]
         self.options = list(self.pages.values())[self.currentPageNum]
 
@@ -93,6 +98,10 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
 
 
     async def nextPage(self):
+        """Set the menu to display the next page.
+
+        :raise RuntimeError: When the current page is the last page
+        """
         if self.currentPageNum == len(self.pages) - 1:
             raise RuntimeError("Attempted to nextPage while on the last page")
         self.currentPageNum += 1
@@ -106,6 +115,10 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
 
 
     async def previousPage(self):
+        """Set the menu to display the previous page.
+
+        :raise RuntimeError: When the current page is the first page
+        """
         if self.currentPageNum == 0:
             raise RuntimeError("Attempted to previousPage while on the first page")
         self.currentPageNum -= 1
@@ -117,8 +130,13 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
         if self.currentPageNum == len(self.pages) - 2:
             await self.msg.add_reaction(cfg.defaultEmojis.next.sendable)
 
-    
-    async def jumpToPage(self, pageNum : int):
+
+    async def jumpToPage(self, pageNum: int):
+        """Set the menu to display the given page number.
+
+        :param int pageNum: the zero-based index of the page to display
+        :raise IndexError: If the given page number is out of range
+        """
         if pageNum < 0 or pageNum > len(self.pages) - 1:
             raise IndexError("Page number out of range: " + str(pageNum))
         if pageNum != self.currentPageNum:
@@ -134,14 +152,14 @@ class PagedReactionMenu(ReactionMenu.ReactionMenu):
 
 
 class MultiPageOptionPicker(PagedReactionMenu):
-    def __init__(self, msg : Message, pages : Dict[Embed, Dict[lib.emojis.BasedEmoji, ReactionMenu.NonSaveableSelecterMenuOption]] = {}, 
-                    timeout : TimedTask.TimedTask = None, targetMember : Member = None, targetRole : Role = None, owningBasedUser : basedUser.BasedUser = None):
+    def __init__(self, msg : Message, pages : Dict[Embed, Dict[lib.emojis.BasedEmoji, reactionMenu.NonSaveableSelecterMenuOption]] = {}, 
+                    timeout : timedTask.TimedTask = None, targetMember : Member = None, targetRole : Role = None, owningBasedUser : basedUser.BasedUser = None):
         
-        controls = {cfg.defaultEmojis.accept: ReactionMenu.NonSaveableReactionMenuOption("Submit", cfg.defaultEmojis.accept, self.delete, None),
-                    cfg.defaultEmojis.cancel: ReactionMenu.NonSaveableReactionMenuOption("Cancel Game", cfg.defaultEmojis.cancel, expiryFunctions.deleteReactionMenu, msg.id),
-                    cfg.defaultEmojis.spiral: ReactionMenu.NonSaveableReactionMenuOption("Toggle All", cfg.defaultEmojis.spiral,
-                                                                                                addFunc=ReactionMenu.selectorSelectAllOptions, addArgs=msg.id,
-                                                                                                removeFunc=ReactionMenu.selectorDeselectAllOptions, removeArgs=msg.id)
+        controls = {cfg.defaultEmojis.accept: reactionMenu.NonSaveableReactionMenuOption("Submit", cfg.defaultEmojis.accept, self.delete, None),
+                    cfg.defaultEmojis.cancel: reactionMenu.NonSaveableReactionMenuOption("Cancel Game", cfg.defaultEmojis.cancel, expiryFunctions.deleteReactionMenu, msg.id),
+                    cfg.defaultEmojis.spiral: reactionMenu.NonSaveableReactionMenuOption("Toggle All", cfg.defaultEmojis.spiral,
+                                                                                                addFunc=reactionMenu.selectorSelectAllOptions, addArgs=msg.id,
+                                                                                                removeFunc=reactionMenu.selectorDeselectAllOptions, removeArgs=msg.id)
         }
         self.selectedOptions = {}
         for pageOptions in pages.values():
@@ -183,9 +201,9 @@ class InlinePagedReactionMenu(PagedReactionMenu):
     """
     saveable = False
     
-    def __init__(self, msg : Message, timeoutSeconds : int, pages : Dict[Embed, Dict[lib.emojis.BasedEmoji, ReactionMenu.ReactionMenuOption]] = {}, 
+    def __init__(self, msg : Message, timeoutSeconds : int, pages : Dict[Embed, Dict[lib.emojis.BasedEmoji, reactionMenu.ReactionMenuOption]] = {}, 
                     targetMember : Member = None, targetRole : Role = None, owningBasedUser : basedUser.BasedUser = None,
-                    noCancel : bool = False, returnTriggers : List[ReactionMenu.ReactionMenuOption] = [], anon: bool = False):
+                    noCancel : bool = False, returnTriggers : List[reactionMenu.ReactionMenuOption] = [], anon: bool = False):
         """
         :param discord.Message msg: the message where this menu is embedded
         :param int timeoutSeconds: The number of seconds until this menu expires
@@ -347,7 +365,7 @@ class InlinePagedReactionMenu(PagedReactionMenu):
 #         await self.updateMessage(noRefreshOptions=True)
 
 
-class NonSaveableValuedMenuOption(ReactionMenu.NonSaveableReactionMenuOption):
+class NonSaveableValuedMenuOption(reactionMenu.NonSaveableReactionMenuOption):
     def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, value: Any, addFunc: FunctionType = None, addArgs = None, removeFunc: FunctionType = None, removeArgs = None):
         super().__init__(name, emoji, addFunc=addFunc, addArgs=addArgs, removeFunc=removeFunc, removeArgs=removeArgs)
         self.value = value

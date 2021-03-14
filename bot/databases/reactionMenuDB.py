@@ -1,4 +1,3 @@
-from ..reactionMenus import ReactionMenu
 from .. import botState
 
 # ReactionMenu subclasses that cannot be saved to dictionary
@@ -10,7 +9,7 @@ class ReactionMenuDB(dict):
     """A database of ReactionMenu instances.
     Currently just an extension of dict to add toDict()."""
 
-    def toDict(self, **kwargs) -> str:
+    def toDict(self, **kwargs) -> dict:
         """Serialise all saveable ReactionMenus in this DB into a single dictionary.
 
         :return: A dictionary containing full dictionary descriptions of all saveable ReactionMenu instances in this database
@@ -24,10 +23,12 @@ class ReactionMenuDB(dict):
         return data
 
 
-async def fromDict(dbDict : dict) -> ReactionMenuDB:
-    """Factory function constructing a new ReactionMenuDB from dictionary-serialized format; the opposite of ReactionMenuDB.toDict
+async def fromDict(dbDict: dict) -> ReactionMenuDB:
+    """Factory function constructing a new ReactionMenuDB from dictionary-serialized format;
+    the opposite of ReactionMenuDB.toDict
 
-    :param dict dbDict: A dictionary containing all info needed to reconstruct a ReactionMenuDB, in accordance with ReactionMenuDB.toDict
+    :param dict dbDict: A dictionary containing all info needed to reconstruct a ReactionMenuDB,
+                        in accordance with ReactionMenuDB.toDict
     :return: A new ReactionMenuDB instance as described by dbDict
     :rtype: ReactionMenuDB
     """
@@ -44,5 +45,5 @@ async def fromDict(dbDict : dict) -> ReactionMenuDB:
             #     # newDB[int(msgID)] = ReactionInventoryPicker.fromDict(dbDict[msgID], msg=msg)
             #     continue
             continue
-    
+
     return newDB

@@ -1,18 +1,19 @@
 from __future__ import annotations
-from typing import Union, TYPE_CHECKING, Tuple
+from typing import Union, TYPE_CHECKING, Tuple, Dict
 if TYPE_CHECKING:
     from discord import Member, Guild, Message
 
 from . import stringTyping, emojis, exceptions
 from .. import botState
-from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, Reaction, User, DMChannel, GroupChannel, TextChannel
+from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, Reaction, User
+from discord import DMChannel, GroupChannel, TextChannel
 import random
 from ..cfg import cfg
 import asyncio
 import inspect
 
 
-def getMemberFromRef(uRef : str, dcGuild : Guild) -> Union[Member, None]:
+def getMemberFromRef(uRef: str, dcGuild: Guild) -> Union[Member, None]:
     """Attempt to find a member of a given discord guild object from a string or integer.
     uRef can be one of:
     - A user mention <@123456> or <@!123456>
@@ -20,11 +21,14 @@ def getMemberFromRef(uRef : str, dcGuild : Guild) -> Union[Member, None]:
     - A user name Carl
     - A user name and discriminator Carl#0324
 
-    If the passed user reference is none of the above, or a matching user cannot be found in the requested guild, None is returned.
+    If the passed user reference is none of the above, or a matching user cannot be found in the requested guild,
+    None is returned.
 
-    :param str uRef: A string or integer indentifying a user within dcGuild either by mention, ID, name, or name and discriminator
+    :param str uRef: A string or integer indentifying a user within dcGuild either by mention, ID, name,
+                    or name and discriminator
     :param discord.Guild dcGuild: A discord.guild in which to search for a member matching uRef
-    :return: Either discord.member of a member belonging to dcGuild and matching uRef, or None if uRef is invalid or no matching user could be found
+    :return: Either discord.member of a member belonging to dcGuild and matching uRef, or None if uRef is invalid
+                or no matching user could be found
     :rtype: discord.Member or None
     """
     # Handle user mentions
@@ -40,8 +44,8 @@ def getMemberFromRef(uRef : str, dcGuild : Guild) -> Union[Member, None]:
     return dcGuild.get_member_named(uRef)
 
 
-def makeEmbed(titleTxt : str = "", desc : str = "", col : Colour = Colour.blue(), footerTxt : str = "", footerIcon : str = "",
-        img : str = "", thumb : str = "", authorName : str = "", icon : str = "") -> Embed:
+def makeEmbed(titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), footerTxt: str = "", footerIcon: str = "",
+              img: str = "", thumb: str = "", authorName: str = "", icon: str = "") -> Embed:
     """Factory function building a simple discord embed from the provided arguments.
 
     :param str titleTxt: The title of the embed (Default "")
@@ -67,7 +71,7 @@ def makeEmbed(titleTxt : str = "", desc : str = "", col : Colour = Colour.blue()
     return embed
 
 
-async def startLongProcess(message : Message):
+async def startLongProcess(message: Message):
     """Indicates that a long process is starting, by adding a reaction to the given message.
 
     :param discord.Message message: The message to react to
@@ -78,7 +82,7 @@ async def startLongProcess(message : Message):
         pass
 
 
-async def endLongProcess(message : Message):
+async def endLongProcess(message: Message):
     """Indicates that a long process has finished, by removing a reaction from the given message.
 
     :param discord.Message message: The message to remove the reaction from
@@ -89,16 +93,7 @@ async def endLongProcess(message : Message):
         pass
 
 
-def randomColour():
-    """Generate a completely random discord.Colour.
-
-    :return: A discord.Colour with randomized r, g and b components.
-    :rtype: discord.Colour
-    """
-    return Colour.from_rgb(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-
-
-async def reactionFromRaw(payload : RawReactionActionEvent) -> Tuple[Message, Union[User, Member],  emojis.BasedEmoji]:
+async def reactionFromRaw(payload: RawReactionActionEvent) -> Tuple[Message, Union[User, Member], emojis.BasedEmoji]:
     """Retrieve complete Reaction and user info from a RawReactionActionEvent payload.
 
     :param RawReactionActionEvent payload: Payload describing the reaction action
@@ -118,7 +113,7 @@ async def reactionFromRaw(payload : RawReactionActionEvent) -> Tuple[Message, Un
             if guild is None:
                 return None, None, None
             channel = guild.get_channel(payload.channel_id)
-        
+
         # Individual handling for each channel type for efficiency
         if isinstance(channel, DMChannel):
             if channel.recipient.id == payload.user_id:
@@ -144,15 +139,15 @@ async def reactionFromRaw(payload : RawReactionActionEvent) -> Tuple[Message, Un
 
         else:
             return None, None, None
-        
+
         # Fetch the reacted message (api call)
         message = await channel.fetch_message(payload.message_id)
-    
+
     # If a reacting member was given, the guild can be inferred from the member.
     else:
         user = payload.member
         message = await payload.member.guild.get_channel(payload.channel_id).fetch_message(payload.message_id)
-    
+
     if message is None:
         return None, None, None
 
@@ -223,3 +218,81 @@ async def clientMultiWaitFor(eventTypes, timeout, check=None):
 #         stuff = await clientMultiWaitFor(eventTypes, timeout)
     
 #     return stuff
+def messageArgsFromStr(msgStr: str) -> Dict[str, Union[str, Embed]]:
+    """Transform a string description of the arguments to pass to a discord.Message constructor into type-correct arguments.
+
+    To specify message content, simply place it at the beginning of msgStr.
+    To specify an embed, give the kwarg embed=
+        To give kwargs for the embed, give the kwarg name, an equals sign, then value of the kwarg encased in single quotes.
+
+        Use makeEmbed-compliant kwarg names as follows:
+            titleTxt for the embed title
+            desc for the embed description
+            footerTxt for the text content of the footer
+            footerIcon for the URL to the image to display to the left of footerTxt
+            thumb for the URL to the image to display in the top right of the embed
+            img for the URL to the image to display in the main embed content
+            authorName for smaller text to display in place of the title 
+            icon for the URL to the image to display to the left of authorName
+        
+        To give fields for the embed, give field names and values separated by a new line.
+        {NL} in any field will be replaced with a new line.
+
+    :param str msgStr: A string description of the message args to create, as defined above
+    :return: The message content from msgStr, and an embed as described by the kwargs and fields in msgStr.
+    :rtype: Dict[str, Union[str, Embed]]
+    """
+    msgEmbed = None
+
+    try:
+        embedIndex = msgStr.index("embed=")
+    except ValueError:
+        msgText = msgStr
+    else:
+        msgText, msgStr = msgStr[:embedIndex], msgStr[embedIndex + len("embed="):]
+
+        embedKwargs = { "titleTxt":     "",
+                        "desc":         "",
+                        "footerTxt":    "",
+                        "footerIcon":   "",
+                        "thumb":        "",
+                        "img":          "",
+                        "authorName":   "",
+                        "icon":         ""}
+
+        for argName in embedKwargs:
+            try:
+                startStr = argName + "='"
+                startIndex = msgStr.index(startStr) + len(startStr)
+                endIndex = startIndex + \
+                    msgStr[msgStr.index(startStr) + len(startStr):].index("'")
+                embedKwargs[argName] = msgStr[startIndex:endIndex]
+                msgStr = msgStr[endIndex + 2:]
+            except ValueError:
+                pass
+            
+        msgEmbed = makeEmbed(**embedKwargs)
+
+        try:
+            msgStr.index('\n')
+            fieldsExist = True
+        except ValueError:
+            fieldsExist = False
+        while fieldsExist:
+            nextNL = msgStr.index('\n')
+            try:
+                closingNL = nextNL + msgStr[nextNL + 1:].index('\n')
+            except ValueError:
+                fieldsExist = False
+            else:
+                msgEmbed.add_field(name=msgStr[:nextNL].replace("{NL}", "\n"),
+                                            value=msgStr[nextNL + 1:closingNL + 1].replace("{NL}", "\n"),
+                                            inline=False)
+                msgStr = msgStr[closingNL + 2:]
+
+            if not fieldsExist:
+                msgEmbed.add_field(name=msgStr[:nextNL].replace("{NL}", "\n"),
+                                            value=msgStr[nextNL + 1:].replace("{NL}", "\n"),
+                                            inline=False)
+
+    return {"content": msgText, "embed": msgEmbed}

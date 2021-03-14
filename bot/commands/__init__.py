@@ -1,8 +1,9 @@
-from ..commandsManager import HeirarchicalCommandsDB
+from ..commandsManager import heirarchicalCommandsDB
 from ..cfg import cfg
 import importlib
 
-commandsDB = HeirarchicalCommandsDB.HeirarchicalCommandsDB(len(cfg.userAccessLevels))
+commandsDB = heirarchicalCommandsDB.HeirarchicalCommandsDB(len(cfg.userAccessLevels))
+
 
 def loadCommands():
     global commandsDB

@@ -15,14 +15,14 @@ defaultEmojis = {
     "next": UninitializedBasedEmoji('⏩'),
     "previous": UninitializedBasedEmoji('⏪'),
     "numbers": [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
-                    UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
-                    UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"), 
-                    UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")],
+                UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
+                UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"),
+                UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")],
 
-    # The default emojis to list in a reaction menu     
+    # The default emojis to list in a reaction menu
     "menuOptions": [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
                     UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
-                    UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"), 
+                    UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"),
                     UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")]
 }
 
@@ -30,6 +30,7 @@ timeouts = {
     "helpMenu": {"minutes": 3},
     "BASED_updateCheckFrequency": {"days": 1},
     # The time to wait inbetween database autosaves.
+<<<<<<< HEAD
     "dataSaveFrequency": {"hours":1},
     # Number of seconds to wait inbetween each check for complete submissions
     "allSubmittedCheckPeriodSeconds": 10,
@@ -47,6 +48,9 @@ timeouts = {
     "sdbPlayerSelectorSeconds": 300,
     # The time to wait for a new deck name message in cmd_rename
     "deckRenameSeconds": 180
+=======
+    "dataSaveFrequency": {"hours": 1}
+>>>>>>> 8501930fbd42ca514b1f1791f2b8b46617434219
 }
 
 paths = {
@@ -71,7 +75,8 @@ paths = {
     "cardsTemp": "saveData" + "/" + "decks" + "/" + "temp"
 }
 
-# Names of user access levels to be used in help menus. Also determines the number of access levels available, e.g when registering commands
+# Names of user access levels to be used in help menus.
+# Also determines the number of access levels available, e.g when registering commands
 userAccessLevels = ["user", "mod", "admin", "dev"]
 
 # Message to print alongside cmd_help menus
@@ -81,16 +86,24 @@ helpIntro = "Here are my commands!"
 maxCommandsPerHelpPage = 5
 
 # List of module names from the commands package to import
+<<<<<<< HEAD
 includedCommandModules = (  "usr_misc", "usr_deck", "usr_dm",
                             "admn_misc", "admin_deck",
                             "dev_misc")
+=======
+includedCommandModules = ("usr_misc",
+                          "admn_misc",
+                          "dev_misc")
+>>>>>>> 8501930fbd42ca514b1f1791f2b8b46617434219
 
 # Text to edit into expired menu messages
 expiredMenuMsg = "😴 This role menu has now expired."
 
-# Can currently only be "fixed"
-timedTaskCheckingType = "fixed"
-# Number of seconds by with the expiry of a timedtask may acceptably be late
+# Use "fixed" to check for task expiry every timedTaskLatenessThresholdSeconds (polling-based scheduler)
+# Use "dynamic" to check for task expiry exactly at the time of task expiry (interrupts-based scheduler)
+timedTaskCheckingType = "dynamic"
+# Number of seconds by with the expiry of a timedtask may acceptably be late.
+# Regardless of timedTaskCheckingType, this is used for the termination signal checking period.
 timedTaskLatenessThresholdSeconds = 10
 
 # Whether or not to check for updates to BASED

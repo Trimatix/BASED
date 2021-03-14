@@ -20,7 +20,7 @@ async def _unscheduleMenu(menu):
             await menu.timeout.forceExpire(callExpiryFunc=False)
 
 
-async def deleteReactionMenu(menuID : int):
+async def deleteReactionMenu(menuID: int):
     """Delete the currently active reaction menu and its message entirely, with the given message ID
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
@@ -36,7 +36,7 @@ async def deleteReactionMenu(menuID : int):
         botState.logger.log("expiryFunctions", "deleteReactionMenu", "menu not in reactionMenusDB: " + str(menuID), category="reactionMenus", eventType="MENU_NOTFOUND")
 
 
-async def removeEmbedAndOptions(menuID : int):
+async def removeEmbedAndOptions(menuID: int):
     """Delete the currently active menu with the given ID, removing its embed and option reactions, but
     leaving the corresponding message intact.
 
@@ -47,14 +47,17 @@ async def removeEmbedAndOptions(menuID : int):
         await _unscheduleMenu(menu)
 
         await menu.msg.edit(suppress=True)
-        
+
         for react in menu.options:
             await menu.msg.remove_reaction(react.sendable, menu.msg.guild.me)
+        
+        del botState.reactionMenusDB[menu.msg.id]
+    
     else:
         botState.logger.log("expiryFunctions", "removeEmbedAndOptions", "menu not in reactionMenusDB: " + str(menuID), category="reactionMenus", eventType="MENU_NOTFOUND")
 
 
-async def markExpiredMenu(menuID : int):
+async def markExpiredMenu(menuID: int):
     """Replace the message content of the given menu with cfg.expiredMenuMsg, and remove 
     the menu from the active reaction menus DB.
 
@@ -75,9 +78,9 @@ async def markExpiredMenu(menuID : int):
         botState.logger.log("expiryFunctions", "markExpiredMenu", "menu not in reactionMenusDB: " + str(menuID), category="reactionMenus", eventType="MENU_NOTFOUND")
 
 
-async def markExpiredMenuAndRemoveOptions(menuID : int):
-    """Remove all option reactions from the menu message, replace the message content of the given menu with cfg.expiredMenuMsg,
-    and remove the menu from the active reaction menus DB.
+async def markExpiredMenuAndRemoveOptions(menuID: int):
+    """Remove all option reactions from the menu message, replace the message content of the given menu
+    with cfg.expiredMenuMsg, and remove the menu from the active reaction menus DB.
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """

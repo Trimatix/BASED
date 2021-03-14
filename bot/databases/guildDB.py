@@ -9,7 +9,7 @@ from .. import lib
 
 class GuildDB(serializable.Serializable):
     """A database of BasedGuilds.
-    
+
     :var guilds: Dictionary of guild.id to guild, where guild is a BasedGuild
     :vartype guilds: dict[int, BasedGuild]
     """
@@ -18,7 +18,7 @@ class GuildDB(serializable.Serializable):
         # Store guilds as a dict of guild.id: guild
         self.guilds = {}
 
-    
+
     def getIDs(self) -> List[int]:
         """Get a list of all guild IDs in the database.
 
@@ -27,7 +27,7 @@ class GuildDB(serializable.Serializable):
         """
         return list(self.guilds.keys())
 
-    
+
     def getGuilds(self) -> List[basedGuild.BasedGuild]:
         """Get a list of all BasedGuilds in the database.
 
@@ -36,8 +36,8 @@ class GuildDB(serializable.Serializable):
         """
         return list(self.guilds.values())
 
-    
-    def getGuild(self, id : int) -> basedGuild.BasedGuild:
+
+    def getGuild(self, id: int) -> basedGuild.BasedGuild:
         """Get the BasedGuild object with the specified ID.
 
         :param str id: integer discord ID for the requested guild
@@ -46,10 +46,10 @@ class GuildDB(serializable.Serializable):
         """
         return self.guilds[id]
 
-    
-    def idExists(self, id : int) -> bool:
+
+    def idExists(self, id: int) -> bool:
         """Check whether a BasedGuild with a given ID exists in the database.
-        
+
         :param int id: integer discord ID to check for existence
         :return: True if a BasedGuild is stored in the database with the requested ID, False otherwise
         :rtype: bool
@@ -62,9 +62,9 @@ class GuildDB(serializable.Serializable):
             return False
         # Return True otherwise
         return True
-    
-    
-    def guildExists(self, guild : basedGuild.BasedGuild) -> bool:
+
+
+    def guildExists(self, guild: basedGuild.BasedGuild) -> bool:
         """Check whether a BasedGuild object exists in the database.
         Existence checking is currently handled by checking if a guild with the requested ID is stored.
 
@@ -75,8 +75,8 @@ class GuildDB(serializable.Serializable):
         """
         return self.idExists(guild.id)
 
-    
-    def addGuild(self, guild : basedGuild.BasedGuild):
+
+    def addGuild(self, guild: basedGuild.BasedGuild):
         """Add a given BasedGuild object to the database.
 
         :param BasedGuild guild: the BasedGuild object to store
@@ -86,14 +86,14 @@ class GuildDB(serializable.Serializable):
         if self.guildExists(guild):
             raise KeyError("Attempted to add a guild that already exists: " + guild.id)
         self.guilds[guild.id] = guild
-    
-    
+
+
     def addID(self, id: int) -> basedGuild.BasedGuild:
         """Add a BasedGuild object with the requested ID to the database
 
         :param int id: integer discord ID to create and store a BasedGuild for
         :raise KeyError: If a BasedGuild is already stored for the requested ID
-        
+
         :return: the new BasedGuild object
         :rtype: BasedGuild
         """
@@ -103,17 +103,17 @@ class GuildDB(serializable.Serializable):
         # Create and return a BasedGuild for the requested ID
         self.guilds[id] = basedGuild.BasedGuild(id, botState.client.get_guild(id))
         return self.guilds[id]
-    
-    
-    def removeID(self, id : int):
+
+
+    def removeID(self, id: int):
         """Remove the BasedGuild with the requested ID from the database.
-        
+
         :param int id: integer discord ID to remove from the database
         """
         self.guilds.pop(id)
 
-    
-    def removeGuild(self, guild : basedGuild.BasedGuild):
+
+    def removeGuild(self, guild: basedGuild.BasedGuild):
         """Remove the given BasedGuild object from the database
         Currently removes any BasedGuild sharing the given guild's ID, even if it is a different object.
 
@@ -121,7 +121,7 @@ class GuildDB(serializable.Serializable):
         """
         self.removeID(guild.id)
 
-    
+
     def toDict(self, **kwargs) -> dict:
         """Serialise this GuildDB into dictionary format
 
@@ -136,7 +136,7 @@ class GuildDB(serializable.Serializable):
             data[str(guild.id)] = guild.toDict(**kwargs)
         return data
 
-    
+
     def __str__(self) -> str:
         """Fetch summarising information about the database, as a string
         Currently only the number of guilds stored
@@ -148,7 +148,7 @@ class GuildDB(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, guildDBDict : dict, **kwargs) -> GuildDB:
+    def fromDict(cls, guildDBDict: dict, **kwargs) -> GuildDB:
         """Construct a GuildDB object from dictionary-serialised format; the reverse of GuildDB.todict()
 
         :param dict bountyDBDict: The dictionary representation of the GuildDB to create
@@ -165,6 +165,7 @@ class GuildDB(serializable.Serializable):
                 newDB.addGuild(basedGuild.BasedGuild.fromDict(guildDBDict[id], id=int(id)))
             # Ignore guilds that don't have a corresponding dcGuild
             except lib.exceptions.NoneDCGuildObj:
-                botState.logger.log("GuildDB", "fromDict", "no corresponding discord guild found for ID " + id + ", guild removed from database",
-                    category="guildsDB", eventType="NULL_GLD")
+                botState.logger.log("GuildDB", "fromDict", "no corresponding discord guild found for ID " + id +
+                                                            ", guild removed from database",
+                                    category="guildsDB", eventType="NULL_GLD")
         return newDB

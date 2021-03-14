@@ -10,8 +10,8 @@ from ..reactionMenus import SDBSignupMenu
 
 
 class BasedGuild(serializable.Serializable):
-    """A class representing a guild in discord, and storing extra bot-specific information about it. 
-    
+    """A class representing a guild in discord, and storing extra bot-specific information about it.
+
     :var id: The ID of the guild, directly corresponding to a discord guild's ID.
     :vartype id: int
     :var dcGuild: This guild's corresponding discord.Guild object
@@ -25,7 +25,8 @@ class BasedGuild(serializable.Serializable):
         """
 
         if not isinstance(dcGuild, Guild):
-            raise lib.exceptions.NoneDCGuildObj("Given dcGuild of type '" + dcGuild.__class__.__name__ + "', expecting discord.Guild")
+            raise lib.exceptions.NoneDCGuildObj("Given dcGuild of type '" + dcGuild.__class__.__name__ + \
+                                                "', expecting discord.Guild")
 
         self.id = id
         self.dcGuild = dcGuild
@@ -73,8 +74,9 @@ class BasedGuild(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, guildDict : dict, **kwargs) -> BasedGuild:
-        """Factory function constructing a new BasedGuild object from the information in the provided guildDict - the opposite of BasedGuild.toDict
+    def fromDict(cls, guildDict: dict, **kwargs) -> BasedGuild:
+        """Factory function constructing a new BasedGuild object from the information
+        in the provided guildDict - the opposite of BasedGuild.toDict
 
         :param int id: The discord ID of the guild
         :param dict guildDict: A dictionary containing all information required to build the BasedGuild object
@@ -83,12 +85,12 @@ class BasedGuild(serializable.Serializable):
         """
         if "id" not in kwargs:
             raise NameError("Required kwarg missing: id")
-        id = kwargs["id"]
+        guildID = kwargs["id"]
 
-        dcGuild = botState.client.get_guild(id)
+        dcGuild = botState.client.get_guild(guildID)
         if not isinstance(dcGuild, Guild):
-            raise lib.exceptions.NoneDCGuildObj("Could not get guild object for id " + str(id))
-        
+            raise lib.exceptions.NoneDCGuildObj("Could not get guild object for id " + str(guildID))
+
         if "commandPrefix" in guildDict:
             return BasedGuild(id, dcGuild, commandPrefix=guildDict["commandPrefix"], decks=guildDict["decks"] if "decks" in guildDict else {}, modRoleID=guildDict["modRoleID"] if "modRoleID" in guildDict else -1)
         return BasedGuild(id, dcGuild, decks=guildDict["decks"] if "decks" in guildDict else {}, modRoleID=guildDict["modRoleID"] if "modRoleID" in guildDict else -1)
