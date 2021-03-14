@@ -300,13 +300,31 @@ class SDBGame:
         winningPlayer.points += 1
 
 
+    async def _resetPlayerSubmissions(self, player: sdbPlayer.SDBPlayer):
+        player.hasSubmitted = False
+        player.submittedCards = []
+        await player.updatePlayMenu()
+        if player.cardsSubmittedMsg is not None:
+            await player.cardsSubmittedMsg.delete()
+            player.cardsSubmittedMsg = None
+
+
     async def resetSubmissions(self):
         if self.shutdownOverride:
             return
+
+        tasks = set()
+
+        def scheduleSubmissionsReset(self, player):
+            task = asyncio.ensure_future(self._resetPlayerSubmissions(player))
+            tasks.add(task)
+            task.add_done_callback(tasks.remove)
+
         for player in self.players:
-            player.hasSubmitted = False
-            player.submittedCards = []
-            await player.updatePlayMenu()
+            scheduleSubmissionsReset(self, player)
+
+        if tasks:
+            await asyncio.wait(tasks)
 
 
     async def showLeaderboard(self):
@@ -415,7 +433,7 @@ class SDBGame:
 
 
     async def startGame(self):
-        self.currentChooser = self.currentChooser = random.randint(0, len(self.players) - 1)
+        self.currentChooser = random.randint(0, len(self.players) - 1)
         self.players[self.currentChooser].isChooser = True
         await self.doGameIntro()
         await self.setOwner(self.owner, deleteOldCfgMenu=False)
