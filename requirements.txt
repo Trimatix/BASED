@@ -1,7 +1,3 @@
 discord.py
 emoji
-pillow
-gspread
-psutil
-oauth2client
 toml

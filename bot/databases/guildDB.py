@@ -84,7 +84,7 @@ class GuildDB(serializable.Serializable):
         """
         # Ensure guild is not yet in the database
         if self.guildExists(guild):
-            raise KeyError("Attempted to add a guild that already exists: " + str(guild.id))
+            raise KeyError("Attempted to add a guild that already exists: " + guild.id)
         self.guilds[guild.id] = guild
 
 
@@ -158,14 +158,14 @@ class GuildDB(serializable.Serializable):
         # Instance the new GuildDB
         newDB = GuildDB()
         # Iterate over all IDs to add to the DB
-        for guildID in guildDBDict.keys():
+        for id in guildDBDict.keys():
             # Instance new BasedGuilds for each ID, with the provided data
             # JSON stores properties as strings, so ids must be converted to int first.
             try:
-                newDB.addGuild(basedGuild.BasedGuild.fromDict(guildDBDict[guildID], id=int(guildID)))
+                newDB.addGuild(basedGuild.BasedGuild.fromDict(guildDBDict[id], id=int(id)))
             # Ignore guilds that don't have a corresponding dcGuild
             except lib.exceptions.NoneDCGuildObj:
-                botState.logger.log("GuildDB", "fromDict", "no corresponding discord guild found for ID " + guildID +
+                botState.logger.log("GuildDB", "fromDict", "no corresponding discord guild found for ID " + id +
                                                             ", guild removed from database",
                                     category="guildsDB", eventType="NULL_GLD")
         return newDB
