@@ -9,6 +9,8 @@ from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEv
 from discord import DMChannel, GroupChannel, TextChannel
 import random
 from ..cfg import cfg
+import asyncio
+import inspect
 
 
 def getMemberFromRef(uRef: str, dcGuild: Guild) -> Union[Member, None]:
@@ -118,6 +120,7 @@ async def reactionFromRaw(payload: RawReactionActionEvent) -> Tuple[Message, Uni
                 user = channel.recipient
             else:
                 user = channel.me
+
         elif isinstance(channel, GroupChannel):
             # Group channels should be small and far between, so iteration is fine here.
             for currentUser in channel.recipients:
@@ -125,9 +128,15 @@ async def reactionFromRaw(payload: RawReactionActionEvent) -> Tuple[Message, Uni
                     user = currentUser
                 if user is None:
                     user = channel.me
+
         # Guild text channels
         elif isinstance(channel, TextChannel):
             user = channel.guild.get_member(payload.user_id)
+            if user is None:
+                user = await channel.guild.fetch_member(payload.user_id)
+                if user is None:
+                    return None, None, None
+
         else:
             return None, None, None
 
@@ -151,6 +160,64 @@ async def reactionFromRaw(payload: RawReactionActionEvent) -> Tuple[Message, Uni
     return message, user, emoji
 
 
+async def sendDM(text, user, owningMsg, exceptOnFail=False, reactOnDM=True, embed=None):
+    sendChannel = None
+    sendDM = True
+
+    if user.dm_channel is None:
+        await user.create_dm()
+    sendChannel = user.dm_channel
+    
+    if owningMsg is not None and sendChannel == owningMsg.channel:
+        sendDM = False
+    
+    dmMsg = None
+    
+    try:
+        dmMsg = await sendChannel.send(text, embed=embed)
+
+    except Forbidden as e:
+        if exceptOnFail:
+            raise e
+        await owningMsg.channel.send(":x: I can't DM you, " + user.display_name + "! Please enable DMs from users who are not friends.")
+    else:
+        if sendDM and reactOnDM:
+            await owningMsg.add_reaction(cfg.defaultEmojis.dmSent.sendable)
+
+    return dmMsg
+
+
+async def clientMultiWaitFor(eventTypes, timeout, check=None):
+    if check is not None:
+        done, pending = await asyncio.wait([
+                        botState.client.wait_for(eventType, check=check) for eventType in eventTypes
+                    ], return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
+    else:
+        done, pending = await asyncio.wait([
+                        botState.client.wait_for(eventType) for eventType in eventTypes
+                    ], return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
+
+    stuff = done.pop().result()
+
+    for future in done:
+        # If any exception happened in any other done tasks
+        # we don't care about the exception, but don't want the noise of
+        # non-retrieved exceptions
+        future.exception()
+
+    for future in pending:
+        future.cancel()  # we don't need these anymore
+
+    return stuff
+
+
+# async def checkableClientMultiWaitFor(eventTypes, check, timeout):
+#     iscoro = inspect.iscoroutinefunction(check)
+#     stuff = await clientMultiWaitFor(eventTypes, timeout)
+#     while not (await check(stuff) if iscoro else check(stuff)):
+#         stuff = await clientMultiWaitFor(eventTypes, timeout)
+    
+#     return stuff
 def messageArgsFromStr(msgStr: str) -> Dict[str, Union[str, Embed]]:
     """Transform a string description of the arguments to pass to a discord.Message constructor into type-correct arguments.
 

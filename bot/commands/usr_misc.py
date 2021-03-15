@@ -43,15 +43,15 @@ async def cmd_source(message: discord.Message, args: str, isDM: bool):
     srcEmbed.add_field(name="Uptime",
                        value=lib.timeUtil.td_format_noYM(datetime.utcnow() - botState.client.launchTime))
     srcEmbed.add_field(name="Author",
-                       value="Trimatix#2244")
+                       value="Trimatix#2244 & sHiiNe#4265")
     srcEmbed.add_field(name="API",
                        value="[Discord.py " + discord.__version__ + "](https://github.com/Rapptz/discord.py/)")
     srcEmbed.add_field(name="BASED",
                        value="[BASED " + versionInfo.BASED_VERSION + "](https://github.com/Trimatix/BASED)")
     srcEmbed.add_field(name="GitHub",
-                       value="Please ask the bot developer to post their GitHub repository here!")
+                       value="[Trimatix-indie/SuperDeckBreaker](https://github.com/Trimatix-indie/SuperDeckBreaker)")
     srcEmbed.add_field(name="Invite",
-                       value="Please ask the bot developer to post the bot's invite link here!")
+                       value="No public invite currently.")
     await message.channel.send(embed=srcEmbed)
 
 botCommands.register("source", cmd_source, 0, allowDM=True, signatureStr="**source**",
