@@ -5,7 +5,6 @@ class ShutDownState:
 
 
 client = None
-httpClient = None
 shutdown = ShutDownState.restart
 
 usersDB = None

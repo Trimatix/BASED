@@ -96,19 +96,16 @@ def setHelpEmbedThumbnails():
                 embed.set_thumbnail(url=botState.client.user.avatar_url_as(size=64))
 
 
-def inferUserPermissions(message: discord.Message, isDM) -> int:
+def inferUserPermissions(message: discord.Message) -> int:
     """Get the commands access level of the user that sent the given message.
     
     :return: message.author's access level, as an index of cfg.userAccessLevels
     :rtype: int
     """
-    callingBGuild = botState.guildsDB.getGuild(message.guild.id) if not isDM and botState.guildsDB.idExists(message.guild.id) else None 
     if message.author.id in cfg.developers:
         return 3
     elif message.author.permissions_in(message.channel).administrator:
         return 2
-    elif callingBGuild is not None and callingBGuild.modRole is not None and callingBGuild.modRole in message.author.roles:
-        return 1
     else:
         return 0
 
@@ -199,12 +196,6 @@ class BasedClient(ClientBaseClass):
         - logs out of discord
         - saves all savedata to file
         """
-        for guild in botState.guildsDB.getGuilds():
-            for game in guild.runningGames.values():
-                if game is not None:
-                    game.shutdownOverride = True
-                    game.shutdownOverrideReason = "The bot is shutting down"
-
         botState.taskScheduler.stopTaskChecking()
         if self.storeMenus:
             # expire non-saveable reaction menus
@@ -218,7 +209,6 @@ class BasedClient(ClientBaseClass):
         await self.logout()
         # save bot save data
         self.saveAllDBs()
-        await botState.httpClient.close()
         print(datetime.now().strftime("%H:%M:%S: Shutdown complete."))
         # close the bot's aiohttp session
         await botState.httpClient.close()
@@ -336,8 +326,6 @@ async def on_ready():
     ##### CLIENT INITIALIZATION #####
     
     botState.httpClient = aiohttp.ClientSession()
-    if cfg.cardStorageMethod not in ["discord", "local"]:
-        raise ValueError("Unsupported cfg.cardStorageMethod: " + str(cfg.cardStorageMethod))
 
     if cfg.timedTaskCheckingType == "fixed":
         botState.taskScheduler = timedTaskHeap.TimedTaskHeap()
@@ -378,16 +366,6 @@ async def on_ready():
     botState.guildsDB = loadGuildsDB(cfg.paths.guildsDB)
     botState.reactionMenusDB = await loadReactionMenusDB(cfg.paths.reactionMenusDB)
 
-    # Handle any guilds joined while the bot was offline
-    for guild in botState.client.guilds:
-        if not botState.guildsDB.idExists(guild.id):
-            botState.guildsDB.addID(guild.id)
-        else:
-            bGuild = botState.guildsDB.getGuild(guild.id)
-            if bGuild.modRoleID != -1:
-                bGuild.modRole = guild.get_role(bGuild.modRoleID)
-                if bGuild.modRole is None:
-                    bGuild.modRoleID = -1
 
     ##### SCHEDULING #####
 
@@ -437,13 +415,11 @@ async def on_message(message: discord.Message):
     # Get the context-relevant command prefix
     if isDM:
         commandPrefix = cfg.defaultCommandPrefix
-        callingBGuild = None
     else:
-        callingBGuild = botState.guildsDB.getGuild(message.guild.id)
-        commandPrefix = callingBGuild.commandPrefix
+        commandPrefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
 
     # For any messages beginning with commandPrefix
-    if message.content.lower().startswith(commandPrefix) and len(message.content) > len(commandPrefix):
+    if message.content.startswith(commandPrefix) and len(message.content) > len(commandPrefix):
         # replace special apostraphe characters with the universal '
         msgContent = message.content.replace("‘", "'").replace("’", "'")
 
@@ -456,7 +432,7 @@ async def on_message(message: discord.Message):
             return
 
         # infer the message author's permissions
-        accessLevel = inferUserPermissions(message, isDM)
+        accessLevel = inferUserPermissions(message)
         try:
             # Call the requested command
             commandFound = await botCommands.call(command, message, args, accessLevel, isDM=isDM)
@@ -563,4 +539,3 @@ def run():
     # Launch the bot!! 🤘🚀
     botState.client.run(cfg.botToken if cfg.botToken else os.environ[cfg.botToken_envVarName])
     return botState.shutdown
-    

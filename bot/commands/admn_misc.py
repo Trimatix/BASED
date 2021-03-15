@@ -57,17 +57,4 @@ async def admin_cmd_ping(message: discord.Message, args: str, isDM: bool):
     await msg.edit(content='Pong! {:.2f}ms'.format(duration))
 
 botCommands.register("ping", admin_cmd_ping, 2, signatureStr="**ping**",
-                        shortHelp="Test the bot's response latency in milliseconds.")
-
-
-async def admin_cmd_set_mod_role(message : discord.Message, args : str, isDM : bool):
-    """Set the server's moderator role.
-
-    :param discord.Message message: the discord message calling the command
-    :param str args: ignored
-    :param bool isDM: Whether or not the command is being called from a DM channel
-    """
-    await message.reply("Unimplemented")
-
-botCommands.register("set-mod-role", admin_cmd_set_mod_role, 2, signatureStr="**set-mod-role**",
-                        shortHelp="Set the server's moderator role.")
+                     shortHelp="Test the bot's response latency in milliseconds.")
