@@ -1,6 +1,6 @@
-from discord import Embed, File
+from discord import Embed, File, Message, Colour
 from .. import botState, lib
-from typing import Dict, Union
+from typing import Dict, Union, List
 from ..reactionMenus import expiryFunctions
 from ..baseClasses.enum import Enum
 from ..cfg import cfg
@@ -26,6 +26,30 @@ class GamePhase(Enum):
     gameOver = 2
 
 
+class SubmissionsProgressIndicator:
+    def __init__(self, msg: Message, players: List[sdbPlayer.SDBPlayer]):
+        self.msg = msg
+        self.playerText = {p: "Choosing cards... " + cfg.defaultEmojis.loading.sendable for p in players}
+        self.embed = lib.discordUtil.makeEmbed(authorName="Waiting For Submissions...", col=Colour.dark_orange())
+
+    
+    async def updateMsg(self):
+        self.embed.description = "\n".join(p.dcUser.mention + ": " + t for p, t in self.playerText.items())
+        await self.msg.edit(content=self.msg.content, embed=self.embed)
+
+
+    async def submissionReceived(self, player: sdbPlayer.SDBPlayer, noUpdateMsg=False):
+        self.playerText[player] = self.playerText[player][:-1] + cfg.defaultEmojis.submit.sendable
+        if not noUpdateMsg:
+            await self.updateMsg()
+
+    
+    async def playerJoin(self, player: sdbPlayer.SDBPlayer, noUpdateMsg=False):
+        self.playerText[player] = "Choosing cards... " + cfg.defaultEmojis.loading.sendable
+        if not noUpdateMsg:
+            await self.updateMsg()
+            
+
 class SDBGame:
     def __init__(self, owner, deck, activeExpansions, channel, rounds, gamePhase=GamePhase.setup):
         self.owner = owner
@@ -44,7 +68,7 @@ class SDBGame:
         self.currentRound = 0
         self.maxPlayers = sum(len(deck.cards[expansion].white) for expansion in activeExpansions) // cfg.cardsPerHand
         self.waitingForSubmissions = False
-        self.waitingMsg = None
+        self.submissionsProgress = None
 
         # self.configOptions = []
         # self.configOptions.append(sdbGameConfig.SDBOwnerOption(self))
@@ -140,6 +164,8 @@ class SDBGame:
         await self.dealPlayerCards(player)
         await player.updatePlayMenu()
         self.players.append(player)
+        if self.submissionsProgress is not None:
+            await self.submissionsProgress.playerJoin(player)
         await self.channel.send(member.display_name + " joined the game!")
 
 
@@ -233,20 +259,24 @@ class SDBGame:
 
     async def endWaitForSubmissions(self):
         self.waitingForSubmissions = False
+        self.submissionsProgress = None
         await self.waitingMsg.delete()
         await self.advanceGame()
 
 
-    async def submissionReceived(self):
+    async def submissionReceived(self, player: sdbPlayer.SDBPlayer):
         if self.shutdownOverride:
             return
+        await self.submissionsProgress.submissionReceived(player)
         if self.allPlayersSubmitted():
             await self.endWaitForSubmissions()
 
 
     async def startWaitForSubmissions(self):
         self.waitingForSubmissions = True
-        self.waitingMsg = await self.channel.send("Waiting for submissions...")
+        self.submissionsProgress = SubmissionsProgressIndicator(await self.channel.send("Waiting for submissions..."),
+                                                                self.players)
+        await self.submissionsProgress.updateMsg()
 
         while self.waitingForSubmissions:
             await asyncio.sleep(cfg.timeouts.allSubmittedCheckPeriodSeconds)

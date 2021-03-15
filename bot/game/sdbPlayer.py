@@ -71,7 +71,7 @@ class SDBPlayer:
             self.hasSubmitted = True
             self.cardsSubmittedMsg = await self.dcUser.send("✅ Cards submitted!")
             await self.removeErrs()
-            await self.game.submissionReceived()
+            await self.game.submissionReceived(self)
 
 
     def hasCard(self, card):
@@ -121,3 +121,7 @@ class SDBPlayer:
             self.alreadySubmittedError = None
         if not noCardNumErr and self.hasCardNumErr:
             await self.playMenu.remCardNumErr()
+
+
+    def __hash__(self) -> int:
+        return hash(repr(self))
