@@ -52,31 +52,17 @@ class SDBPlayer:
         if self.isChooser:
             if self.chooserSubmitError is None:
                 self.chooserSubmitError = await self.dcUser.send("You can't submit cards yet as you are the card chooser!")
-        elif self.hasSubmitted:
+        elif self.hasSubmitted or not self.game.waitingForSubmissions:
+            if self.alreadySubmittedError is None:
                 self.alreadySubmittedError = await self.dcUser.send("You've already submitted for this round!")
         elif len(self.selectedSlots) != self.game.currentBlackCard.currentCard.requiredWhiteCards:
-            if self.chooserSubmitError is not None:
-                await self.chooserSubmitError.delete()
-                self.chooserSubmitError = None
-            if self.alreadySubmittedError is not None:
-                await self.alreadySubmittedError.delete()
-                self.alreadySubmittedError = None
+            await self.removeErrs(noCardNumErr=True)
 
             # raise ValueError("Player currently has " + str(len(self.selectedSlots)) + " card slots selected, but " + str(self.game.currentBlackCard.currentCard.requiredWhiteCards) + " are required by the black card: " + str(self.game.currentBlackCard.url))
             if not self.hasCardNumErr:
                 await self.playMenu.addCardNumErr()
                 self.hasCardNumErr = True
-        else:
-            if self.chooserSubmitError is not None:
-                await self.chooserSubmitError.delete()
-                self.chooserSubmitError = None
-            if self.alreadySubmittedError is not None:
-                await self.alreadySubmittedError.delete()
-                self.alreadySubmittedError = None
-
-            if self.hasCardNumErr:
-                await self.playMenu.remCardNumErr()
-                
+        else:                
             self.submittedCards = []
             for slot in self.selectedSlots:
                 self.submittedCards.append(slot.currentCard)
@@ -84,6 +70,8 @@ class SDBPlayer:
 
             self.hasSubmitted = True
             self.cardsSubmittedMsg = await self.dcUser.send("✅ Cards submitted!")
+            await self.removeErrs()
+            await self.game.submissionReceived()
 
 
     def hasCard(self, card):
@@ -119,3 +107,17 @@ class SDBPlayer:
             self.configMenu = SDBDMConfigMenu.SDBDMConfigMenu(cfgMenuMsg, self.game)
             botState.reactionMenusDB[cfgMenuMsg.id] = self.configMenu
             await self.configMenu.updateMessage()
+
+    
+    async def removeErrs(self, noCardNumErr=False):
+        if self.cardsSubmittedMsg is not None:
+            await self.cardsSubmittedMsg.delete()
+            self.cardsSubmittedMsg = None
+        if self.chooserSubmitError is not None:
+            await self.chooserSubmitError.delete()
+            self.chooserSubmitError = None
+        if self.alreadySubmittedError is not None:
+            await self.alreadySubmittedError.delete()
+            self.alreadySubmittedError = None
+        if not noCardNumErr and self.hasCardNumErr:
+            await self.playMenu.remCardNumErr()

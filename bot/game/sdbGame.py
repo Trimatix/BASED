@@ -43,6 +43,8 @@ class SDBGame:
         self.rounds = rounds
         self.currentRound = 0
         self.maxPlayers = sum(len(deck.cards[expansion].white) for expansion in activeExpansions) // cfg.cardsPerHand
+        self.waitingForSubmissions = False
+        self.waitingMsg = None
 
         # self.configOptions = []
         # self.configOptions.append(sdbGameConfig.SDBOwnerOption(self))
@@ -229,13 +231,27 @@ class SDBGame:
         await self.currentBlackCard.setCard(self.deck.randomBlack(self.expansionNames))
 
 
-    async def waitForSubmissions(self):
+    async def endWaitForSubmissions(self):
+        self.waitingForSubmissions = False
+        await self.waitingMsg.delete()
+        await self.advanceGame()
+
+
+    async def submissionReceived(self):
         if self.shutdownOverride:
             return
-        waitingMsg = await self.channel.send("Waiting for submissions...")
-        while not self.allPlayersSubmitted() and not self.shutdownOverride:
+        if self.allPlayersSubmitted():
+            await self.endWaitForSubmissions()
+
+
+    async def startWaitForSubmissions(self):
+        self.waitingForSubmissions = True
+        self.waitingMsg = await self.channel.send("Waiting for submissions...")
+
+        while self.waitingForSubmissions:
             await asyncio.sleep(cfg.timeouts.allSubmittedCheckPeriodSeconds)
-        await waitingMsg.delete()
+            if self.shutdownOverride:
+                return
 
 
     async def pickWinningCards(self):
@@ -304,9 +320,7 @@ class SDBGame:
         player.hasSubmitted = False
         player.submittedCards = []
         await player.updatePlayMenu()
-        if player.cardsSubmittedMsg is not None:
-            await player.cardsSubmittedMsg.delete()
-            player.cardsSubmittedMsg = None
+        await player.removeErrs()
 
 
     async def resetSubmissions(self):
@@ -385,6 +399,7 @@ class SDBGame:
 
     async def playPhase(self):
         keepPlaying = True
+        waitForSubmissions = False
 
         if self.gamePhase == GamePhase.setup:
             self.currentRound += 1
@@ -400,8 +415,8 @@ class SDBGame:
             for leftPlayer in self.playersLeftDuringSetup:
                 self.players.remove(leftPlayer)
             self.playersLeftDuringSetup = []
-
-            await self.waitForSubmissions()
+            waitForSubmissions = True
+            await self.startWaitForSubmissions()
 
         elif self.gamePhase == GamePhase.postRound:
             await self.pickWinningCards()
@@ -410,9 +425,9 @@ class SDBGame:
             await self.showLeaderboard()
             keepPlaying = await self.checkKeepPlaying()
 
-        if keepPlaying and not self.shutdownOverride:
+        if keepPlaying and not self.shutdownOverride and not waitForSubmissions:
             await self.advanceGame()
-        else:
+        elif self.shutdownOverride:
             await self.endGame()
 
 

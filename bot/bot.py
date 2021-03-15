@@ -96,13 +96,13 @@ def setHelpEmbedThumbnails():
                 embed.set_thumbnail(url=botState.client.user.avatar_url_as(size=64))
 
 
-def inferUserPermissions(message: discord.Message) -> int:
+def inferUserPermissions(message: discord.Message, isDM) -> int:
     """Get the commands access level of the user that sent the given message.
     
     :return: message.author's access level, as an index of cfg.userAccessLevels
     :rtype: int
     """
-    callingBGuild = botState.guildsDB.getGuild(message.guild.id) if botState.guildsDB.idExists(message.guild.id) else None 
+    callingBGuild = botState.guildsDB.getGuild(message.guild.id) if not isDM and botState.guildsDB.idExists(message.guild.id) else None 
     if message.author.id in cfg.developers:
         return 3
     elif message.author.permissions_in(message.channel).administrator:
@@ -456,7 +456,7 @@ async def on_message(message: discord.Message):
             return
 
         # infer the message author's permissions
-        accessLevel = inferUserPermissions(message)
+        accessLevel = inferUserPermissions(message, isDM)
         try:
             # Call the requested command
             commandFound = await botCommands.call(command, message, args, accessLevel, isDM=isDM)
