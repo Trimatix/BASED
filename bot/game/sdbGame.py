@@ -29,8 +29,8 @@ class GamePhase(Enum):
 class SubmissionsProgressIndicator:
     def __init__(self, msg: Message, players: List[sdbPlayer.SDBPlayer]):
         self.msg = msg
-        self.playerText = {p: "Choosing cards... " + cfg.defaultEmojis.loading.sendable for p in players}
-        self.embed = lib.discordUtil.makeEmbed(authorName="Waiting For Submissions...", col=Colour.dark_orange())
+        self.playerText = {p: "Choosing cards... " + cfg.defaultEmojis.loading.sendable for p in players if not p.isChooser}
+        self.embed = lib.discordUtil.makeEmbed(authorName="Waiting For Submissions...", col=Colour.gold())
 
     
     async def updateMsg(self):
@@ -39,13 +39,19 @@ class SubmissionsProgressIndicator:
 
 
     async def submissionReceived(self, player: sdbPlayer.SDBPlayer, noUpdateMsg=False):
-        self.playerText[player] = self.playerText[player][:-1] + cfg.defaultEmojis.submit.sendable
+        self.playerText[player] = self.playerText[player][:-len(cfg.defaultEmojis.loading.sendable)] + cfg.defaultEmojis.submit.sendable
         if not noUpdateMsg:
             await self.updateMsg()
 
     
     async def playerJoin(self, player: sdbPlayer.SDBPlayer, noUpdateMsg=False):
         self.playerText[player] = "Choosing cards... " + cfg.defaultEmojis.loading.sendable
+        if not noUpdateMsg:
+            await self.updateMsg()
+
+    
+    async def playerLeave(self, player: sdbPlayer.SDBPlayer, noUpdateMsg=False):
+        del self.playerText[player]
         if not noUpdateMsg:
             await self.updateMsg()
             
@@ -171,9 +177,13 @@ class SDBGame:
 
     async def setOwner(self, member, deleteOldCfgMenu=True):
         if deleteOldCfgMenu:
-            currentPlayer = self.playerFromMember(self.owner)
-            if currentPlayer.hasConfigMenu():
-                await currentPlayer.closeConfigMenu()
+            try:
+                currentPlayer = self.playerFromMember(self.owner)
+            except KeyError:
+                pass
+            else:
+                if currentPlayer.hasConfigMenu():
+                    await currentPlayer.closeConfigMenu()
         self.owner = member
         await self.channel.send("The deck master is now  " + self.owner.mention + "! 🙇‍♂️")
         await self.owner.send("You are now deck master of the game in <#" + str(self.channel.id) + ">!\nThis means you are responsible for game admin, such as choosing to keep playing after every round.")
@@ -210,11 +220,14 @@ class SDBGame:
                 self.playersLeftDuringSetup.append(player)
             elif self.gamePhase == GamePhase.playRound:
                 if player.isChooser:
-                    await self.setChooser()
-                    if self.getChooser().hasSubmitted:
-                        self.getChooser().submittedCards = []
-                        self.getChooser().hasSubmitted = False
+                    newChooser = await self.setChooser()
+                    if newChooser.hasSubmitted:
+                        newChooser.submittedCards = []
+                        newChooser.hasSubmitted = False
                     player.isChooser = False
+                    await self.submissionsProgress.playerLeave(newChooser)
+                elif self.submissionsProgress is not None:
+                    await self.submissionsProgress.playerLeave(player)
                 self.players.remove(player)
             elif self.gamePhase == GamePhase.postRound:
                 if player.isChooser:
@@ -260,7 +273,6 @@ class SDBGame:
     async def endWaitForSubmissions(self):
         self.waitingForSubmissions = False
         self.submissionsProgress = None
-        await self.waitingMsg.delete()
         await self.advanceGame()
 
 
@@ -423,8 +435,10 @@ class SDBGame:
             return
         self.getChooser().isChooser = False
         self.currentChooser = (self.currentChooser + 1) % len(self.players)
-        self.getChooser().isChooser = True
+        newChooser = self.getChooser()
+        newChooser.isChooser = True
         await self.channel.send(self.getChooser().dcUser.mention + " is now the card chooser!")
+        return newChooser
 
 
     async def playPhase(self):
