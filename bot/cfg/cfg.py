@@ -32,7 +32,7 @@ timeouts = {
     # The time to wait inbetween database autosaves.
     "dataSaveFrequency": {"hours":1},
     # Number of seconds to wait inbetween each check for complete submissions
-    "allSubmittedCheckPeriodSeconds": 10,
+    "allSubmittedCheckPeriodSeconds": 5,
     # Number of seconds to wait before timing out the SDB round submissions review menu
     "submissionsReviewMenuSeconds": 1800,
     # Number of seconds to wait before timing out the SDB 'keep playing?' confirmation menu

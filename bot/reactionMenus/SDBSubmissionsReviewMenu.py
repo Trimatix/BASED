@@ -27,8 +27,8 @@ class InlineSDBSubmissionsReviewMenu(pagedReactionMenu.InlinePagedReactionMenu):
         super().__init__(msg, timeoutSeconds, pages=pages, targetMember=chooserPlayer.dcUser, noCancel=True, returnTriggers=returnTriggers, anon=True)
 
 
-    async def reactionClosesMenu(self, reactPL):
-        return not self.chooserPlayer.isChooser or await super().reactionClosesMenu(reactPL)
+    def reactionClosesMenu(self, reactPL):
+        return not self.chooserPlayer.isChooser or super().reactionClosesMenu(reactPL)
 
 
     def reactionValid(self, reactPL):

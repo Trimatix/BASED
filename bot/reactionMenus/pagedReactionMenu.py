@@ -221,7 +221,7 @@ class InlinePagedReactionMenu(PagedReactionMenu):
         self.returnTriggers = returnTriggers
 
 
-    async def reactionClosesMenu(self, reactPL):
+    def reactionClosesMenu(self, reactPL):
         # if reactPL.guild_id is None:
         #     user = botState.client.get_user(reactPL.user_id)
         # else:
@@ -232,7 +232,10 @@ class InlinePagedReactionMenu(PagedReactionMenu):
 
         # emoji = lib.emojis.BasedEmoji.fromReaction(reactPL.emoji, rejectInvalid=True)
 
-        _, user, emoji = await lib.discordUtil.reactionFromRaw(reactPL)
+        # _, user, emoji = await lib.discordUtil.reactionFromRaw(reactPL)
+        emoji = lib.emojis.BasedEmoji.fromReaction(reactPL.emoji, rejectInvalid=False)
+        user = self.msg.guild.get_member(reactPL.user_id)
+
 
         if user is None:
             botState.logger.log(type(self).__name__, "reactionClosesMenu", "Failed to get user #" + str(reactPL.user_id), category="reactionMenus", eventType="USRFAIL")
@@ -265,7 +268,7 @@ class InlinePagedReactionMenu(PagedReactionMenu):
 
         try:
             emoji = lib.emojis.BasedEmoji.fromReaction(reactPL.emoji, rejectInvalid=True)
-        except lib.exceptions.UnrecognisedBasedEmoji:
+        except lib.exceptions.UnrecognisedCustomEmoji:
             return False
 
 
@@ -304,7 +307,16 @@ class InlinePagedReactionMenu(PagedReactionMenu):
             try:
                 prev = datetime.utcnow()
                 reactPL = await lib.discordUtil.clientMultiWaitFor(["raw_reaction_add", "raw_reaction_remove"], timeoutLeft, check=self.reactionValid)
-                _, user, emoji = await lib.discordUtil.reactionFromRaw(reactPL)
+                # _, user, emoji = await lib.discordUtil.reactionFromRaw(reactPL)
+                try:
+                    emoji = lib.emojis.BasedEmoji.fromReaction(reactPL.emoji, rejectInvalid=True)
+                except lib.exceptions.UnrecognisedCustomEmoji:
+                    continue
+                user = self.msg.guild.get_member(reactPL.user_id)
+                if user is None:
+                    print("===============NONE USER")
+                    continue
+
                 if reactPL.event_type == "REACTION_ADD":
                     await self.reactionAdded(emoji, user)
                 else:
@@ -312,7 +324,7 @@ class InlinePagedReactionMenu(PagedReactionMenu):
 
                 timeoutLeft -= (datetime.utcnow() - prev).seconds
 
-                if await self.reactionClosesMenu(reactPL):
+                if self.reactionClosesMenu(reactPL):
                     currentEmbed = self.currentPage
                     currentEmbed.set_footer(text="This menu has now expired.")
                     await self.msg.edit(embed=currentEmbed)
