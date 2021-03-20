@@ -1,8 +1,5 @@
 from .. import botState
-
-# ReactionMenu subclasses that cannot be saved to dictionary
-# TODO: change to a class-variable reference e.g menu.__class__.SAVEABLE
-unsaveableMenuTypes = ["ReactionDuelChallengeMenu"]
+from ..reactionMenus import reactionMenu
 
 
 class ReactionMenuDB(dict):
@@ -17,9 +14,8 @@ class ReactionMenuDB(dict):
         """
         data = {}
         for msgID in self:
-            menuData = self[msgID].toDict(**kwargs)
-            if menuData["type"] not in unsaveableMenuTypes:
-                data[msgID] = menuData
+            if reactionMenu.isSaveableMenuInstance(self[msgID]):
+                data[msgID] = self[msgID].toDict(**kwargs)
         return data
 
 
@@ -33,17 +29,53 @@ async def fromDict(dbDict: dict) -> ReactionMenuDB:
     :rtype: ReactionMenuDB
     """
     newDB = ReactionMenuDB()
+    requiredAttrs = ["type", "guild", "channel"]
 
     for msgID in dbDict:
-        dcGuild = botState.client.get_guild(dbDict[msgID]["guild"])
-        msg = await dcGuild.get_channel(dbDict[msgID]["channel"]).fetch_message(dbDict[msgID]["msg"])
+        menuData = dbDict[msgID]
 
-        if botState.client.get_channel(dbDict[msgID]["channel"]) is None:
+        for attr in requiredAttrs:
+            if attr not in menuData:
+                botState.logger.log("reactionMenuDB", "fromDict",
+                                    "Invalid menu dict (missing " + attr + "), ignoring and removing. " \
+                                        + " ".join(foundAttr + "=" + menuData[foundAttr] \
+                                            for foundAttr in requiredAttrs if foundAttr in menuData),
+                                    category="reactionMenus", eventType="dictNo" + attr.capitalize)
+
+        menuDescriptor = menuData["type"] + "(" + "/".join(str(id) \
+                            for id in [menuData["guild"], menuData["channel"], msgID]) + ")"
+
+        dcGuild = botState.client.get_guild(menuData["guild"])
+        if dcGuild is None:
+            dcGuild = await botState.client.fetch_guild(menuData["guild"])
+            if dcGuild is None:
+                botState.logger.log("reactionMenuDB", "fromDict",
+                                    "Unrecognised guild in menu dict, ignoring and removing: " + menuDescriptor,
+                                    category="reactionMenus", eventType="unknGuild")
+                continue
+
+        menuChannel = dcGuild.get_channel(menuData["channel"])
+        if menuChannel is None:
+            menuChannel = await dcGuild.fetch_channel(menuData["channel"])
+            if menuChannel is None:
+                botState.logger.log("reactionMenuDB", "fromDict",
+                                    "Unrecognised channel in menu dict, ignoring and removing: " + menuDescriptor,
+                                    category="reactionMenus", eventType="unknChannel")
+                continue
+
+        msg = await menuChannel.fetch_message(menuData["msg"])
+        if msg is None:
+            botState.logger.log("reactionMenuDB", "fromDict",
+                                "Unrecognised message in menu dict, ignoring and removing: " + menuDescriptor,
+                                category="reactionMenus", eventType="unknMsg")
             continue
-        if "type" in dbDict[msgID]:
-            # if dbDict[msgID]["type"] == "ReactionInventoryPicker":
-            #     # newDB[int(msgID)] = ReactionInventoryPicker.fromDict(dbDict[msgID], msg=msg)
-            #     continue
-            continue
+        
+        if not reactionMenu.isSaveableMenuTypeName(menuData["type"]):
+            newDB[int(msgID)] = reactionMenu.saveableMenuClassFromName(menuData["type"]).fromDict(menuData, msg=msg)
+        else:
+            botState.logger.log("reactionMenuDB", "fromDict",
+                                "Attempted to fromDict a non-saveable menu type, ignoring and removing. msg #" + str(msgID) \
+                                    + ", type " + menuData["type"],
+                                category="reactionMenus", eventType="dictUnsaveable")
 
     return newDB

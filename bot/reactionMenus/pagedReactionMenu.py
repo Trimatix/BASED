@@ -14,7 +14,6 @@ async def menuJumpToPage(data: dict):
 class PagedReactionMenu(reactionMenu.ReactionMenu):
     """A reaction menu that, instead of taking a list of options, takes a list of pages of options.
     """
-    saveable = False
 
     def __init__(self, msg: Message, pages: Dict[Embed, Dict[lib.emojis.BasedEmoji, reactionMenu.ReactionMenuOption]] = None,
                  timeout: timedTask.TimedTask = None, targetMember: Member = None, targetRole: Role = None,
