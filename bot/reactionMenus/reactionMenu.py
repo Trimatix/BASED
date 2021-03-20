@@ -244,7 +244,8 @@ class ReactionMenu(serializable.Serializable):
     The options in your options dictionary do not have to be of the same type - each option could have completely
     different behaviour. The only consideration you may need to make when creating such an object is whether or
     not you wish for it to be saveable - in which case, you should extend ReactionMenu into a new module,
-    providing a custom toDict method and fromDict function.
+    providing a custom toDict method and fromDict function, and then register your class as saveable with
+    the @saveableMenu decorator.
 
     :var msg: the message where this menu is embedded
     :vartype msg: discord.Message
@@ -272,11 +273,7 @@ class ReactionMenu(serializable.Serializable):
     :vartype targetMember: discord.Member
     :var targetRole: In order to interact with this menu, users must possess this role. All other reactions are ignored
     :vartype targetRole: discord.Role
-    :var saveable: Class attribute indicating whether or not this type of ReactionMenu can be saved to file.
-                    If not, this menu will be forcibly deleted before bot shutdown.
-    :vartype saveable: bool
     """
-    saveable = False
 
     def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = None,
                  titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: TimedTask = None,
@@ -641,3 +638,69 @@ class SingleUserReactionMenu(ReactionMenu):
             return [lib.emojis.BasedEmojiFromReaction(react.emoji) for react in updatedMsg.reactions \
                     if self.targetMember in await react.users().flatten() and \
                     lib.emojis.BasedEmojiFromReaction(react.emoji) in self.options]
+
+
+saveableMenuTypeNames: Dict[type, str] = {}
+saveableNameMenuTypes: Dict[str, type] = {}
+
+
+def saveableMenu(cls: type) -> type:
+    """A decorator registering a ReactionMenu subclass as saveable.
+    Once applied, instances of your class will automatically save their toDict representation to SQL on creation,
+    and the instance will be reconstructed on bot restart with your provided fromDict implementation.
+    Both cls.toDict and cls.fromDict must be present and complete for this decorator to function.
+
+    :param type cls: A ReactionMenu subclass to register as saveable
+    :return: cls
+    :rtype: type
+    :raise TypeError: When cls is not a subclass of ReactionMenu
+    """
+    if not issubclass(cls, ReactionMenu):
+        raise TypeError("Invalid use of saveableMenu decorator: " + cls.__name__ + " is not a ReactionMenu subtype")
+    if cls not in saveableMenuTypeNames:
+        saveableMenuTypeNames[cls] = cls.__name__
+    if cls.__name__ not in saveableNameMenuTypes:
+        saveableNameMenuTypes[cls.__name__] = cls
+    return cls
+
+
+def isSaveableMenuClass(cls: type) -> bool:
+    """Decide if the given class has been registered as a saveable reaction menu.
+
+    :param type cls: The class to check for saveability registration
+    :return: True if cls is a saveable reaction menu class, False otherwise
+    :rtype: bool
+    """
+    return issubclass(cls, ReactionMenu) and cls in saveableNameMenuTypes
+
+
+def isSaveableMenuInstance(o: ReactionMenu) -> bool:
+    """Decide if o is an instance of a saveable reaction menu class.
+
+    :param ReactionMenu o: The ReactionMenu instance to check for saveability registration
+    :return: True if o is a saveable reaction menu instance, False otherwise
+    :rtype: bool
+    """
+    return isinstance(o, ReactionMenu) and type(o) in saveableMenuTypeNames
+
+
+def isSaveableMenuTypeName(clsName: str) -> bool:
+    """Decide if clsName is the name of a saveable reaction menu class.
+
+    :param str clsName: The name of the class to check for saveability registration
+    :return: True if clsName corresponds to a a saveable reaction menu class, False otherwise
+    :rtype: bool
+    """
+    return clsName in saveableNameMenuTypes
+
+
+def saveableMenuClassFromName(clsName: str) -> type:
+    """Retreive the saveable ReactionMenu subclass that as the given class name.
+    clsName must correspond to a ReactionMenu subclass that has been registered as saveble with the saveableMenu decorator.
+
+    :param str clsName: The name of the class to retreive
+    :return: A saveable ReactionMenu subclass with the name clsName
+    :rtype: type
+    :raise KeyError: If no ReactionMenu subclass with the given name has been registered as saveable
+    """
+    return saveableNameMenuTypes[clsName]
