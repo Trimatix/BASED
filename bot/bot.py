@@ -201,9 +201,8 @@ class BasedClient(ClientBaseClass):
         """
         for guild in botState.guildsDB.getGuilds():
             for game in guild.runningGames.values():
-                if game is not None:
-                    game.shutdownOverride = True
-                    game.shutdownOverrideReason = "The bot is shutting down"
+                game.shutdownOverride = True
+                game.shutdownOverrideReason = "The bot is shutting down"
 
         botState.taskScheduler.stopTaskChecking()
         if self.storeMenus:

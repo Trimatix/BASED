@@ -1,6 +1,7 @@
 from __future__ import annotations
+from typing import Dict, Union
 
-from discord import Guild
+from discord import Guild, TextChannel
 
 from .. import botState, lib
 from ..baseClasses import serializable
@@ -18,7 +19,8 @@ class BasedGuild(serializable.Serializable):
     :vartype dcGuild: discord.Guild
     """
 
-    def __init__(self, id : int, dcGuild: Guild, commandPrefix : str = cfg.defaultCommandPrefix, runningGames = {}, decks = {}, modRoleID = -1):
+    def __init__(self, id : int, dcGuild: Guild, commandPrefix : str = cfg.defaultCommandPrefix,
+            runningGames: Dict[TextChannel, Union[sdbGame.SDBGame, sdbGame.GameChannelReservation]] = {}, decks: Dict[str, dict] = {}, modRoleID = -1):
         """
         :param int id: The ID of the guild, directly corresponding to a discord guild's ID.
         :param discord.Guild guild: This guild's corresponding discord.Guild object

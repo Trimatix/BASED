@@ -3,6 +3,7 @@ import discord
 from . import commandsDB as botCommands
 from .. import botState, lib
 from ..reactionMenus import SDBDMConfigMenu
+from ..game import sdbGame
 
 botCommands.addHelpSection(0, "deck master")
 
@@ -10,7 +11,7 @@ botCommands.addHelpSection(0, "deck master")
 async def cmd_end_game(message : discord.Message, args : str, isDM : bool):
     callingBGuild = botState.guildsDB.getGuild(message.guild.id)
 
-    if message.channel not in callingBGuild.runningGames or callingBGuild.runningGames[message.channel] is None:
+    if message.channel not in callingBGuild.runningGames or isinstance(callingBGuild.runningGames[message.channel], sdbGame.GameChannelReservation):
         await message.channel.send(":x: There is no game currently running in this channel.")
     elif message.author != callingBGuild.runningGames[message.channel].owner:
         await message.channel.send(":x: This command can only be used by the deck master.")
@@ -28,7 +29,7 @@ botCommands.register("end-game", cmd_end_game, 0, allowDM=False, helpSection="de
 async def cmd_game_config(message : discord.Message, args : str, isDM : bool):
     callingBGuild = botState.guildsDB.getGuild(message.guild.id)
 
-    if message.channel not in callingBGuild.runningGames or callingBGuild.runningGames[message.channel] is None:
+    if message.channel not in callingBGuild.runningGames or isinstance(callingBGuild.runningGames[message.channel], sdbGame.GameChannelReservation):
         await message.channel.send(":x: There is no game currently running in this channel.")
     elif message.author != callingBGuild.runningGames[message.channel].owner:
         await message.channel.send(":x: This command can only be used by the deck master.")

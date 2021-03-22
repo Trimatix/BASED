@@ -1,3 +1,4 @@
+from bot.cardRenderer.lib import deck_path
 from ..lib.emojis import UninitializedBasedEmoji
 
 # All emojis used by the bot
@@ -46,7 +47,9 @@ timeouts = {
     # The time allowed to pick a new deck master when relinquishing game ownership
     "sdbPlayerSelectorSeconds": 300,
     # The time to wait for a new deck name message in cmd_rename
-    "deckRenameSeconds": 180
+    "deckRenameSeconds": 180,
+    # The minimum amount of time that must pass between updates of a specific deck
+    "deckUpdateCooldown": {"minutes": 2}
 }
 
 paths = {
