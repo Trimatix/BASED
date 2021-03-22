@@ -58,7 +58,7 @@ async def cmd_add_deck(message : discord.Message, args : str, isDM : bool):
     # if deckMeta["deck_name"] in callingBGuild.decks:
 
     now = datetime.utcnow()
-    callingBGuild.decks[deckMeta["deck_name"].lower()] = {"meta_url": args, "creator": message.author.id, "creation_date" : str(now.year) + "-" + str(now.month) + "-" + str(now.day), "plays": 0,
+    callingBGuild.decks[deckMeta["deck_name"].lower()] = {"meta_url": args, "creator": message.author.id, "last_update": now.timestamp(), "plays": 0,
                                                             "expansion_names" : list(deckMeta["expansions"].keys())}
 
     await message.channel.send("Deck added!")
@@ -151,7 +151,7 @@ async def cmd_create(message : discord.Message, args : str, isDM : bool):
         metaPath = cfg.paths.decksFolder + os.sep + str(message.guild.id) + os.sep + str(hash(gameData["title"])) + ".json"
         lib.jsonHandler.writeJSON(metaPath, deckMeta)
         now = datetime.utcnow()
-        callingBGuild.decks[deckMeta["deck_name"].lower()] = {"meta_path": metaPath, "creator": message.author.id, "creation_date" : str(now.day).zfill(2) + "-" + str(now.month).zfill(2) + "-" + str(now.year), "plays": 0,
+        callingBGuild.decks[deckMeta["deck_name"].lower()] = {"meta_path": metaPath, "creator": message.author.id, "last_update" : now.timestamp(), "plays": 0,
                                                             "expansions" : {expansion: (whiteCounts[expansion], blackCounts[expansion]) for expansion in whiteCounts}, "spreadsheet_url": args, "white_count": totalWhite, "black_count": totalBlack,
                                                             "updating": False}
 
@@ -235,8 +235,9 @@ async def cmd_decks(message : discord.Message, args : str, isDM : bool):
         decksEmbed = lib.discordUtil.makeEmbed(titleTxt=message.guild.name, desc="__Card Decks__", footerTxt="Super Deck Breaker",
                                                 thumb=("https://cdn.discordapp.com/icons/" + str(message.guild.id) + "/" + message.guild.icon + ".png?size=64") if message.guild.icon is not None else "")
         for deckName in callingBGuild.decks:
+            lastUpdate = datetime.utcfromtimestamp(callingBGuild.decks[deckName]["last_update"])
             decksEmbed.add_field(name=deckName.title(), value="Added by: <@" + str(callingBGuild.decks[deckName]["creator"]) + ">\n" + \
-                                                                "Last updated " + callingBGuild.decks[deckName]["creation_date"] + "\n" + \
+                                                                "Last updated " + lastUpdate.strftime("%m/%d/%Y") + "\n" + \
                                                                 str(callingBGuild.decks[deckName]["plays"]) + " plays | " + str(callingBGuild.decks[deckName]["white_count"] + \
                                                                 callingBGuild.decks[deckName]["black_count"]) + " cards | [sheet](" + callingBGuild.decks[deckName]["spreadsheet_url"] +")\n" + \
                                                                 "Max players: " + str(int(callingBGuild.decks[deckName]["white_count"] / cfg.cardsPerHand)))
@@ -411,9 +412,9 @@ async def cmd_update_deck(message : discord.Message, args : str, isDM : bool):
         await message.channel.send(":x: Unknown deck: " + args)
         return
 
-    if callingBGuild.decks[args]["creator"] != message.author.id:
-        await message.channel.send(":x: You can only update decks that you own!")
-        return
+    # if callingBGuild.decks[args]["creator"] != message.author.id:
+    #     await message.channel.send(":x: You can only update decks that you own!")
+    #     return
 
     if callingBGuild.decks[args]["updating"]:
         await message.channel.send(":x: This deck is already being updated!")
@@ -485,7 +486,7 @@ async def cmd_update_deck(message : discord.Message, args : str, isDM : bool):
         
         lib.jsonHandler.writeJSON(callingBGuild.decks[args]["meta_path"], oldCardData)
         now = datetime.utcnow()
-        callingBGuild.decks[args]["creation_date"] = str(now.day).zfill(2) + "-" + str(now.month).zfill(2) + "-" + str(now.year)
+        callingBGuild.decks[args]["last_update"] = now.timestamp()
         callingBGuild.decks[args]["expansions"] = {expansion: (whiteCounts[expansion], blackCounts[expansion]) for expansion in whiteCounts}
         callingBGuild.decks[args]["white_count"] = totalWhite
         callingBGuild.decks[args]["black_count"] = totalBlack
