@@ -1,5 +1,5 @@
 from bot import botState
-from . import reactionMenu, pagedReactionMenu
+from . import reactionMenu, pagedReactionMenu, confirmationReactionMenu
 from discord import Message, Member, Role, Embed, User
 from typing import Dict, Union
 from .. import lib
@@ -24,10 +24,13 @@ class SDBDMConfigMenu(pagedReactionMenu.PagedReactionMenu):
         pageOneEmbed.title = "Deck Master Admin Menu"
         ownerEmoji = lib.emojis.BasedEmoji(unicode="👑")
         roundsEmoji = lib.emojis.BasedEmoji(unicode="⌚")
+        endGameEmoji = lib.emojis.BasedEmoji(unicode="🗑")
         pageOneEmbed.add_field(name=ownerEmoji.sendable + " : Relinquish Deck Master", value="Hand game ownership to another user.")
-        pages[pageOneEmbed][ownerEmoji] = reactionMenu.NonSaveableReactionMenuOption("Relinquish Deck Master", ownerEmoji, addFunc=self.reliquishOwner)
         pageOneEmbed.add_field(name=roundsEmoji.sendable + " : Change Number of Rounds", value="Change the number of rounds in the game, or switch to free play.")
+        pageOneEmbed.add_field(name=endGameEmoji.sendable + " : End Game", value="End the game now.")
+        pages[pageOneEmbed][ownerEmoji] = reactionMenu.NonSaveableReactionMenuOption("Relinquish Deck Master", ownerEmoji, addFunc=self.reliquishOwner)
         pages[pageOneEmbed][roundsEmoji] = reactionMenu.NonSaveableReactionMenuOption("Change Number of Rounds", roundsEmoji, addFunc=self.changeNumRounds)
+        pages[pageOneEmbed][endGameEmoji] = reactionMenu.NonSaveableReactionMenuOption("End Game", endGameEmoji, addFunc=self.endGame)
         super().__init__(msg, pages=pages, targetMember=game.owner)
 
 
@@ -156,4 +159,19 @@ class SDBDMConfigMenu(pagedReactionMenu.PagedReactionMenu):
                 await self.game.channel.send("🃏 The deck master enabled **Free play** mode!" if rounds == -1 else \
                                             "🃏 The deck master changed the game to **best of " + str(rounds) + "!**")
             asyncio.ensure_future(roundsPickerMsg.delete())
+            await self.unpauseMenu()
+
+
+    async def endGame(self):
+        await self.pauseMenu()
+        confirmMsg = await self.msg.channel.send("​")
+        endConfirmMenu = await confirmationReactionMenu.InlineConfirmationMenu(confirmMsg, self.game.owner, cfg.timeouts.numRoundsPickerSeconds,
+                                                                                authorName="Confirm Game End", icon=botState.client.user.avatar_url_as(size=32),
+                                                                                desc="Are you sure you want to end the game now?").doMenu()
+        if len(endConfirmMenu) > 0 and endConfirmMenu[0] == cfg.defaultEmojis.accept:
+            self.game.shutdownOverride = True
+            self.game.shutdownOverrideReason = "The game was ended by the deck master."
+            await self.msg.channel.send("Ending game...")
+        else:
+            asyncio.ensure_future(confirmMsg.delete())
             await self.unpauseMenu()
