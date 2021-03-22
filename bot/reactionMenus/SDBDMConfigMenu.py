@@ -77,9 +77,9 @@ class SDBDMConfigMenu(pagedReactionMenu.PagedReactionMenu):
             await self.game.channel.send(self.owner.mention + " Player selection menu failed to send! Are your DMs open?\nPicking a new deck master at random...")
         
         if newOwner is None:
-            newOwner = random.choice(self.game.players)
-            while newOwner.dcUser == self.game.owner:
+            newOwner = random.choice(self.game.players).dcUser
+            while newOwner == self.game.owner:
                 print("random picking")
-                newOwner = random.choice(self.game.players)
+                newOwner = random.choice(self.game.players).dcUser
 
         await self.game.setOwner(newOwner)
