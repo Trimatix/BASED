@@ -412,7 +412,7 @@ class SDBGame:
         if self.shutdownOverride:
             return False
         if self.rounds != -1:
-            return self.currentRound != self.rounds
+            return self.currentRound <= self.rounds
         else:
             confirmMsg = await self.channel.send("Play another round?")
             keepPlaying = await InlineConfirmationMenu(confirmMsg, self.owner, cfg.timeouts.keepPlayingMenuSeconds).doMenu()
@@ -421,6 +421,9 @@ class SDBGame:
 
 
     async def endGame(self):
+        callingBGuild = botState.guildsDB.getGuild(self.channel.guild.id)
+        if self.channel in callingBGuild.runningGames:
+            del callingBGuild.runningGames[self.channel]
         winningplayers = [self.players[0]]
         for player in self.players[1:]:
             if player.points > winningplayers[0].points:
@@ -444,7 +447,6 @@ class SDBGame:
             await self.cancelPlayerSelectorMenus(player)
 
         if self.deckUpdater is not None and self.deckUpdater.bGuild.decks[self.deck.name]["last_update"] == -1:
-            callingBGuild = botState.guildsDB.getGuild(self.channel.guild.id)
             for game in callingBGuild.runningGames.values():
                 if game.deck.name == self.deck.name:
                     return
@@ -497,7 +499,7 @@ class SDBGame:
 
         if keepPlaying and not self.shutdownOverride and not waitForSubmissions:
             await self.advanceGame()
-        elif self.shutdownOverride:
+        elif self.shutdownOverride or not keepPlaying:
             await self.endGame()
 
 
