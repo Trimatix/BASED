@@ -232,7 +232,10 @@ class InlinePagedReactionMenu(PagedReactionMenu):
 
         # _, user, emoji = await lib.discordUtil.reactionFromRaw(reactPL)
         emoji = lib.emojis.BasedEmoji.fromReaction(reactPL.emoji, rejectInvalid=False)
-        user = self.msg.guild.get_member(reactPL.user_id)
+        if self.msg.guild is None:
+            user = botState.client.get_user(reactPL.user_id)
+        else:
+            user = self.msg.guild.get_member(reactPL.user_id)
 
 
         if user is None:
@@ -310,7 +313,10 @@ class InlinePagedReactionMenu(PagedReactionMenu):
                     emoji = lib.emojis.BasedEmoji.fromReaction(reactPL.emoji, rejectInvalid=True)
                 except lib.exceptions.UnrecognisedCustomEmoji:
                     continue
-                user = self.msg.guild.get_member(reactPL.user_id)
+                if self.msg.guild is None:
+                    user = botState.client.get_user(reactPL.user_id)
+                else:
+                    user = self.msg.guild.get_member(reactPL.user_id)
                 if user is None:
                     print("===============NONE USER")
                     continue
