@@ -1,4 +1,4 @@
-from discord import Embed, File, Message, Colour
+from discord import Embed, File, Message, Colour, Member, TextChannel
 from .. import botState, lib
 from typing import Dict, Union, List
 from ..reactionMenus import expiryFunctions
@@ -14,10 +14,25 @@ from ..reactionMenus.pagedReactionMenu import InvalidClosingReaction
 import random
 import shutil
 import os
+from datetime import datetime
 # from . import sdbGameConfig
 
 from bot.reactionMenus import SDBSubmissionsReviewMenu
 EMPTY_IMAGE = "https://i.imgur.com/sym17F7.png"
+
+
+class DeckUpdateRegistry:
+    def __init__(self, callingMsg: Message, bGuild):
+        self.callingMsg = callingMsg
+        self.bGuild = bGuild
+
+
+class GameChannelReservation:
+    def __init__(self, deck: sdbDeck.SDBDeck):
+        self.deck = deck
+        self.shutdownOverride = False
+        self.shutdownOverrideReason = ""
+        self.started = False
 
 
 class GamePhase(Enum):
@@ -58,7 +73,8 @@ class SubmissionsProgressIndicator:
             
 
 class SDBGame:
-    def __init__(self, owner, deck, activeExpansions, channel, rounds, gamePhase=GamePhase.setup):
+    def __init__(self, owner: Member, deck: sdbDeck.SDBDeck, activeExpansions: List[str], channel: TextChannel, rounds: int,
+                    gamePhase : int = GamePhase.setup):
         self.owner = owner
         self.channel = channel
         self.deck = deck
@@ -76,6 +92,7 @@ class SDBGame:
         self.maxPlayers = sum(len(deck.cards[expansion].white) for expansion in activeExpansions) // cfg.cardsPerHand
         self.waitingForSubmissions = False
         self.submissionsProgress = None
+        self.deckUpdater: DeckUpdateRegistry = None
 
         # self.configOptions = []
         # self.configOptions.append(sdbGameConfig.SDBOwnerOption(self))
@@ -426,6 +443,14 @@ class SDBGame:
         for player in self.players:
             await self.cancelPlayerSelectorMenus(player)
 
+        if self.deckUpdater is not None and self.deckUpdater.bGuild.decks[self.deck.name]["last_update"] == -1:
+            callingBGuild = botState.guildsDB.getGuild(self.channel.guild.id)
+            for game in callingBGuild.runningGames.values():
+                if game.deck.name == self.deck.name:
+                    return
+            self.deckUpdater.bGuild.decks[self.deck.name]["last_update"] = datetime.utcnow().timestamp()
+            await sdbDeck.updateDeck(self.deckUpdater.callingMsg, self.deckUpdater.bGuild, self.deck.name)
+
 
     def getChooser(self):
         return self.players[self.currentChooser]
@@ -531,13 +556,27 @@ async def startGameFromExpansionMenu(gameCfg : Dict[str, Union[str, int]]):
     if gameCfg["menuID"] in botState.reactionMenusDB:
         menu = botState.reactionMenusDB[gameCfg["menuID"]]
         playChannel = menu.msg.channel
+        callingBGuild = botState.guildsDB.getGuild(menu.msg.guild.id)
+
+        if playChannel not in callingBGuild.runningGames:
+            await playChannel.send("The game was forcibly ended, likely due to an error.")
+        elif callingBGuild.runningGames[playChannel].shutdownOverride:
+            reservation = callingBGuild.runningGames[playChannel]
+            await playChannel.send(reservation.shutdownOverrideReason if reservation.shutdownOverrideReason else "The game was forcibly ended, likely due to an error.")
+            await expiryFunctions.deleteReactionMenu(menu.msg.id)
+            if playChannel in callingBGuild.runningGames:
+                del callingBGuild.runningGames[playChannel]
+        elif callingBGuild.decks[gameCfg["deckName"]]["updating"]:
+            await expiryFunctions.deleteReactionMenu(menu.msg.id)
+            if playChannel in callingBGuild.runningGames:
+                del callingBGuild.runningGames[playChannel]
+            await playChannel.send("Game cancelled - someone is updating the deck!")
 
         if menu.currentMaxPlayers < cfg.minPlayerCount:
             await playChannel.send(":x: You don't have enough white cards!\nPlease select at least " + str(cfg.minPlayerCount * cfg.cardsPerHand) + " white cards.")
         elif not menu.hasBlackCardsSelected:
             await playChannel.send(":x: You don't have enough black cards!\nPlease select at least one black card.")
         else:
-            callingBGuild = botState.guildsDB.getGuild(menu.msg.guild.id)
             rounds = gameCfg["rounds"]
 
             expansionNames = [option.name for option in menu.selectedOptions if menu.selectedOptions[option]]

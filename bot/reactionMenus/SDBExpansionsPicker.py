@@ -15,6 +15,7 @@ async def cancelGame(menuID):
         callingBGuild = botState.guildsDB.getGuild(menu.msg.guild.id)
         if menu.msg.channel in callingBGuild.runningGames:
             del callingBGuild.runningGames[menu.msg.channel]
+        await menu.timeout.forceExpire(callExpiryFunc=False)
         await menu.msg.delete()
         del botState.reactionMenusDB[menuID]
 
