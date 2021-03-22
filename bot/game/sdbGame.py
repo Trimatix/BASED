@@ -17,6 +17,7 @@ import os
 # from . import sdbGameConfig
 
 from bot.reactionMenus import SDBSubmissionsReviewMenu
+EMPTY_IMAGE = "https://i.imgur.com/sym17F7.png"
 
 
 class GamePhase(Enum):
@@ -30,7 +31,7 @@ class SubmissionsProgressIndicator:
     def __init__(self, msg: Message, players: List[sdbPlayer.SDBPlayer]):
         self.msg = msg
         self.playerText = {p: "Choosing cards... " + cfg.defaultEmojis.loading.sendable for p in players if not p.isChooser}
-        self.embed = lib.discordUtil.makeEmbed(authorName="Waiting For Submissions...", col=Colour.gold())
+        self.embed = lib.discordUtil.makeEmbed(authorName="Waiting For Submissions...", icon=EMPTY_IMAGE, col=Colour.gold())
 
     
     async def updateMsg(self):
