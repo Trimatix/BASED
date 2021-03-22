@@ -69,8 +69,8 @@ class SDBPlayer:
                 await slot.removeCard(self.game.deck.emptyWhite)
 
             self.hasSubmitted = True
-            self.cardsSubmittedMsg = await self.dcUser.send("✅ Cards submitted!")
             await self.removeErrs()
+            self.cardsSubmittedMsg = await self.dcUser.send("✅ Cards submitted!")
             await self.game.submissionReceived(self)
 
 
