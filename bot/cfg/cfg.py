@@ -1,3 +1,4 @@
+from bot.cardRenderer.lib import deck_path
 from ..lib.emojis import UninitializedBasedEmoji
 
 # All emojis used by the bot
@@ -6,7 +7,7 @@ defaultEmojis = {
     "loading": UninitializedBasedEmoji(793467306507763713),
     # When a user message prompts a DM to be sent, this emoji will be added to the message reactions.
     "dmSent": UninitializedBasedEmoji("📬"),
-    "cancel": UninitializedBasedEmoji("🇽"),
+    "cancel": UninitializedBasedEmoji("❌"),
     "submit": UninitializedBasedEmoji("✅"),
     "spiral": UninitializedBasedEmoji("🌀"),
     "error": UninitializedBasedEmoji("❓"),
@@ -15,14 +16,14 @@ defaultEmojis = {
     "next": UninitializedBasedEmoji('⏩'),
     "previous": UninitializedBasedEmoji('⏪'),
     "numbers": [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
-                    UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
-                    UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"), 
-                    UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")],
+                UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
+                UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"),
+                UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")],
 
-    # The default emojis to list in a reaction menu     
+    # The default emojis to list in a reaction menu
     "menuOptions": [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
                     UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
-                    UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"), 
+                    UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"),
                     UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")]
 }
 
@@ -46,7 +47,9 @@ timeouts = {
     # The time allowed to pick a new deck master when relinquishing game ownership
     "sdbPlayerSelectorSeconds": 300,
     # The time to wait for a new deck name message in cmd_rename
-    "deckRenameSeconds": 180
+    "deckRenameSeconds": 180,
+    # The minimum amount of time that must pass between updates of a specific deck
+    "deckUpdateCooldown": {"minutes": 2}
 }
 
 paths = {
@@ -71,7 +74,8 @@ paths = {
     "cardsTemp": "saveData" + "/" + "decks" + "/" + "temp"
 }
 
-# Names of user access levels to be used in help menus. Also determines the number of access levels available, e.g when registering commands
+# Names of user access levels to be used in help menus.
+# Also determines the number of access levels available, e.g when registering commands
 userAccessLevels = ["user", "mod", "admin", "dev"]
 
 # Message to print alongside cmd_help menus
@@ -88,9 +92,11 @@ includedCommandModules = (  "usr_misc", "usr_deck", "usr_dm",
 # Text to edit into expired menu messages
 expiredMenuMsg = "😴 This role menu has now expired."
 
-# Can currently only be "fixed"
-timedTaskCheckingType = "fixed"
-# Number of seconds by with the expiry of a timedtask may acceptably be late
+# Use "fixed" to check for task expiry every timedTaskLatenessThresholdSeconds (polling-based scheduler)
+# Use "dynamic" to check for task expiry exactly at the time of task expiry (interrupts-based scheduler)
+timedTaskCheckingType = "dynamic"
+# Number of seconds by with the expiry of a timedtask may acceptably be late.
+# Regardless of timedTaskCheckingType, this is used for the termination signal checking period.
 timedTaskLatenessThresholdSeconds = 10
 
 # Whether or not to check for updates to BASED
@@ -111,7 +117,7 @@ emptyBlackCard = emptyWhiteCard
 submittedWhiteCard = emptyWhiteCard
 
 # Options for the SDB number of rounds to play picker (not including free play)
-roundsPickerOptions = [3, 5, 10, 15]
+roundsPickerOptions = [2, 3]#[3, 5, 10, 15]
 # Default number of rounds to play. Only used if an error was encountered with the rounds picker reaction menu.
 defaultSDBRounds = 5
 

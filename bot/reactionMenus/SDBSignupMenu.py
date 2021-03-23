@@ -1,9 +1,9 @@
 from bot import botState
-from . import ReactionMenu, expiryFunctions
+from . import reactionMenu, expiryFunctions
 from discord import Message, Colour, Member, Role, Forbidden, HTTPException, NotFound
 from typing import Dict, TYPE_CHECKING
 from .. import lib
-from ..scheduling import TimedTask
+from ..scheduling import timedTask
 from ..cfg import cfg
 from ..game import sdbGame, sdbPlayer
 from datetime import timedelta
@@ -19,16 +19,16 @@ async def ownerOnlyCancelGame(menu, reactingUser=None):
         await menu.cancelSignups()
 
 
-class SDBSignupMenu(ReactionMenu.ReactionMenu):
+class SDBSignupMenu(reactionMenu.ReactionMenu):
 
     def __init__(self, msg : Message, game : sdbGame.SDBGame, timeToJoin : timedelta):
 
         self.game = game
-        options = {cfg.defaultEmojis.accept: ReactionMenu.NonSaveableReactionMenuOption("Join game", cfg.defaultEmojis.accept, addFunc=self.userJoinGame, removeFunc=self.userLeaveGame),
-                    cfg.defaultEmojis.submit: ReactionMenu.NonSaveableReactionMenuOption("Force start game", cfg.defaultEmojis.submit, addFunc=ownerOnlyStartGame, addArgs=self),
-                    cfg.defaultEmojis.cancel: ReactionMenu.NonSaveableReactionMenuOption("Cancel game", cfg.defaultEmojis.cancel, addFunc=ownerOnlyCancelGame, addArgs=self)}
-        timeout = TimedTask.TimedTask(expiryDelta=timeToJoin, expiryFunction=self.endSignups)
-        botState.reactionMenusTTDB.scheduleTask(timeout)
+        options = {cfg.defaultEmojis.accept: reactionMenu.NonSaveableReactionMenuOption("Join game", cfg.defaultEmojis.accept, addFunc=self.userJoinGame, removeFunc=self.userLeaveGame),
+                    cfg.defaultEmojis.submit: reactionMenu.NonSaveableReactionMenuOption("Force start game", cfg.defaultEmojis.submit, addFunc=ownerOnlyStartGame, addArgs=self),
+                    cfg.defaultEmojis.cancel: reactionMenu.NonSaveableReactionMenuOption("Cancel game", cfg.defaultEmojis.cancel, addFunc=ownerOnlyCancelGame, addArgs=self)}
+        timeout = timedTask.TimedTask(expiryDelta=timeToJoin, expiryFunction=self.endSignups)
+        botState.taskScheduler.scheduleTask(timeout)
         self.numSignups = 0
         
         super().__init__(msg, options = options,

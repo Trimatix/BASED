@@ -1,22 +1,38 @@
-from discord import Embed, File
+from discord import Embed, File, Message, Colour, Member, TextChannel
 from .. import botState, lib
-from typing import Dict, Union
+from typing import Dict, Union, List
 from ..reactionMenus import expiryFunctions
 from ..baseClasses.enum import Enum
 from ..cfg import cfg
 from . import sdbPlayer, sdbDeck
 import asyncio
 from ..reactionMenus.SDBSubmissionsReviewMenu import InlineSequentialSubmissionsReviewMenu
-from ..reactionMenus.ConfirmationReactionMenu import InlineConfirmationMenu
+from ..reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 from ..reactionMenus.SDBCardPlayMenu import SDBCardPlayMenu
 from ..reactionMenus.SDBCardSelector import SDBCardSelector
-from ..reactionMenus.PagedReactionMenu import InvalidClosingReaction
+from ..reactionMenus.pagedReactionMenu import InvalidClosingReaction
 import random
 import shutil
 import os
+from datetime import datetime
 # from . import sdbGameConfig
 
 from bot.reactionMenus import SDBSubmissionsReviewMenu
+EMPTY_IMAGE = "https://i.imgur.com/sym17F7.png"
+
+
+class DeckUpdateRegistry:
+    def __init__(self, callingMsg: Message, bGuild):
+        self.callingMsg = callingMsg
+        self.bGuild = bGuild
+
+
+class GameChannelReservation:
+    def __init__(self, deck: sdbDeck.SDBDeck):
+        self.deck = deck
+        self.shutdownOverride = False
+        self.shutdownOverrideReason = ""
+        self.started = False
 
 
 class GamePhase(Enum):
@@ -26,8 +42,39 @@ class GamePhase(Enum):
     gameOver = 2
 
 
+class SubmissionsProgressIndicator:
+    def __init__(self, msg: Message, players: List[sdbPlayer.SDBPlayer]):
+        self.msg = msg
+        self.playerText = {p: "Choosing cards... " + cfg.defaultEmojis.loading.sendable for p in players if not p.isChooser}
+        self.embed = lib.discordUtil.makeEmbed(authorName="Waiting For Submissions...", icon=EMPTY_IMAGE, col=Colour.gold())
+
+    
+    async def updateMsg(self):
+        self.embed.description = "\n".join(p.dcUser.mention + ": " + t for p, t in self.playerText.items())
+        await self.msg.edit(content=self.msg.content, embed=self.embed)
+
+
+    async def submissionReceived(self, player: sdbPlayer.SDBPlayer, noUpdateMsg=False):
+        self.playerText[player] = self.playerText[player][:-len(cfg.defaultEmojis.loading.sendable)] + cfg.defaultEmojis.submit.sendable
+        if not noUpdateMsg:
+            await self.updateMsg()
+
+    
+    async def playerJoin(self, player: sdbPlayer.SDBPlayer, noUpdateMsg=False):
+        self.playerText[player] = "Choosing cards... " + cfg.defaultEmojis.loading.sendable
+        if not noUpdateMsg:
+            await self.updateMsg()
+
+    
+    async def playerLeave(self, player: sdbPlayer.SDBPlayer, noUpdateMsg=False):
+        del self.playerText[player]
+        if not noUpdateMsg:
+            await self.updateMsg()
+            
+
 class SDBGame:
-    def __init__(self, owner, deck, activeExpansions, channel, rounds, gamePhase=GamePhase.setup):
+    def __init__(self, owner: Member, deck: sdbDeck.SDBDeck, activeExpansions: List[str], channel: TextChannel, rounds: int,
+                    gamePhase : int = GamePhase.setup):
         self.owner = owner
         self.channel = channel
         self.deck = deck
@@ -43,6 +90,9 @@ class SDBGame:
         self.rounds = rounds
         self.currentRound = 0
         self.maxPlayers = sum(len(deck.cards[expansion].white) for expansion in activeExpansions) // cfg.cardsPerHand
+        self.waitingForSubmissions = False
+        self.submissionsProgress = None
+        self.deckUpdater: DeckUpdateRegistry = None
 
         # self.configOptions = []
         # self.configOptions.append(sdbGameConfig.SDBOwnerOption(self))
@@ -138,14 +188,20 @@ class SDBGame:
         await self.dealPlayerCards(player)
         await player.updatePlayMenu()
         self.players.append(player)
+        if self.submissionsProgress is not None:
+            await self.submissionsProgress.playerJoin(player)
         await self.channel.send(member.display_name + " joined the game!")
 
 
     async def setOwner(self, member, deleteOldCfgMenu=True):
         if deleteOldCfgMenu:
-            currentPlayer = self.playerFromMember(self.owner)
-            if currentPlayer.hasConfigMenu():
-                await currentPlayer.closeConfigMenu()
+            try:
+                currentPlayer = self.playerFromMember(self.owner)
+            except KeyError:
+                pass
+            else:
+                if currentPlayer.hasConfigMenu():
+                    await currentPlayer.closeConfigMenu()
         self.owner = member
         await self.channel.send("The deck master is now  " + self.owner.mention + "! 🙇‍♂️")
         await self.owner.send("You are now deck master of the game in <#" + str(self.channel.id) + ">!\nThis means you are responsible for game admin, such as choosing to keep playing after every round.")
@@ -182,11 +238,14 @@ class SDBGame:
                 self.playersLeftDuringSetup.append(player)
             elif self.gamePhase == GamePhase.playRound:
                 if player.isChooser:
-                    await self.setChooser()
-                    if self.getChooser().hasSubmitted:
-                        self.getChooser().submittedCards = []
-                        self.getChooser().hasSubmitted = False
+                    newChooser = await self.setChooser()
+                    if newChooser.hasSubmitted:
+                        newChooser.submittedCards = []
+                        newChooser.hasSubmitted = False
                     player.isChooser = False
+                    await self.submissionsProgress.playerLeave(newChooser)
+                elif self.submissionsProgress is not None:
+                    await self.submissionsProgress.playerLeave(player)
                 self.players.remove(player)
             elif self.gamePhase == GamePhase.postRound:
                 if player.isChooser:
@@ -229,13 +288,30 @@ class SDBGame:
         await self.currentBlackCard.setCard(self.deck.randomBlack(self.expansionNames))
 
 
-    async def waitForSubmissions(self):
+    async def endWaitForSubmissions(self):
+        self.waitingForSubmissions = False
+        self.submissionsProgress = None
+        await self.advanceGame()
+
+
+    async def submissionReceived(self, player: sdbPlayer.SDBPlayer):
         if self.shutdownOverride:
             return
-        waitingMsg = await self.channel.send("Waiting for submissions...")
-        while not self.allPlayersSubmitted() and not self.shutdownOverride:
+        await self.submissionsProgress.submissionReceived(player)
+        if self.allPlayersSubmitted():
+            await self.endWaitForSubmissions()
+
+
+    async def startWaitForSubmissions(self):
+        self.waitingForSubmissions = True
+        self.submissionsProgress = SubmissionsProgressIndicator(await self.channel.send("Waiting for submissions..."),
+                                                                self.players)
+        await self.submissionsProgress.updateMsg()
+
+        while self.waitingForSubmissions:
             await asyncio.sleep(cfg.timeouts.allSubmittedCheckPeriodSeconds)
-        await waitingMsg.delete()
+            if self.shutdownOverride:
+                return
 
 
     async def pickWinningCards(self):
@@ -300,13 +376,29 @@ class SDBGame:
         winningPlayer.points += 1
 
 
+    async def _resetPlayerSubmissions(self, player: sdbPlayer.SDBPlayer):
+        player.hasSubmitted = False
+        player.submittedCards = []
+        await player.updatePlayMenu()
+        await player.removeErrs()
+
+
     async def resetSubmissions(self):
         if self.shutdownOverride:
             return
+
+        tasks = set()
+
+        def scheduleSubmissionsReset(self, player):
+            task = asyncio.ensure_future(self._resetPlayerSubmissions(player))
+            tasks.add(task)
+            task.add_done_callback(tasks.remove)
+
         for player in self.players:
-            player.hasSubmitted = False
-            player.submittedCards = []
-            await player.updatePlayMenu()
+            scheduleSubmissionsReset(self, player)
+
+        if tasks:
+            await asyncio.wait(tasks)
 
 
     async def showLeaderboard(self):
@@ -320,7 +412,7 @@ class SDBGame:
         if self.shutdownOverride:
             return False
         if self.rounds != -1:
-            return self.currentRound != self.rounds
+            return self.currentRound <= self.rounds
         else:
             confirmMsg = await self.channel.send("Play another round?")
             keepPlaying = await InlineConfirmationMenu(confirmMsg, self.owner, cfg.timeouts.keepPlayingMenuSeconds).doMenu()
@@ -329,6 +421,9 @@ class SDBGame:
 
 
     async def endGame(self):
+        callingBGuild = botState.guildsDB.getGuild(self.channel.guild.id)
+        if self.channel in callingBGuild.runningGames:
+            del callingBGuild.runningGames[self.channel]
         winningplayers = [self.players[0]]
         for player in self.players[1:]:
             if player.points > winningplayers[0].points:
@@ -351,6 +446,13 @@ class SDBGame:
         for player in self.players:
             await self.cancelPlayerSelectorMenus(player)
 
+        if self.deckUpdater is not None and self.deckUpdater.bGuild.decks[self.deck.name]["last_update"] == -1:
+            for game in callingBGuild.runningGames.values():
+                if game.deck.name == self.deck.name:
+                    return
+            self.deckUpdater.bGuild.decks[self.deck.name]["last_update"] = datetime.utcnow().timestamp()
+            await sdbDeck.updateDeck(self.deckUpdater.callingMsg, self.deckUpdater.bGuild, self.deck.name)
+
 
     def getChooser(self):
         return self.players[self.currentChooser]
@@ -361,12 +463,15 @@ class SDBGame:
             return
         self.getChooser().isChooser = False
         self.currentChooser = (self.currentChooser + 1) % len(self.players)
-        self.getChooser().isChooser = True
+        newChooser = self.getChooser()
+        newChooser.isChooser = True
         await self.channel.send(self.getChooser().dcUser.mention + " is now the card chooser!")
+        return newChooser
 
 
     async def playPhase(self):
         keepPlaying = True
+        waitForSubmissions = False
 
         if self.gamePhase == GamePhase.setup:
             self.currentRound += 1
@@ -382,8 +487,8 @@ class SDBGame:
             for leftPlayer in self.playersLeftDuringSetup:
                 self.players.remove(leftPlayer)
             self.playersLeftDuringSetup = []
-
-            await self.waitForSubmissions()
+            waitForSubmissions = True
+            await self.startWaitForSubmissions()
 
         elif self.gamePhase == GamePhase.postRound:
             await self.pickWinningCards()
@@ -392,9 +497,9 @@ class SDBGame:
             await self.showLeaderboard()
             keepPlaying = await self.checkKeepPlaying()
 
-        if keepPlaying and not self.shutdownOverride:
+        if keepPlaying and not self.shutdownOverride and not waitForSubmissions:
             await self.advanceGame()
-        else:
+        elif self.shutdownOverride or not keepPlaying:
             await self.endGame()
 
 
@@ -415,7 +520,7 @@ class SDBGame:
 
 
     async def startGame(self):
-        self.currentChooser = self.currentChooser = random.randint(0, len(self.players) - 1)
+        self.currentChooser = random.randint(0, len(self.players) - 1)
         self.players[self.currentChooser].isChooser = True
         await self.doGameIntro()
         await self.setOwner(self.owner, deleteOldCfgMenu=False)
@@ -453,13 +558,27 @@ async def startGameFromExpansionMenu(gameCfg : Dict[str, Union[str, int]]):
     if gameCfg["menuID"] in botState.reactionMenusDB:
         menu = botState.reactionMenusDB[gameCfg["menuID"]]
         playChannel = menu.msg.channel
+        callingBGuild = botState.guildsDB.getGuild(menu.msg.guild.id)
+
+        if playChannel not in callingBGuild.runningGames:
+            await playChannel.send("The game was forcibly ended, likely due to an error.")
+        elif callingBGuild.runningGames[playChannel].shutdownOverride:
+            reservation = callingBGuild.runningGames[playChannel]
+            await playChannel.send(reservation.shutdownOverrideReason if reservation.shutdownOverrideReason else "The game was forcibly ended, likely due to an error.")
+            await expiryFunctions.deleteReactionMenu(menu.msg.id)
+            if playChannel in callingBGuild.runningGames:
+                del callingBGuild.runningGames[playChannel]
+        elif callingBGuild.decks[gameCfg["deckName"]]["updating"]:
+            await expiryFunctions.deleteReactionMenu(menu.msg.id)
+            if playChannel in callingBGuild.runningGames:
+                del callingBGuild.runningGames[playChannel]
+            await playChannel.send("Game cancelled - someone is updating the deck!")
 
         if menu.currentMaxPlayers < cfg.minPlayerCount:
             await playChannel.send(":x: You don't have enough white cards!\nPlease select at least " + str(cfg.minPlayerCount * cfg.cardsPerHand) + " white cards.")
         elif not menu.hasBlackCardsSelected:
             await playChannel.send(":x: You don't have enough black cards!\nPlease select at least one black card.")
         else:
-            callingBGuild = botState.guildsDB.getGuild(menu.msg.guild.id)
             rounds = gameCfg["rounds"]
 
             expansionNames = [option.name for option in menu.selectedOptions if menu.selectedOptions[option]]

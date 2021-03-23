@@ -1,9 +1,9 @@
 from bot.users import basedUser
 from discord import Message, Member, Role, Embed
 from typing import Dict, Tuple
-from . import ReactionMenu, PagedReactionMenu
+from . import reactionMenu, pagedReactionMenu
 from .. import lib, botState
-from ..scheduling import TimedTask
+from ..scheduling import timedTask
 from ..users import basedUser
 from ..cfg import cfg
 
@@ -15,12 +15,13 @@ async def cancelGame(menuID):
         callingBGuild = botState.guildsDB.getGuild(menu.msg.guild.id)
         if menu.msg.channel in callingBGuild.runningGames:
             del callingBGuild.runningGames[menu.msg.channel]
+        await menu.timeout.forceExpire(callExpiryFunc=False)
         await menu.msg.delete()
         del botState.reactionMenusDB[menuID]
 
 
-class SDBExpansionsPicker(PagedReactionMenu.MultiPageOptionPicker):
-    def __init__(self, msg: Message, expansionNamesCardCounts: Dict[str, Tuple[int, int]], timeout: TimedTask.TimedTask = None, targetMember: Member = None, targetRole: Role = None, owningBasedUser: basedUser.BasedUser = None):
+class SDBExpansionsPicker(pagedReactionMenu.MultiPageOptionPicker):
+    def __init__(self, msg: Message, expansionNamesCardCounts: Dict[str, Tuple[int, int]], timeout: timedTask.TimedTask = None, targetMember: Member = None, targetRole: Role = None, owningBasedUser: basedUser.BasedUser = None):
         numExpansions = len(expansionNamesCardCounts)
         expansionNames = list(expansionNamesCardCounts.keys())
         self.currentMaxPlayers = 0
@@ -45,13 +46,13 @@ class SDBExpansionsPicker(PagedReactionMenu.MultiPageOptionPicker):
             optionEmoji = cfg.defaultEmojis.menuOptions[expansionNum % 5]
             expansionName = expansionNames[expansionNum]
             pageEmbed.add_field(name=optionEmoji.sendable + " : " + expansionName, value="`" + str(expansionNamesCardCounts[expansionName][0]) + " white cards | " + str(expansionNamesCardCounts[expansionName][1]) + " black cards`", inline=False)
-            optionPages[pageEmbed][optionEmoji] = ReactionMenu.NonSaveableSelecterMenuOption(expansionName, optionEmoji, msg.id)
+            optionPages[pageEmbed][optionEmoji] = reactionMenu.NonSaveableSelecterMenuOption(expansionName, optionEmoji, msg.id)
 
         for page in embedKeys:
             page.add_field(name=cfg.defaultEmojis.accept.sendable + " : Submit", value="​", inline=False)
             page.add_field(name=cfg.defaultEmojis.cancel.sendable + " : Cancel", value="​", inline=False)
             page.add_field(name=cfg.defaultEmojis.spiral.sendable + " : Toggle all", value="​", inline=False)
-            optionPages[page][cfg.defaultEmojis.cancel] = ReactionMenu.NonSaveableReactionMenuOption("Cancel", cfg.defaultEmojis.cancel, addFunc=cancelGame, addArgs=msg.id)
+            optionPages[page][cfg.defaultEmojis.cancel] = reactionMenu.NonSaveableReactionMenuOption("Cancel", cfg.defaultEmojis.cancel, addFunc=cancelGame, addArgs=msg.id)
 
         super().__init__(msg, pages=optionPages, timeout=timeout, targetMember=targetMember, targetRole=targetRole, owningBasedUser=owningBasedUser)
 

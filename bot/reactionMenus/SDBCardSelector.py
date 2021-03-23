@@ -1,17 +1,17 @@
 from bot import botState
-from . import ReactionMenu, expiryFunctions
+from . import reactionMenu, expiryFunctions
 from discord import Message, Colour, Member, Role, Forbidden
 from typing import Dict, TYPE_CHECKING
 from .. import lib
-from ..scheduling import TimedTask
+from ..scheduling import timedTask
 from ..cfg import cfg
 from ..game import sdbGame, sdbPlayer
 from datetime import timedelta
 
 
-class SDBCardSelector(ReactionMenu.ReactionMenu):
+class SDBCardSelector(reactionMenu.ReactionMenu):
     def __init__(self, msg: Message, player: sdbPlayer.SDBPlayer, cardSlot: sdbPlayer.SDBCardSlot):
-        super().__init__(msg, options={cfg.defaultEmojis.accept: ReactionMenu.NonSaveableReactionMenuOption("Select card", cfg.defaultEmojis.accept, addFunc=self.selectCard, removeFunc=self.deselectCard)}, targetMember=player.dcUser)
+        super().__init__(msg, options={cfg.defaultEmojis.accept: reactionMenu.NonSaveableReactionMenuOption("Select card", cfg.defaultEmojis.accept, addFunc=self.selectCard, removeFunc=self.deselectCard)}, targetMember=player.dcUser)
         self.player = player
         self.cardSlot = cardSlot
 

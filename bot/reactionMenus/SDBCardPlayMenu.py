@@ -1,21 +1,21 @@
 from bot import botState
-from . import ReactionMenu, expiryFunctions
+from . import reactionMenu, expiryFunctions
 from discord import Message, Colour, Member, Role, Forbidden
 from typing import Dict, TYPE_CHECKING
 from .. import lib
-from ..scheduling import TimedTask
+from ..scheduling import timedTask
 from ..cfg import cfg
 from ..game import sdbGame, sdbPlayer
 from datetime import timedelta
 
 
-class SDBCardPlayMenu(ReactionMenu.ReactionMenu):
+class SDBCardPlayMenu(reactionMenu.ReactionMenu):
     def __init__(self, msg: Message, player: sdbPlayer.SDBPlayer):
         self.player = player
         self.menuEmbed = lib.discordUtil.makeEmbed(titleTxt="Play your cards")
         self.menuEmbed.add_field(name="Currently selected:", value="No cards selected​", inline=False)
         self.menuEmbed.add_field(name="White cards required this round:", value="Waiting for game to start...", inline=False)
-        super().__init__(msg, options={cfg.defaultEmojis.submit: ReactionMenu.NonSaveableReactionMenuOption("Submit cards", cfg.defaultEmojis.submit, addFunc=self.player.submitCards)}, targetMember=player.dcUser)
+        super().__init__(msg, options={cfg.defaultEmojis.submit: reactionMenu.NonSaveableReactionMenuOption("Submit cards", cfg.defaultEmojis.submit, addFunc=self.player.submitCards)}, targetMember=player.dcUser)
 
 
     def getMenuEmbed(self):

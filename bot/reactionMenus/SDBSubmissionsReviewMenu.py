@@ -1,5 +1,5 @@
 from bot import botState
-from . import PagedReactionMenu, ReactionMenu
+from . import pagedReactionMenu, reactionMenu
 from discord import Embed, Message, Embed, File
 from ..cfg import cfg
 from ..game import sdbPlayer, sdbGame
@@ -14,21 +14,21 @@ import os
 import shutil
 
 
-class SDBWinningSubmissionOption(ReactionMenu.DummyReactionMenuOption):
+class SDBWinningSubmissionOption(reactionMenu.DummyReactionMenuOption):
     def __init__(self, player: "sdbPlayer.SDBPlayer", name="Select winning player", emoji=cfg.defaultEmojis.accept):
         super().__init__(name, emoji)
         self.player = player
 
 
-class InlineSDBSubmissionsReviewMenu(PagedReactionMenu.InlinePagedReactionMenu):
+class InlineSDBSubmissionsReviewMenu(pagedReactionMenu.InlinePagedReactionMenu):
     def __init__(self, msg: Message, pages: Dict[Embed, Dict[lib.emojis.BasedEmoji, SDBWinningSubmissionOption]], returnTriggers: List[SDBWinningSubmissionOption], timeoutSeconds: int, chooserPlayer: "sdbPlayer.SDBPlayer"):        
         self.chooserPlayer = chooserPlayer
 
         super().__init__(msg, timeoutSeconds, pages=pages, targetMember=chooserPlayer.dcUser, noCancel=True, returnTriggers=returnTriggers, anon=True)
 
 
-    async def reactionClosesMenu(self, reactPL):
-        return not self.chooserPlayer.isChooser or await super().reactionClosesMenu(reactPL)
+    def reactionClosesMenu(self, reactPL):
+        return not self.chooserPlayer.isChooser or super().reactionClosesMenu(reactPL)
 
 
     def reactionValid(self, reactPL):

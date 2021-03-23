@@ -28,4 +28,4 @@ RUN python3 ./makeDefaultConfig.py && \
 # I/O
 VOLUME /decks
 VOLUME /saveData
-ENTRYPOINT ["python3", "./main.py", "/config.toml"]
+ENTRYPOINT ["python3", "-u", "./main.py", "/config.toml"]
