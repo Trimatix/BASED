@@ -119,7 +119,7 @@ emptyBlackCard = emptyWhiteCard
 submittedWhiteCard = emptyWhiteCard
 
 # Options for the SDB number of rounds to play picker (not including free play)
-roundsPickerOptions = [2, 3]#[3, 5, 10, 15]
+roundsPickerOptions = [3, 5, 10, 15]
 # Default number of rounds to play. Only used if an error was encountered with the rounds picker reaction menu.
 defaultSDBRounds = 5
 

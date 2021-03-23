@@ -55,7 +55,7 @@ class SDBDMConfigMenu(pagedReactionMenu.PagedReactionMenu):
         pages[pageOneEmbed][ownerEmoji] = reactionMenu.NonSaveableReactionMenuOption("Relinquish Deck Master", ownerEmoji, addFunc=self.reliquishOwner)
         pages[pageOneEmbed][roundsEmoji] = reactionMenu.NonSaveableReactionMenuOption("Change Number of Rounds", roundsEmoji, addFunc=self.changeNumRounds)
         pages[pageOneEmbed][endGameEmoji] = reactionMenu.NonSaveableReactionMenuOption("End Game", endGameEmoji, addFunc=self.endGame)
-        pages[pageOneEmbed][endGameEmoji] = reactionMenu.NonSaveableReactionMenuOption(self.newPlayerToggle.name, self.newPlayerToggle.emoji, addFunc=self.toggleNewPlayerLock)
+        pages[pageOneEmbed][self.newPlayerToggle.emoji] = reactionMenu.NonSaveableReactionMenuOption(self.newPlayerToggle.name, self.newPlayerToggle.emoji, addFunc=self.toggleNewPlayerLock)
         super().__init__(msg, pages=pages, targetMember=game.owner)
 
 
@@ -208,7 +208,7 @@ class SDBDMConfigMenu(pagedReactionMenu.PagedReactionMenu):
         for page in self.pages:
             for fieldNum, field in enumerate(page.fields):
                 if field.name == self.newPlayerToggle.emoji.sendable + " : " + self.newPlayerToggle.name:
-                    page.set_field_at(fieldNum, self.newPlayerToggle.emoji.sendable + " : " + self.newPlayerToggle.name, self.newPlayerToggle.desc)
+                    page.set_field_at(fieldNum, name=self.newPlayerToggle.emoji.sendable + " : " + self.newPlayerToggle.name, value=self.newPlayerToggle.desc)
         self._removeErrs()
         await self.updateMessage(noRefreshOptions=True)
         
