@@ -243,7 +243,7 @@ async def cmd_join(message : discord.Message, args : str, isDM : bool):
         await message.channel.send(":x: There is no game currently running in this channel.")
     else:
         game = callingBGuild.runningGames[message.channel]
-        elif not game.started:
+        if not game.started:
             await message.channel.send(":x: The game has not yet started.")
         elif game.hasDCMember(message.author):
             await message.channel.send(":x: You are already a player in this game! Find your cards hand in our DMs.")
