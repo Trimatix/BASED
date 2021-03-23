@@ -108,17 +108,17 @@ class SDBGame:
 
 
     async def setupPlayerHand(self, player):
-        introText = "** **\n```yaml\n🃏" + self.owner.name + "'s game```__Welcome to Super Deck Breaker!__\n" \
+        introText = "** **\n```yaml\n🃏 " + self.owner.name + "'s game```__Welcome to Super Deck Breaker!__\n" \
                     + "Please send commands in <#" + str(self.channel.id) + ">, so I know which game they're meant for!\n" \
                     + "\n__How to Play__\n1) Watch <#" + str(self.channel.id) + "> to see the current black card!\n" \
                     + "2) Below this message is your **hand**.\n" \
-                    + "**    **Select the cards you want to play this round by adding the " \
+                    + "**     **Select the cards you want to play this round by adding the " \
                         + cfg.defaultEmojis.accept.sendable + " react in the order you want them.\n" \
-                    + "3) Confirm your submission by adding the " + cfg.defaultEmojis.submit \
+                    + "3) Confirm your submission by adding the " + cfg.defaultEmojis.submit.sendable \
                         + " react to the 'Play Your Cards' menu at the bottom.\n" \
-                    + "**    **Make sure your cards are in the right order!\n" \
+                    + "**     **Make sure your cards are in the right order!\n" \
                     + "4) Each round, there is a new **card chooser**, who picks the winning submission.\n" \
-                    + "**    **If this is you, watch <#" + str(self.channel.id) + "> and pick your favourite submission!\n\n" \
+                    + "**     **If this is you, watch <#" + str(self.channel.id) + "> and pick your favourite submission!\n\n" \
                     + "You can leave the game at any time by sending `" + self.bGuild.commandPrefix \
                         + "leave` in <#" + str(self.channel.id) + ">, and you can rejoin with `" + self.bGuild.commandPrefix \
                         + "join`\n\n" \
@@ -226,7 +226,7 @@ class SDBGame:
         await self.channel.send("The deck master is now  " + self.owner.mention + "! 🙇‍♂️")
         await self.owner.send("You are now deck master of the game in <#" + str(self.channel.id) + ">!\n" \
                                 + "See what commands you can use by sending `" + self.bGuild.commandPrefix \
-                                + "help deck master` in <#" + self.channel.id + ">, and access extra game controls " \
+                                + "help deck master` in <#" + str(self.channel.id) + ">, and access extra game controls " \
                                 + "through the **deck master menu** with `" + self.bGuild.commandPrefix + "admin`!")
 
 
@@ -301,10 +301,10 @@ class SDBGame:
     async def doGameIntro(self):
         if self.shutdownOverride:
             return
-        introText = "__Welcome to Super Deck Breaker!__\n" \
+        introText = "__\🃏 Welcome to Super Deck Breaker!__\n" \
                     + "Please send commands in this channel, so I know which game they're meant for!\n" \
                     + "\n__How to Play__\n1) Watch this channel to see the current **black card.**\n" \
-                    + "**    **Each black card has a number of empty spaces `_` you need to fill with white cards.\n" \
+                    + "**     **Each black card has a number of empty spaces `_` you need to fill with white cards.\n" \
                     + "2) Go into our DMs, and pick the funniest white cards you've got to fill those spaces!\n" \
                     + "3) Once everyone has submitted, the **card chooser** picks their favourite submission.\n\n" \
                     + "You can leave the game at any time with `" + self.bGuild.commandPrefix \
