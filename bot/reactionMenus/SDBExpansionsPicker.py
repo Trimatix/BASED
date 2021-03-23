@@ -16,8 +16,8 @@ async def cancelGame(menuID):
         if menu.msg.channel in callingBGuild.runningGames:
             del callingBGuild.runningGames[menu.msg.channel]
         await menu.timeout.forceExpire(callExpiryFunc=False)
-        await menu.msg.delete()
         del botState.reactionMenusDB[menuID]
+        await menu.msg.delete()
 
 
 class SDBExpansionsPicker(pagedReactionMenu.MultiPageOptionPicker):

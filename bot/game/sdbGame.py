@@ -94,6 +94,7 @@ class SDBGame:
         self.submissionsProgress = None
         self.deckUpdater: DeckUpdateRegistry = None
         self.bGuild = bGuild
+        self.allowNewPlayers = True
 
         # self.configOptions = []
         # self.configOptions.append(sdbGameConfig.SDBOwnerOption(self))
