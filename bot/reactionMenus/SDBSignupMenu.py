@@ -58,6 +58,8 @@ class SDBSignupMenu(ReactionMenu.ReactionMenu):
             else:
                 self.numSignups += 1
                 await sendChannel.send("✅ You joined " + self.game.owner.name + "'s game!")
+                if self.numSignups == self.game.maxPlayers:
+                    await self.delete()
         except Forbidden:
             await self.msg.channel.send(":x: " + reactingUser.mention + " failed to join - I can't DM you! Please enable DMs from users who are not friends.")
             try:

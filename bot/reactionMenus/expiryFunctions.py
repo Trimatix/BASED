@@ -103,7 +103,6 @@ async def expireHelpMenu(menuID: int):
     """
     menu = botState.reactionMenusDB[menuID]
     
-
     if menuID in botState.reactionMenusDB:
         menu = botState.reactionMenusDB[menuID]
         menu.owningBasedUser.helpMenuOwned = False
