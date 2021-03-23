@@ -29,10 +29,10 @@ class ToggleOption:
     def toggle(self):
         if self.state:
             self.state = False
-            self.desc = cfg.defaultEmojis.optionDisabled.sendable + " " + falseDesc
+            self.desc = cfg.defaultEmojis.optionDisabled.sendable + " " + self.falseDesc
         else:
             self.state = True
-            self.desc = cfg.defaultEmojis.optionEnabled.sendable + " " + trueDesc
+            self.desc = cfg.defaultEmojis.optionEnabled.sendable + " " + self.trueDesc
 
 
 class SDBDMConfigMenu(pagedReactionMenu.PagedReactionMenu):
@@ -202,7 +202,7 @@ class SDBDMConfigMenu(pagedReactionMenu.PagedReactionMenu):
             await self.unpauseMenu()
 
 
-    async toggleNewPlayerLock(self):
+    async def toggleNewPlayerLock(self):
         self.newPlayerToggle.toggle()
         self.game.allowNewPlayers = not self.newPlayerToggle.state
         for page in self.pages:
