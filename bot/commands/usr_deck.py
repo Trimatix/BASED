@@ -241,27 +241,30 @@ async def cmd_join(message : discord.Message, args : str, isDM : bool):
 
     if message.channel not in callingBGuild.runningGames:
         await message.channel.send(":x: There is no game currently running in this channel.")
-    elif not callingBGuild.runningGames[message.channel].started:
-        await message.channel.send(":x: The game has not yet started.")
-    elif callingBGuild.runningGames[message.channel].hasDCMember(message.author):
-        await message.channel.send(":x: You are already a player in this game! Find your cards hand in our DMs.")
-    elif len(callingBGuild.runningGames[message.channel].players) == callingBGuild.runningGames[message.channel].maxPlayers:
-        await message.channel.send(":x: This game is full!")
     else:
         game = callingBGuild.runningGames[message.channel]
-        sendChannel = None
+        if not game.started:
+            await message.channel.send(":x: The game has not yet started.")
+        elif game.hasDCMember(message.author):
+            await message.channel.send(":x: You are already a player in this game! Find your cards hand in our DMs.")
+        elif not game.allowNewPlayers:
+            await message.channel.send(":x: This game is locked to new players!")
+        elif len(game.players) == game.maxPlayers:
+            await message.channel.send(":x: This game is full!")
+        else:
+            sendChannel = None
 
-        if message.author.dm_channel is None:
-            await message.author.create_dm()
-        sendChannel = message.author.dm_channel
-        
-        try:
-            await sendChannel.send("✅ You joined " + game.owner.name + "'s game!")
-        except discord.Forbidden:
-            await message.channel.send(":x: " + message.author.mention + " failed to join - I can't DM you! Please enable DMs from users who are not friends.")
-            return
+            if message.author.dm_channel is None:
+                await message.author.create_dm()
+            sendChannel = message.author.dm_channel
+            
+            try:
+                await sendChannel.send("✅ You joined " + game.owner.name + "'s game!")
+            except discord.Forbidden:
+                await message.channel.send(":x: " + message.author.mention + " failed to join - I can't DM you! Please enable DMs from users who are not friends.")
+                return
 
-        await game.dcMemberJoinGame(message.author)
+            await game.dcMemberJoinGame(message.author)
 
 
 botCommands.register("join", cmd_join, 0, allowDM=False, helpSection="decks", signatureStr="**join**", shortHelp="Join the game that is currently running in the channel where you call the command")
@@ -273,7 +276,11 @@ async def cmd_leave(message : discord.Message, args : str, isDM : bool):
     if message.channel not in callingBGuild.runningGames or isinstance(callingBGuild.runningGames[message.channel], sdbGame.GameChannelReservation):
         await message.channel.send(":x: There is no game currently running in this channel.")
     else:
-        await callingBGuild.runningGames[message.channel].dcMemberLeaveGame(message.author)
+        game = callingBGuild.runningGames[message.channel]
+        if not game.hasDCMember(message.author):
+            await message.channel.send(":x: You have not joined the game in this channel!")
+        else:
+            await game.dcMemberLeaveGame(message.author)
 
 
 botCommands.register("leave", cmd_leave, 0, allowDM=False, helpSection="decks", signatureStr="**leave**", shortHelp="Leave the game that is currently running in the channel where you call the command")
@@ -402,9 +409,9 @@ async def cmd_update_deck(message : discord.Message, args : str, isDM : bool):
         await message.channel.send(":x: Unknown deck: " + args)
         return
 
-    # if callingBGuild.decks[args]["creator"] != message.author.id:
-    #     await message.channel.send(":x: You can only update decks that you own!")
-    #     return
+    if callingBGuild.decks[args]["creator"] != message.author.id:
+        await message.channel.send(":x: You can only update decks that you own!")
+        return
 
     if callingBGuild.decks[args]["updating"]:
         await message.channel.send(":x: This deck is already being updated!")

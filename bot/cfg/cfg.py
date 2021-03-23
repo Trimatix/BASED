@@ -24,7 +24,9 @@ defaultEmojis = {
     "menuOptions": [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
                     UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
                     UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"),
-                    UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")]
+                    UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")],
+    "optionEnabled": UninitializedBasedEmoji("✅"),
+    "optionDisabled": UninitializedBasedEmoji("❎")
 }
 
 timeouts = {
@@ -117,7 +119,7 @@ emptyBlackCard = emptyWhiteCard
 submittedWhiteCard = emptyWhiteCard
 
 # Options for the SDB number of rounds to play picker (not including free play)
-roundsPickerOptions = [2, 3]#[3, 5, 10, 15]
+roundsPickerOptions = [3, 5, 10, 15]
 # Default number of rounds to play. Only used if an error was encountered with the rounds picker reaction menu.
 defaultSDBRounds = 5
 

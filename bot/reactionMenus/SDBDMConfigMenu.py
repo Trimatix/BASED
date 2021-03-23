@@ -13,6 +13,28 @@ from discord.embeds import EmbedProxy, Embed
 import asyncio
 
 
+class ToggleOption:
+    def __init__(self, state, name, trueDesc, falseDesc, emoji):
+        self.state = state
+        self.name = name
+        self.trueDesc = trueDesc
+        self.falseDesc = falseDesc
+        self.emoji = emoji
+        if state:
+            self.desc = cfg.defaultEmojis.optionEnabled.sendable + " " + trueDesc
+        else:
+            self.desc = cfg.defaultEmojis.optionDisabled.sendable + " " + falseDesc
+
+    
+    def toggle(self):
+        if self.state:
+            self.state = False
+            self.desc = cfg.defaultEmojis.optionDisabled.sendable + " " + self.falseDesc
+        else:
+            self.state = True
+            self.desc = cfg.defaultEmojis.optionEnabled.sendable + " " + self.trueDesc
+
+
 class SDBDMConfigMenu(pagedReactionMenu.PagedReactionMenu):
     def __init__(self, msg: Message, game: "sdbGame.SDBGame"):
         self.game = game
@@ -25,12 +47,15 @@ class SDBDMConfigMenu(pagedReactionMenu.PagedReactionMenu):
         ownerEmoji = lib.emojis.BasedEmoji(unicode="👑")
         roundsEmoji = lib.emojis.BasedEmoji(unicode="⌚")
         endGameEmoji = lib.emojis.BasedEmoji(unicode="🗑")
+        self.newPlayerToggle = ToggleOption(False, "Lock Player Count", "New players will not be allowed to join.", "New players are allowed to join.", lib.emojis.BasedEmoji(unicode="🔐"))
         pageOneEmbed.add_field(name=ownerEmoji.sendable + " : Relinquish Deck Master", value="Hand game ownership to another user.")
         pageOneEmbed.add_field(name=roundsEmoji.sendable + " : Change Number of Rounds", value="Change the number of rounds in the game, or switch to free play.")
         pageOneEmbed.add_field(name=endGameEmoji.sendable + " : End Game", value="End the game now.")
+        pageOneEmbed.add_field(name=self.newPlayerToggle.emoji.sendable + " : " + self.newPlayerToggle.name, value=self.newPlayerToggle.desc)
         pages[pageOneEmbed][ownerEmoji] = reactionMenu.NonSaveableReactionMenuOption("Relinquish Deck Master", ownerEmoji, addFunc=self.reliquishOwner)
         pages[pageOneEmbed][roundsEmoji] = reactionMenu.NonSaveableReactionMenuOption("Change Number of Rounds", roundsEmoji, addFunc=self.changeNumRounds)
         pages[pageOneEmbed][endGameEmoji] = reactionMenu.NonSaveableReactionMenuOption("End Game", endGameEmoji, addFunc=self.endGame)
+        pages[pageOneEmbed][self.newPlayerToggle.emoji] = reactionMenu.NonSaveableReactionMenuOption(self.newPlayerToggle.name, self.newPlayerToggle.emoji, addFunc=self.toggleNewPlayerLock)
         super().__init__(msg, pages=pages, targetMember=game.owner)
 
 
@@ -175,3 +200,15 @@ class SDBDMConfigMenu(pagedReactionMenu.PagedReactionMenu):
         else:
             asyncio.ensure_future(confirmMsg.delete())
             await self.unpauseMenu()
+
+
+    async def toggleNewPlayerLock(self):
+        self.newPlayerToggle.toggle()
+        self.game.allowNewPlayers = not self.newPlayerToggle.state
+        for page in self.pages:
+            for fieldNum, field in enumerate(page.fields):
+                if field.name == self.newPlayerToggle.emoji.sendable + " : " + self.newPlayerToggle.name:
+                    page.set_field_at(fieldNum, name=self.newPlayerToggle.emoji.sendable + " : " + self.newPlayerToggle.name, value=self.newPlayerToggle.desc)
+        self._removeErrs()
+        await self.updateMessage(noRefreshOptions=True)
+        
