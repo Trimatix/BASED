@@ -241,27 +241,30 @@ async def cmd_join(message : discord.Message, args : str, isDM : bool):
 
     if message.channel not in callingBGuild.runningGames:
         await message.channel.send(":x: There is no game currently running in this channel.")
-    elif not callingBGuild.runningGames[message.channel].started:
-        await message.channel.send(":x: The game has not yet started.")
-    elif callingBGuild.runningGames[message.channel].hasDCMember(message.author):
-        await message.channel.send(":x: You are already a player in this game! Find your cards hand in our DMs.")
-    elif len(callingBGuild.runningGames[message.channel].players) == callingBGuild.runningGames[message.channel].maxPlayers:
-        await message.channel.send(":x: This game is full!")
     else:
         game = callingBGuild.runningGames[message.channel]
-        sendChannel = None
+        elif not game.started:
+            await message.channel.send(":x: The game has not yet started.")
+        elif game.hasDCMember(message.author):
+            await message.channel.send(":x: You are already a player in this game! Find your cards hand in our DMs.")
+        elif not game.allowNewMembers:
+            await message.channel.send(":x: This game is locked to new players!")
+        elif len(game.players) == game.maxPlayers:
+            await message.channel.send(":x: This game is full!")
+        else:
+            sendChannel = None
 
-        if message.author.dm_channel is None:
-            await message.author.create_dm()
-        sendChannel = message.author.dm_channel
-        
-        try:
-            await sendChannel.send("✅ You joined " + game.owner.name + "'s game!")
-        except discord.Forbidden:
-            await message.channel.send(":x: " + message.author.mention + " failed to join - I can't DM you! Please enable DMs from users who are not friends.")
-            return
+            if message.author.dm_channel is None:
+                await message.author.create_dm()
+            sendChannel = message.author.dm_channel
+            
+            try:
+                await sendChannel.send("✅ You joined " + game.owner.name + "'s game!")
+            except discord.Forbidden:
+                await message.channel.send(":x: " + message.author.mention + " failed to join - I can't DM you! Please enable DMs from users who are not friends.")
+                return
 
-        await game.dcMemberJoinGame(message.author)
+            await game.dcMemberJoinGame(message.author)
 
 
 botCommands.register("join", cmd_join, 0, allowDM=False, helpSection="decks", signatureStr="**join**", shortHelp="Join the game that is currently running in the channel where you call the command")

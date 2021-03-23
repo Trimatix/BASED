@@ -24,7 +24,9 @@ defaultEmojis = {
     "menuOptions": [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
                     UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
                     UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"),
-                    UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")]
+                    UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")],
+    "optionEnabled": UninitializedBasedEmoji("✅"),
+    "optionDisabled": UninitializedBasedEmoji("❎")
 }
 
 timeouts = {
