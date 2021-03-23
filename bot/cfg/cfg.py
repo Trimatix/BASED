@@ -32,7 +32,7 @@ timeouts = {
     # The time to wait inbetween database autosaves.
     "dataSaveFrequency": {"hours":1},
     # Number of seconds to wait inbetween each check for complete submissions
-    "allSubmittedCheckPeriodSeconds": 10,
+    "allSubmittedCheckPeriodSeconds": 5,
     # Number of seconds to wait before timing out the SDB round submissions review menu
     "submissionsReviewMenuSeconds": 1800,
     # Number of seconds to wait before timing out the SDB 'keep playing?' confirmation menu
@@ -120,7 +120,7 @@ cardsDCChannel = {"guild_id": 733652363235033088,
                     "channel_id": 796038447252766741}
 
 # Can be either "local" or "discord"
-cardStorageMethod = "local"
+cardStorageMethod = "discord"
 
 # Exactly one of botToken or botToken_envVarName must be given.
 # botToken contains a string of your bot token
