@@ -57,7 +57,7 @@ class BasedGuild(serializable.Serializable):
         else:
             gameDeck = sdbDeck.SDBDeck(self.decks[deckName]["meta_path"])
 
-        self.runningGames[channel] = sdbGame.SDBGame(owner, gameDeck, expansionNames, channel, rounds)
+        self.runningGames[channel] = sdbGame.SDBGame(owner, gameDeck, expansionNames, channel, rounds, self)
 
         signupMsg = await channel.send("​")
         signupMenu = SDBSignupMenu.SDBSignupMenu(signupMsg, self.runningGames[channel], lib.timeUtil.timeDeltaFromDict(cfg.timeouts.gameJoinMenu))
