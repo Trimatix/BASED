@@ -74,7 +74,7 @@ class SubmissionsProgressIndicator:
 
 class SDBGame:
     def __init__(self, owner: Member, deck: sdbDeck.SDBDeck, activeExpansions: List[str], channel: TextChannel, rounds: int,
-                    gamePhase : int = GamePhase.setup):
+                bGuild, gamePhase : int = GamePhase.setup):
         self.owner = owner
         self.channel = channel
         self.deck = deck
@@ -93,6 +93,7 @@ class SDBGame:
         self.waitingForSubmissions = False
         self.submissionsProgress = None
         self.deckUpdater: DeckUpdateRegistry = None
+        self.bGuild = bGuild
 
         # self.configOptions = []
         # self.configOptions.append(sdbGameConfig.SDBOwnerOption(self))
@@ -106,11 +107,29 @@ class SDBGame:
 
 
     async def setupPlayerHand(self, player):
+        introText = "** **\n```yaml\n🃏" + self.owner.name + "'s game```__Welcome to Super Deck Breaker!__\n" \
+                    + "Please send commands in <#" + str(self.channel.id) + ">, so I know which game they're meant for!\n" \
+                    + "\n__How to Play__\n1) Watch <#" + str(self.channel.id) + "> to see the current black card!\n" \
+                    + "2) Below this message is your **hand**.\n" \
+                    + "**    **Select the cards you want to play this round by adding the " \
+                        + cfg.defaultEmojis.accept.sendable + " react in the order you want them.\n" \
+                    + "3) Confirm your submission by adding the " + cfg.defaultEmojis.submit \
+                        + " react to the 'Play Your Cards' menu at the bottom.\n" \
+                    + "**    **Make sure your cards are in the right order!\n" \
+                    + "4) Each round, there is a new **card chooser**, who picks the winning submission.\n" \
+                    + "**    **If this is you, watch <#" + str(self.channel.id) + "> and pick your favourite submission!\n\n" \
+                    + "You can leave the game at any time by sending `" + self.bGuild.commandPrefix \
+                        + "leave` in <#" + str(self.channel.id) + ">, and you can rejoin with `" + self.bGuild.commandPrefix \
+                        + "join`\n\n" \
+                    + "__Your Hand__\n" + "Here are your cards! Don't like them? You can get a new hand at any time by sending `" \
+                        + self.bGuild.commandPrefix + "redeal` in <#" + str(self.channel.id) + ">!\n" \
+                    + "You can only use this command **once per game**."
+
         if self.shutdownOverride:
             return
         emptyCardEmbed = Embed()
         emptyCardEmbed.set_image(url=self.deck.emptyWhite.url)
-        await lib.discordUtil.sendDM("```yaml\n" + self.owner.name + "'s game```\n<#" + str(self.channel.id) + ">\n\n__Your Hand__", player.dcUser, None, reactOnDM=False, exceptOnFail=True)
+        await lib.discordUtil.sendDM(introText, player.dcUser, None, reactOnDM=False, exceptOnFail=True)
         for _ in range(cfg.cardsPerHand):
             if self.shutdownOverride:
                 return
@@ -204,7 +223,10 @@ class SDBGame:
                     await currentPlayer.closeConfigMenu()
         self.owner = member
         await self.channel.send("The deck master is now  " + self.owner.mention + "! 🙇‍♂️")
-        await self.owner.send("You are now deck master of the game in <#" + str(self.channel.id) + ">!\nThis means you are responsible for game admin, such as choosing to keep playing after every round.")
+        await self.owner.send("You are now deck master of the game in <#" + str(self.channel.id) + ">!\n" \
+                                + "See what commands you can use by sending `" + self.bGuild.commandPrefix \
+                                + "help deck master` in <#" + self.channel.id + ">, and access extra game controls " \
+                                + "through the **deck master menu** with `" + self.bGuild.commandPrefix + "admin`!")
 
 
     async def cancelPlayerSelectorMenus(self, player):
@@ -278,7 +300,15 @@ class SDBGame:
     async def doGameIntro(self):
         if self.shutdownOverride:
             return
-        await self.channel.send("Welcome to Super Deck Breaker!")
+        introText = "__Welcome to Super Deck Breaker!__\n" \
+                    + "Please send commands in this channel, so I know which game they're meant for!\n" \
+                    + "\n__How to Play__\n1) Watch this channel to see the current **black card.**\n" \
+                    + "**    **Each black card has a number of empty spaces `_` you need to fill with white cards.\n" \
+                    + "2) Go into our DMs, and pick the funniest white cards you've got to fill those spaces!\n" \
+                    + "3) Once everyone has submitted, the **card chooser** picks their favourite submission.\n\n" \
+                    + "You can leave the game at any time with `" + self.bGuild.commandPrefix \
+                        + "leave`, and anyone can join at any time with `" + self.bGuild.commandPrefix + "join`!"
+        await self.channel.send(introText)
 
 
     async def pickNewBlackCard(self):
@@ -421,9 +451,8 @@ class SDBGame:
 
 
     async def endGame(self):
-        callingBGuild = botState.guildsDB.getGuild(self.channel.guild.id)
-        if self.channel in callingBGuild.runningGames:
-            del callingBGuild.runningGames[self.channel]
+        if self.channel in self.bGuild.runningGames:
+            del self.bGuild.runningGames[self.channel]
         winningplayers = [self.players[0]]
         for player in self.players[1:]:
             if player.points > winningplayers[0].points:
@@ -447,7 +476,7 @@ class SDBGame:
             await self.cancelPlayerSelectorMenus(player)
 
         if self.deckUpdater is not None and self.deckUpdater.bGuild.decks[self.deck.name]["last_update"] == -1:
-            for game in callingBGuild.runningGames.values():
+            for game in self.bGuild.runningGames.values():
                 if game.deck.name == self.deck.name:
                     return
             self.deckUpdater.bGuild.decks[self.deck.name]["last_update"] = datetime.utcnow().timestamp()
