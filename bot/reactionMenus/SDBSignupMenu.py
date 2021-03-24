@@ -95,6 +95,8 @@ class SDBSignupMenu(reactionMenu.ReactionMenu):
             async for user in reaction.users():
                 if user != self.msg.guild.me:
                     self.game.players.append(sdbPlayer.SDBPlayer(user, self.game))
+                    if not botState.usersDB.idExists(user.id):
+                        botState.usersDB.addID(user.id)
             await expiryFunctions.deleteReactionMenu(self.msg.id)
             await self.game.startGame()
 

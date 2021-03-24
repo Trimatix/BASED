@@ -253,6 +253,8 @@ async def cmd_join(message : discord.Message, args : str, isDM : bool):
             await message.channel.send(":x: This game is full!")
         else:
             sendChannel = None
+            if not botState.usersDB.idExists(message.author.id):
+                botState.usersDB.addID(message.author.id)
 
             if message.author.dm_channel is None:
                 await message.author.create_dm()
