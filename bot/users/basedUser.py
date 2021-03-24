@@ -12,12 +12,14 @@ class BasedUser(serializable.Serializable):
     :vartype id: int
     """
 
-    def __init__(self, id: int):
+    def __init__(self, id: int, roundWins : int = 0, gameWins : int = 0):
         """
         :param int id: The user's unique ID. The same as their unique discord ID.
         """
         self.id = id
         self.helpMenuOwned = False
+        self.roundWins = roundWins
+        self.gameWins = gameWins
 
 
     def resetUser(self):
@@ -26,13 +28,22 @@ class BasedUser(serializable.Serializable):
         pass
 
 
+    def getStatByName(self, stat: str):
+        if stat == "round wins":
+            return self.roundWins
+        elif stat == "game wins":
+            return self.gameWins
+        else:
+            raise ValueError("unknown stat: " + str(stat))
+
+
     def toDict(self, **kwargs) -> dict:
         """Serialize this BasedUser to a dictionary representation for saving to file.
 
         :return: A dictionary containing all information needed to recreate this user
         :rtype: dict
         """
-        return {}
+        return {"roundWins": self.roundWins, "gameWins": self.gameWins}
 
 
     def __str__(self) -> str:
@@ -59,4 +70,5 @@ class BasedUser(serializable.Serializable):
             raise NameError("Required kwarg not given: id")
         userID = kwargs["id"]
 
-        return BasedUser(userID)
+        return BasedUser(userID, roundWins=userDict["roundWins"] if "roundWins" in userDict else 0,
+                            gameWins=userDict["gameWins"] if "gameWins" in userDict else 0)

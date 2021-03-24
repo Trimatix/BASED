@@ -405,6 +405,7 @@ class SDBGame:
                     shutil.rmtree(roundCardsDir)
             
         winningPlayer.points += 1
+        botState.usersDB.getUser(winningPlayer.dcUser.id).roundWins += 1
 
 
     async def _resetPlayerSubmissions(self, player: sdbPlayer.SDBPlayer):
@@ -467,6 +468,8 @@ class SDBGame:
                                                     (("" if winningplayers[0].points == 1 else "s")) +
                                                     (("" if len(winningplayers) == 1 else " each") + "!"))
         resultsEmbed.add_field(name="🏆 Winner" + ("" if len(winningplayers) == 1 else "s"), value=", ".join(player.dcUser.mention for player in winningplayers))
+        for player in winningplayers:
+            botState.usersDB.getUser(player.dcUser.id).gameWins += 1
 
         if self.shutdownOverride:
             await self.channel.send(self.shutdownOverrideReason if self.shutdownOverrideReason else "The game was forcibly ended, likely due to an error.", embed=resultsEmbed)
