@@ -125,7 +125,7 @@ async def mergePlayerSubmissions(player: "sdbPlayer.SDBPlayer"):
 
 
 def mergedSubmissionImagePath(roundCardsDir, player):
-    return roundCardsDir + os.sep + player.dcUser.id + "." + IMG_FORMAT
+    return roundCardsDir + os.sep + str(player.dcUser.id) + "." + IMG_FORMAT
 
 
 async def saveMergedPlayerSubmissionDiscord(storageChannel, im):
