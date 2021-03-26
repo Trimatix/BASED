@@ -194,9 +194,12 @@ class SDBDMConfigMenu(pagedReactionMenu.PagedReactionMenu):
                                                                                 authorName="Confirm Game End", icon=botState.client.user.avatar_url_as(size=32),
                                                                                 desc="Are you sure you want to end the game now?").doMenu()
         if len(endConfirmMenu) > 0 and endConfirmMenu[0] == cfg.defaultEmojis.accept:
+            if self.game.gamePhase == sdbGame.GamePhase.postRound:
+                await self.msg.channel.reply("The game will end after a winner has been selected!")
+            else:
+                await self.msg.channel.reply("Ending game...")
             self.game.shutdownOverride = True
             self.game.shutdownOverrideReason = "The game was ended by the deck master."
-            await self.msg.channel.send("Ending game...")
         else:
             asyncio.ensure_future(confirmMsg.delete())
             await self.unpauseMenu()
