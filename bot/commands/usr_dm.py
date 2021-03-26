@@ -16,8 +16,11 @@ async def cmd_end_game(message : discord.Message, args : str, isDM : bool):
     elif message.author != callingBGuild.runningGames[message.channel].owner:
         await message.channel.send(":x: This command can only be used by the deck master.")
     else:
-        await message.reply("Ending game...")
         game = callingBGuild.runningGames[message.channel]
+        if game.gamePhase == sdbGame.GamePhase.postRound:
+            await message.reply("The game will end after a winner has been selected!")
+        else:
+            await message.reply("Ending game...")
         game.shutdownOverride = True
         game.shutdownOverrideReason = "The game was ended by the deck master."
         del callingBGuild.runningGames[message.channel]
