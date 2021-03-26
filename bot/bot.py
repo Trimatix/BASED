@@ -26,6 +26,7 @@ from .databases import guildDB, reactionMenuDB, userDB
 from .scheduling.timedTask import TimedTask
 from .scheduling.timedTaskHeap import TimedTaskHeap
 from bot.scheduling import timedTaskHeap
+from .reactionMenus import reactionMenu
 
 
 async def checkForUpdates():
@@ -209,7 +210,7 @@ class BasedClient(ClientBaseClass):
             # expire non-saveable reaction menus
             menus = list(botState.reactionMenusDB.values())
             for menu in menus:
-                if not menu.saveable:
+                if not reactionMenu.isSaveableMenuInstance(menu):
                     await menu.delete()
 
         # log out of discord
