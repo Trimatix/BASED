@@ -3,6 +3,7 @@ import toml
 import os
 from ..lib.emojis import UninitializedBasedEmoji
 from typing import Dict, Any
+from ..cardRenderer import lib as rendererLib
 
 # List of cfg attribute names that are not config variables
 ignoredVarNames = ("__name__", "__doc__", "__package__", "__loader__", "__spec__",
@@ -77,6 +78,12 @@ def init():
     cfg.defaultEmojis = ConfigProxy(cfg.defaultEmojis)
     cfg.timeouts = ConfigProxy(cfg.timeouts)
     cfg.paths = ConfigProxy(cfg.paths)
+    for varname in cfg.cardRenderer:
+        if varname in vars(rendererLib):
+            setattr(rendererLib, varname, cfg.cardRenderer[varname])
+        else:
+            raise KeyError("Unrecognised cardRenderer config var: " + str(varname))
+    cfg.cardRenderer = ConfigProxy(cfg.cardRenderer)
 
 
 def makeDefaultCfg(fileName: str = "defaultCfg" + CFG_FILE_EXT):
@@ -154,6 +161,48 @@ def loadCfg(cfgFile: str):
         # Validate attribute names
         if varname in ignoredVarNames or varname not in cfg.__dict__:
             raise NameError("Unrecognised config variable name: " + varname)
+
+        elif varname == "cardRenderer":
+            for cfgVarName in config[varname]:
+                newValue = config[varname][cfgVarName]
+                # Get default value for variable
+                default = cfg.cardRenderer[cfgVarName]
+                # Ensure new value is of the correct type
+                if type(newValue) != type(default):
+                    try:
+                        # Attempt casts for incorrect types - useful for things like ints instead of floats.
+                        newValue = type(default)(newValue)
+                        print("[WARNING] Casting config variable cardRenderer." + cfgVarName + " from " \
+                                + type(newValue).__name__ + " to " + type(default).__name__)
+                    except Exception:
+                        # Where a variable is of the wrong type and cannot be casted, raise an exception.
+                        raise TypeError("Unexpected type for config variable cardRenderer." + cfgVarName + ": Expected " \
+                                        + type(default).__name__ + ", received " + type(newValue).__name__)
+
+                # Not an emoji and correct type, so set variable.
+                else:
+                    cfg.cardRenderer[cfgVarName] = newValue
+
+        elif varname == "paths":
+            for cfgVarName in config[varname]:
+                newValue = config[varname][cfgVarName]
+                # Get default value for variable
+                default = cfg.paths[cfgVarName]
+                # Ensure new value is of the correct type
+                if type(newValue) != type(default):
+                    try:
+                        # Attempt casts for incorrect types - useful for things like ints instead of floats.
+                        newValue = type(default)(newValue)
+                        print("[WARNING] Casting config variable paths." + cfgVarName + " from " \
+                                + type(newValue).__name__ + " to " + type(default).__name__)
+                    except Exception:
+                        # Where a variable is of the wrong type and cannot be casted, raise an exception.
+                        raise TypeError("Unexpected type for config variable paths." + cfgVarName + ": Expected " \
+                                        + type(default).__name__ + ", received " + type(newValue).__name__)
+
+                # Not an emoji and correct type, so set variable.
+                else:
+                    cfg.paths[cfgVarName] = newValue
 
         # Load emoji config vars
         elif varname == "defaultEmojis":

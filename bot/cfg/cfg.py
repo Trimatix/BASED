@@ -1,4 +1,3 @@
-from bot.cardRenderer.lib import deck_path
 from ..lib.emojis import UninitializedBasedEmoji
 
 # All emojis used by the bot
@@ -75,6 +74,24 @@ paths = {
     # Working folder for temporary image files
     "cardsTemp": "saveData" + "/" + "decks" + "/" + "temp"
 }
+
+cardRenderer = {
+    "CARD_SCALE": 200,
+    "CONTENT_TEXT_SCALE": 100,
+    "TITLE_TEXT_SCALE": 40,
+    # Margins (top big text, top small text, sides, bottom)
+    "MARGINS": (150, 50, 50, 50),
+    # Chars to wrap at
+    "TEXT_WRAP": 16,
+
+    # Other
+    "BLACK": (0, 0, 0),
+    "WHITE": (255, 255, 255),
+    "IMG_FORMAT": "jpg",
+    "BASE_URL": "cahbot.edjoduf.co.uk:8081/",
+    "PROTOCOL": "http",
+}
+cardRenderer["CARD_SIZE"] = (cardRenderer["CARD_SCALE"] * 5, cardRenderer["CARD_SCALE"] * 7)
 
 # Names of user access levels to be used in help menus.
 # Also determines the number of access levels available, e.g when registering commands
