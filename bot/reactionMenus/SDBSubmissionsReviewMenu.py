@@ -106,7 +106,7 @@ async def mergePlayerSubmissions(player: "sdbPlayer.SDBPlayer"):
     useLocal = cfg.cardStorageMethod == "local"
     if useLocal:
         try:
-            cardImages = loadImages(url_to_local_path(card.url) for card in player.submittedCards)
+            cardImages = loadImages(cfg.paths.decksFolder + os.sep + url_to_local_path(card.url) for card in player.submittedCards)
         except FileNotFoundError:
             useLocal = False
     
