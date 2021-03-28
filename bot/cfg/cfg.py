@@ -58,7 +58,7 @@ includedCommandModules = ("usr_misc",
                           "dev_misc")
 
 # Text to edit into expired menu messages
-expiredMenuMsg = "😴 This role menu has now expired."
+expiredMenuMsg = "😴 This menu has now expired."
 
 # Use "fixed" to check for task expiry every timedTaskLatenessThresholdSeconds (polling-based scheduler)
 # Use "dynamic" to check for task expiry exactly at the time of task expiry (interrupts-based scheduler)
