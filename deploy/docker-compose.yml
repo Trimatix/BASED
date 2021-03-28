@@ -1,0 +1,25 @@
+version: "3.4"
+
+services:
+  bot:
+    build:
+      context: ../
+    restart: unless-stopped
+    volumes:
+      - "decks:/decks"
+      - "save_data:/saveData"
+      - "./google_client_secret.json:/google_client_secret.json"
+      - "./config.toml:/config.toml"
+
+  image_server:
+    image: nginx:stable-alpine
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    volumes:
+      - "decks:/botdata"
+      - "./nginx.conf:/etc/nginx/nginx.conf:ro"
+
+volumes:
+  decks:
+  save_data:
