@@ -25,7 +25,7 @@ class SDBCardSlot:
         if self.player is not None:
             self.currentCard.revoke()
         if updateMessage:
-            await self.message.edit(embed=lib.discordUtil.makeEmbed(img=emptyCard.url, desc=empty.url if cfg.debugCards else ""))
+            await self.message.edit(embed=lib.discordUtil.makeEmbed(img=emptyCard.url, desc=emptyCard.url if cfg.debugCards else ""))
         self.isEmpty = True
 
 
