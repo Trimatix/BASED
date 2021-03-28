@@ -171,3 +171,6 @@ minPlayerCount = 2
 
 # The maximum number of characters a deck name may consist of
 maxDeckNameLength = 30
+
+# When displaying card images in embeds, also show the url of the card in the embed description
+debugCards = False

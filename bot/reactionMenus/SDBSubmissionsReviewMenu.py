@@ -52,6 +52,8 @@ class InlineSequentialSubmissionsReviewMenu(InlineSDBSubmissionsReviewMenu):
                     currentEmbed = Embed()
                     currentEmbed.title = "Submissions"# player.dcUser.display_name
                     currentEmbed.set_image(url=player.submittedCards[cardNum].url)
+                    if cfg.debugCards:
+                        currentEmbed.description = player.submittedCards[cardNum].url
                     if multiCard:
                         currentEmbed.set_footer(text="Card " + str(cardNum+1) + " | Player " + str(playerNum + (0 if winnerPassed else 1)) + " of " + str(numPlayers - 1))
                     else:
@@ -75,6 +77,7 @@ class InlineMergedSubmissionsReviewMenu(InlineSDBSubmissionsReviewMenu):
             currentEmbed = Embed()
             currentEmbed.title = "Submissions"# player.dcUser.display_name
             currentEmbed.set_image(url=submissions[player])
+            currentEmbed.description=submissions[player]
             currentEmbed.set_footer(text="Player " + str(playerNum + 1) + " of " + str(numPlayers))
             
             newOption = SDBWinningSubmissionOption(player)

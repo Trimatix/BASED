@@ -130,6 +130,8 @@ class SDBGame:
             return
         emptyCardEmbed = Embed()
         emptyCardEmbed.set_image(url=self.deck.emptyWhite.url)
+        if cfg.debugCards:
+            emptyCardEmbed.description = self.deck.emptyWhite.url
         await lib.discordUtil.sendDM(introText, player.dcUser, None, reactOnDM=False, exceptOnFail=True)
         for _ in range(cfg.cardsPerHand):
             if self.shutdownOverride:
@@ -377,6 +379,8 @@ class SDBGame:
 
         if self.currentBlackCard.currentCard.requiredWhiteCards == 1:
             winnerEmbed.set_image(url=winningPlayer.submittedCards[0].url)
+            if cfg.debugCards:
+                winnerEmbed.description = winningPlayer.submittedCards[0].url
             await self.channel.send(winningPlayer.dcUser.mention + " wins the round!", embed=winnerEmbed)
         else:
             if cfg.submissionsPresentationMethod == "merged":
