@@ -2,3 +2,5 @@
 saveData
 **/__pycache__
 **/.DS_STORE
+
+deploy/bot_token.sh
