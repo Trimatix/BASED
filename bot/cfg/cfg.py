@@ -36,7 +36,7 @@ timeouts = {
     # Number of seconds to wait inbetween each check for complete submissions
     "allSubmittedCheckPeriodSeconds": 5,
     # Number of seconds to wait before timing out the SDB round submissions review menu
-    "submissionsReviewMenuSeconds": 1800,
+    "submissionsReviewMenuSeconds": 10*60,
     # Number of seconds to wait before timing out the SDB 'keep playing?' confirmation menu
     "keepPlayingMenuSeconds": 600,
     # Number of seconds to wait before timing out the SDB number of rounds picker
