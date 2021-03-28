@@ -1,6 +1,7 @@
 from .sdbDeck import SDBCard, WhiteCard
 from .. import lib, botState
 from ..reactionMenus import SDBDMConfigMenu
+from ..cfg import cfg
 
 
 class SDBCardSlot:
