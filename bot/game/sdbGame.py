@@ -362,9 +362,15 @@ class SDBGame:
         except InvalidClosingReaction:
             winningPlayer = random.choice(self.players)
         else:
-            if len(winningOption) != 1:
+            if len(winningOption) > 1:
                 raise RuntimeError("given selected options array of length " + str(len(winningOption)) + " but should be length 1")
-            winningPlayer = winningOption[0].player
+            elif len(winningOption) == 0:
+                await self.channel.send("The card chooser ran out of time! Picking a winner at random...")
+                winningPlayer = random.choice(self.players)
+                while winningPlayer.isChooser:
+                    winningPlayer = random.choice(self.players)
+            else:
+                winningPlayer = winningOption[0].player
 
         winnerEmbed = lib.discordUtil.makeEmbed(titleTxt="Winning Submission", desc=winningPlayer.dcUser.mention)
         await submissionsMenuMsg.delete()
