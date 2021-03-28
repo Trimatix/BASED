@@ -385,7 +385,7 @@ class SDBGame:
         else:
             if cfg.submissionsPresentationMethod == "merged":
                 if cfg.cardStorageMethod == "local":
-                    roundCardsDir = cfg.paths.cardsTemp + os.sep + str(self.channel.id) + os.sep + str(self.currentRound)
+                    roundCardsDir = cfg.paths.decksFolder + os.sep + "temp" + os.sep + str(self.channel.id) + os.sep + str(self.currentRound)
                     winnerImagePath = SDBSubmissionsReviewMenu.mergedSubmissionImagePath(roundCardsDir, winningPlayer)
                     winnerImage = File(winnerImagePath, filename="winning-submission.jpg")
                     winnerEmbed.set_image(url="attachment://winning-submission.jpg")
@@ -397,7 +397,7 @@ class SDBGame:
                     winnerEmbed.set_image(url=submissions[winningPlayer])
                     await self.channel.send(winningPlayer.dcUser.mention + " wins the round!", embed=winnerEmbed)
             else:
-                roundCardsDir = cfg.paths.cardsTemp + os.sep + str(self.channel.id) + os.sep + str(self.currentRound)
+                roundCardsDir = cfg.paths.decksFolder + os.sep + "temp" + os.sep + str(self.channel.id) + os.sep + str(self.currentRound)
                 if os.path.isdir(roundCardsDir):
                     shutil.rmtree(roundCardsDir)
                 os.makedirs(roundCardsDir)

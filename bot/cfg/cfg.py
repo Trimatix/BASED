@@ -70,9 +70,6 @@ paths = {
     "cardFont": "bot" + "/" + "cardRenderer" + "/" + "HelveticaNeueLTStd-Bd.otf",
     # Google API credentials to use when reading spreadsheets
     "googleAPICred": "bot" + "/" + "cfg" + "/" + "google_client_secret.json",
-    
-    # Working folder for temporary image files
-    "cardsTemp": "saveData" + "/" + "decks" + "/" + "temp"
 }
 
 cardRenderer = {

@@ -143,7 +143,7 @@ async def saveMergedPlayerSubmissionDiscord(storageChannel, im):
 def saveMergedPlayerSubmissionLocal(player, roundCardsDir, im):
     cardPath = mergedSubmissionImagePath(roundCardsDir, player)
     im.save(cardPath)
-    return local_file_url(cardPath)
+    return local_file_url(cardPath[len(cfg.paths.decksFolder):])
 
 
 async def buildMergedSubmissionsMenuImages(game: "sdbGame.SDBGame") -> Dict[sdbPlayer.SDBPlayer, str]:
@@ -162,7 +162,7 @@ async def buildMergedSubmissionsMenuImages(game: "sdbGame.SDBGame") -> Dict[sdbP
             uploadedSubmissionsImages[player] = await saveMergedPlayerSubmissionDiscord(storageChannel, mergedSubmissionImages[player])
     
     elif cfg.cardStorageMethod == "local":
-        roundCardsDir = cfg.paths.cardsTemp + os.sep + str(game.channel.id) + os.sep + str(game.currentRound)
+        roundCardsDir = cfg.paths.decksFolder + os.sep + "temp" + os.sep + str(game.channel.id) + os.sep + str(game.currentRound)
         if os.path.isdir(roundCardsDir):
             shutil.rmtree(roundCardsDir)
         os.makedirs(roundCardsDir)
