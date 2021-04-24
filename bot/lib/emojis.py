@@ -17,6 +17,11 @@ logUnknownEmojis = True
 # Assumption of the maximum number of unicode characters in an emoji, just to put a cap on the time complexity of
 # strisUnicodeEmoji. 10 characters makes sense as a 5-long ZWJ sequence plus a variation selector.
 MAX_EMOJI_LEN = 10
+# Special character indicating the display mode of an emoji
+VAR_SELECTOR = "️"
+# Regional indicator characters. Not technically classed as emojis, so they have to be special-cased.
+REGIONAL_INDICATORS = ('🇦', '🇧', '🇨', '🇩', '🇪', '🇫', '🇬', '🇭', '🇮', '🇯', '🇰', '🇱', '🇲', \
+                        '🇳', '🇴', '🇵', '🇶', '🇷', '🇸', '🇹', '🇺', '🇻', '🇼', '🇽', '🇾', '🇿')
 
 
 def strIsUnicodeEmoji(c: str) -> bool:
@@ -26,7 +31,7 @@ def strIsUnicodeEmoji(c: str) -> bool:
     :return: True if c contains exactly one character, and that character is a unicode emoji. False otherwise.
     :rtype: bool
     """
-    return len(c) <= MAX_EMOJI_LEN and emoji.emoji_count(c) == 1
+    return len(c) <= MAX_EMOJI_LEN and (emoji.emoji_count(c) == 1 or c.rstrip(VAR_SELECTOR) in REGIONAL_INDICATORS)
 
 
 def strIsCustomEmoji(s: str) -> bool:
