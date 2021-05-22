@@ -97,3 +97,14 @@ To load a config.toml, provide a path to your config in command line args, e.g `
 When new versions of BASED are released, assuming you have update checking enabled in `cfg.BASED_checkForUpdates`, you will be notified via console.<br>
 To update your BASED fork, create a pull request from Trimatix/BASED/master into your fork.<br>
 Beware: conflicts are likely in this merge, especially if you have renamed BASED files, classes, functions or variables.
+
+<p align="center">
+  *Update: GitHub now provides an easy shortcut for this:
+</p>
+<p align="center">
+  <img
+    src="https://i.imgur.com/Tt5JFsT.jpg"
+    alt="Simply click the 'Fetch Upstream' button on your repo."
+    width=800
+  />
+</p>
