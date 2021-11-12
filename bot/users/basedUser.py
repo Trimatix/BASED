@@ -1,10 +1,10 @@
 # Typing imports
 from __future__ import annotations
 
-from ..baseClasses import serializable
+from carica import ISerializable
 
 
-class BasedUser(serializable.Serializable):
+class BasedUser(ISerializable):
     """A user of the bot. There is currently no guarantee that user still shares any guilds with the bot,
     though this is planned to change in the future.
 

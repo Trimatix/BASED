@@ -3,11 +3,11 @@ from __future__ import annotations
 from discord import Guild
 
 from .. import botState, lib
-from ..baseClasses import serializable
+from carica import ISerializable
 from ..cfg import cfg
 
 
-class BasedGuild(serializable.Serializable):
+class BasedGuild(ISerializable):
     """A class representing a guild in discord, and storing extra bot-specific information about it.
 
     :var id: The ID of the guild, directly corresponding to a discord guild's ID.

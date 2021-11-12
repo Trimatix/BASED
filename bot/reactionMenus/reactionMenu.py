@@ -10,11 +10,11 @@ from abc import abstractmethod
 from typing import Union, Dict, List
 import asyncio
 from types import FunctionType
-from ..baseClasses import serializable
+from carica import ISerializable
 from . import expiryFunctions
 
 
-class ReactionMenuOption(serializable.Serializable):
+class ReactionMenuOption(ISerializable):
     """An abstract class representing an option in a reaction menu.
     Reaction menu options must have a name and emoji. They may optionally have a function to call when added,
     a function to call when removed, and arguments for each.

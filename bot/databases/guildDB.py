@@ -3,11 +3,11 @@ from __future__ import annotations
 from ..users import basedGuild
 from typing import List
 from .. import botState
-from ..baseClasses import serializable
+from carica import ISerializable
 from .. import lib
 
 
-class GuildDB(serializable.Serializable):
+class GuildDB(ISerializable):
     """A database of BasedGuilds.
 
     :var guilds: Dictionary of guild.id to guild, where guild is a BasedGuild

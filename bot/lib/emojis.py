@@ -3,7 +3,8 @@ import emoji
 from .. import botState
 from . import stringTyping, exceptions
 import traceback
-from ..baseClasses import serializable
+from carica import ISerializable
+from abc import ABC, abstractmethod
 
 from typing import Union, TYPE_CHECKING
 if TYPE_CHECKING:
@@ -52,7 +53,7 @@ def strIsCustomEmoji(s: str) -> bool:
     return False
 
 
-class BasedEmoji(serializable.Serializable):
+class BasedEmoji(ISerializable):
     """A class that really shouldnt be necessary, acting as a union over the str (unicode) and Emoji type emojis used
     and returned by discord. To instance this class, provide exactly one of the constructor's keyword arguments.
 

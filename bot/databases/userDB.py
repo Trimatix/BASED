@@ -4,10 +4,10 @@ from .. import lib
 from .. import botState
 import traceback
 from typing import List
-from ..baseClasses import serializable
+from carica import ISerializable
 
 
-class UserDB(serializable.Serializable):
+class UserDB(ISerializable):
     """A database of BasedUser objects.
 
     :var users: Dictionary of users in the database, where values are the BasedUser objects and keys are the ids
