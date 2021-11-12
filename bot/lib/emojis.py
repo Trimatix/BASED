@@ -442,3 +442,11 @@ class UninitializedBasedEmoji(IBasedEmoji):
         """This method is only valid on the concrete BasedEmoji class, and not UninitializedBasedEmoji.
         """
         raise NotImplementedError(f"Cannot invoke {cls}.fromUninitialized, this method is only valid for {BasedEmoji.__name__}")
+
+
+    def initialize(self) -> BasedEmoji:
+        """Convert this UninitializedBasedEmoji to a BasedEmoji.
+
+        :return: This emoji converted to a fully qualified BasedEmoji
+        """
+        return BasedEmoji.fromUninitialized(self)

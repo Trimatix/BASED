@@ -1,5 +1,7 @@
 # Set up bot config
 
+from typing import List, Union, cast
+from bot.lib.emojis import UninitializedBasedEmoji
 from .cfg import cfg, versionInfo
 
 
@@ -40,50 +42,6 @@ async def checkForUpdates():
         if BASED_versionCheck.updatesChecked and not BASED_versionCheck.upToDate:
             print("⚠ New BASED update " + BASED_versionCheck.latestVersion + " now available! See " +
                   versionInfo.BASED_REPO_URL + " for instructions on how to update your BASED fork.")
-
-
-async def initializeEmojis():
-    """Converts all of the expected emoji config vars from UninitializedBasedEmoji to BasedEmoji.
-    Throws errors if initialization of any emoji failed.
-    """
-    emojiVars = []
-    emojiListVars = []
-
-    # Gather attribute names of emoji config vars
-    for varname in cfg.defaultEmojis.attrNames:
-        varvalue = getattr(cfg.defaultEmojis, varname)
-
-        # ensure single emoji vars are emojis
-        if type(varvalue) == lib.emojis.UninitializedBasedEmoji:
-            emojiVars.append(varname)
-            continue
-
-        # ensure list emoji vars only contain emojis
-        elif type(varvalue) == list:
-            onlyEmojis = True
-            for item in varvalue:
-                if type(item) != lib.emojis.UninitializedBasedEmoji:
-                    onlyEmojis = False
-                    break
-            if onlyEmojis:
-                emojiListVars.append(varname)
-                continue
-
-        # raise an error on unexpected types
-        raise ValueError("Invalid config variable in cfg.defaultEmojis: " + 
-                            "Emoji config variables must be either UninitializedBasedEmoji or List[UninitializedBasedEmoji]")
-
-    # Initialize emoji vars
-    for varname in emojiVars:
-        setattr(cfg.defaultEmojis, varname, lib.emojis.BasedEmoji.fromUninitialized(getattr(cfg.defaultEmojis, varname)))
-
-    # Initialize lists of emojis vars
-    for varname in emojiListVars:
-        working = []
-        for item in getattr(cfg.defaultEmojis, varname):
-            working.append(lib.emojis.BasedEmoji.fromUninitialized(item))
-
-        setattr(cfg.defaultEmojis, varname, working)
 
 
 def setHelpEmbedThumbnails():
@@ -351,7 +309,7 @@ async def on_ready():
     ##### EMOJI INITIALIZATION #####
 
     # Convert all UninitializedBasedEmojis in config to BasedEmoji
-    await initializeEmojis()
+    cfg.defaultEmojis.initializeEmojis()
 
     # Ensure all emojis have been initialized
     for varName, varValue in vars(cfg).items():
