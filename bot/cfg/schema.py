@@ -5,7 +5,7 @@ from carica.models.path import SerializablePath
 from ..lib.emojis import BasedEmoji, IBasedEmoji, UninitializedBasedEmoji
 from typing import Dict, List, Set, Tuple, Union, cast, Any
 
-EmojisFieldType = Union[BasedEmoji, List[EmojisFieldType], Set[EmojisFieldType], Tuple[EmojisFieldType], Dict[Any, EmojisFieldType]] # type: ignore
+EmojisFieldType = Union[BasedEmoji, List["EmojisFieldType"], Set["EmojisFieldType"], Tuple["EmojisFieldType"], Dict[Any, "EmojisFieldType"]] # type: ignore
 
 def convertEmoji(o) -> EmojisFieldType:
     if isinstance(o, UninitializedBasedEmoji):

@@ -205,7 +205,7 @@ class BasedEmoji(IBasedEmoji):
         self.unicode = unicode
         self.isID = id != -1
         self.isUnicode = not self.isID
-        self.sendable = self.unicode if self.isUnicode else str(botState.client.get_emoji(self.id))
+        self._sendable = self.unicode if self.isUnicode else str(botState.client.get_emoji(self.id))
         if self.sendable == "None":
             if logUnknownEmojis:
                 botState.logger.log("BasedEmoji", "init", "Unrecognised custom emoji ID in BasedEmoji constructor: " +
@@ -213,7 +213,7 @@ class BasedEmoji(IBasedEmoji):
             if raiseUnkownEmojis or rejectInvalid:
                 raise exceptions.UnrecognisedCustomEmoji(
                     "Unrecognised custom emoji ID in BasedEmoji constructor: " + str(self.id), self.id)
-            self.sendable = err_UnknownEmoji
+            self._sendable = err_UnknownEmoji
         self._classInit = True
 
 
@@ -407,7 +407,7 @@ class BasedEmoji(IBasedEmoji):
 BasedEmoji.EMPTY = BasedEmoji(unicode=" ")
 BasedEmoji.EMPTY.isUnicode = False
 BasedEmoji.EMPTY.unicode = ""
-BasedEmoji.EMPTY.sendable = ""
+BasedEmoji.EMPTY._sendable = ""
 
 
 class UninitializedBasedEmoji(IBasedEmoji):

@@ -211,7 +211,7 @@ class DummyReactionMenuOption(ReactionMenuOption):
         return super(DummyReactionMenuOption, self).toDict(**kwargs)
 
 
-class ReactionMenu(serializable.Serializable):
+class ReactionMenu(ISerializable):
     """A versatile class implementing emoji reaction menus.
     This class can be used as-is, to create unsaveable reaction menus of any type, with vast possibilities for behaviour.
     ReactionMenu need only be extended in the following cases:
