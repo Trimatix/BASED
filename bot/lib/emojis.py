@@ -56,7 +56,10 @@ def strIsCustomEmoji(s: str) -> bool:
 class IBasedEmoji(ISerializable, ABC):
     """An interface to unify over BasedEmoji and UninitializedBasedEmoji.
     """
-    
+    def __init__(self) -> None:
+        self._sendable = err_UnknownEmoji
+
+
     @abstractmethod
     def serialize(self, **kwargs) -> PrimativeType:
         """Serialize the emoji into primative types.
@@ -122,8 +125,6 @@ class IBasedEmoji(ISerializable, ABC):
         s may also be a BasedEmoji (returns s), a dictionary-serialized BasedEmoji (returns BasedEmoji.fromDict(s)), or
         only an ID of a discord custom emoji (may be either str or int)
 
-        If 
-
         :param str s: A string containing only one of: A unicode emoji, a discord custom emoji, or
                         the ID of a discord custom emoji.
         :param bool rejectInvalid: When true, an exception is guaranteed to raise if an invalid emoji is requested,
@@ -149,6 +150,17 @@ class IBasedEmoji(ISerializable, ABC):
         :rtype: BasedEmoji
         """
         raise NotImplementedError(f"Cannot invoke the abstract implementation {cls}.fromUninitialized")
+
+
+    @property
+    @abstractmethod
+    def sendable(self) -> str:
+        """A string representation of the emoji which can be sent to discord.
+
+        :return: A discord-compliant string representation of the emoji
+        :rtype: str
+        """
+        raise NotImplementedError(f"Cannot invoke the abstract implementation {type(self)}.sendable")
 
 
 class BasedEmoji(IBasedEmoji):
@@ -202,6 +214,7 @@ class BasedEmoji(IBasedEmoji):
                 raise exceptions.UnrecognisedCustomEmoji(
                     "Unrecognised custom emoji ID in BasedEmoji constructor: " + str(self.id), self.id)
             self.sendable = err_UnknownEmoji
+        self._classInit = True
 
 
     def toDict(self, **kwargs) -> dict:
@@ -382,6 +395,16 @@ class BasedEmoji(IBasedEmoji):
                                 type(e.value).__name__ + "'")
 
 
+    @property
+    def sendable(self) -> str:
+        """A string representation of the emoji which can be sent to discord.
+
+        :return: A discord-compliant string representation of the emoji
+        :rtype: str
+        """
+        return self._sendable
+
+
 # 'static' object representing an empty/lack of emoji
 BasedEmoji.EMPTY = BasedEmoji(unicode=" ")
 BasedEmoji.EMPTY.isUnicode = False
@@ -450,3 +473,13 @@ class UninitializedBasedEmoji(IBasedEmoji):
         :return: This emoji converted to a fully qualified BasedEmoji
         """
         return BasedEmoji.fromUninitialized(self)
+
+    
+    @property
+    def sendable(self) -> str:
+        """A string representation of the emoji which can be sent to discord.
+
+        :return: A discord-compliant string representation of the emoji
+        :rtype: str
+        """
+        raise NotImplementedError(f"Cannot invoke {type(self)}.sendable, this method is only valid for {BasedEmoji.__name__}")
