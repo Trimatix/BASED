@@ -2,25 +2,25 @@ from carica.models import SerializableDataClass, SerializableTimedelta
 from dataclasses import dataclass
 
 from carica.models.path import SerializablePath
-from ..lib.emojis import UninitializedBasedEmoji
+from ..lib.emojis import IBasedEmoji
 from typing import List
 
 @dataclass
 class EmojisConfig(SerializableDataClass):
-    longProcess: UninitializedBasedEmoji
+    longProcess: IBasedEmoji
     # When a user message prompts a DM to be sent, this emoji will be added to the message reactions.
-    dmSent: UninitializedBasedEmoji
-    cancel: UninitializedBasedEmoji
-    submit: UninitializedBasedEmoji
-    spiral: UninitializedBasedEmoji
-    error: UninitializedBasedEmoji
-    accept: UninitializedBasedEmoji
-    reject: UninitializedBasedEmoji
-    next: UninitializedBasedEmoji
-    previous: UninitializedBasedEmoji
-    numbers: List[UninitializedBasedEmoji]
+    dmSent: IBasedEmoji
+    cancel: IBasedEmoji
+    submit: IBasedEmoji
+    spiral: IBasedEmoji
+    error: IBasedEmoji
+    accept: IBasedEmoji
+    reject: IBasedEmoji
+    next: IBasedEmoji
+    previous: IBasedEmoji
+    numbers: List[IBasedEmoji]
     # The default emojis to list in a reaction menu
-    menuOptions: List[UninitializedBasedEmoji]
+    menuOptions: List[IBasedEmoji]
 
 
 @dataclass

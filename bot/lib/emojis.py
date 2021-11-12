@@ -3,7 +3,7 @@ import emoji
 from .. import botState
 from . import stringTyping, exceptions
 import traceback
-from carica import ISerializable
+from carica import ISerializable, PrimativeType
 from abc import ABC, abstractmethod
 
 from typing import Union, TYPE_CHECKING
@@ -53,7 +53,105 @@ def strIsCustomEmoji(s: str) -> bool:
     return False
 
 
-class BasedEmoji(ISerializable):
+class IBasedEmoji(ISerializable, ABC):
+    """An interface to unify over BasedEmoji and UninitializedBasedEmoji.
+    """
+    
+    @abstractmethod
+    def serialize(self, **kwargs) -> PrimativeType:
+        """Serialize the emoji into primative types.
+
+        :return: A primative containing all information needed to recreate this emoji
+        :rtype: PrimativeType
+        """
+        raise NotImplementedError(f"Cannot invoke the abstract implementation {type(self)}.serialize")
+
+
+    @classmethod
+    @abstractmethod
+    def deserialize(cls, data: PrimativeType, **kwargs) -> IBasedEmoji:
+        """Recreate a serialized emoji
+
+        :param PrimativeType data: A primative containing all information needed to recreate the emoji
+        :return: A new emoji as specified by data
+        :rtype: IBasedEmoji
+        """
+        raise NotImplementedError(f"Cannot invoke the abstract implementation {cls}.deserialize")
+
+
+    @classmethod
+    @abstractmethod
+    def fromPartial(cls, e: PartialEmoji, rejectInvalid: bool = False) -> BasedEmoji:
+        """This method will only be valid for BasedEmoji, and not for UninitializedBasedEmoji.
+        Construct a new BasedEmoji object from a given discord.PartialEmoji.
+
+        :param bool rejectInvalid: When true, an exception is guaranteed to raise if an invalid emoji is requested,
+                                    regardless of raiseUnknownEmojis (Default False)
+        :raise exceptions.UnrecognisedCustomEmoji: When rejectInvalid=True is present in kwargs, and a custom emoji
+                                                    is given that does not exist or the client cannot access.                                   
+        :return: A BasedEmoji representing e
+        :rtype: BasedEmoji
+        """
+        raise NotImplementedError(f"Cannot invoke the abstract implementation {cls}.fromPartial")
+
+
+    @classmethod
+    @abstractmethod
+    def fromReaction(cls, e: Union[Emoji, PartialEmoji, str], rejectInvalid: bool = False) -> BasedEmoji:
+        """This method will only be valid for BasedEmoji, and not for UninitializedBasedEmoji.
+        Construct a new BasedEmoji object from a given discord.PartialEmoji, discord.Emoji, or string.
+
+        :param e: The reaction emoji to convert to BasedEmoji
+        :type e: Union[Emoji, PartialEmoji, str]
+        :param bool rejectInvalid: When true, an exception is guaranteed to raise if an invalid emoji is requested,
+                                    regardless of raiseUnknownEmojis (Default False)
+        :raise exceptions.UnrecognisedCustomEmoji: When rejectInvalid=True is present in kwargs, and a custom emoji
+                                                    is given that does not exist or the client cannot access.                                   
+        :return: A BasedEmoji representing e
+        :rtype: BasedEmoji
+        """
+        raise NotImplementedError(f"Cannot invoke the abstract implementation {cls}.fromReaction")
+
+
+    @classmethod
+    @abstractmethod
+    def fromStr(cls, s: str, rejectInvalid: bool = False) -> BasedEmoji:
+        """This method will only be valid for BasedEmoji, and not for UninitializedBasedEmoji.
+        Construct a BasedEmoji object from a string containing either a unicode emoji or a discord custom emoji.
+        
+        s may also be a BasedEmoji (returns s), a dictionary-serialized BasedEmoji (returns BasedEmoji.fromDict(s)), or
+        only an ID of a discord custom emoji (may be either str or int)
+
+        If 
+
+        :param str s: A string containing only one of: A unicode emoji, a discord custom emoji, or
+                        the ID of a discord custom emoji.
+        :param bool rejectInvalid: When true, an exception is guaranteed to raise if an invalid emoji is requested,
+                                    regardless of raiseUnknownEmojis (Default False)
+        :raise exceptions.UnrecognisedCustomEmoji: When rejectInvalid=True is present in kwargs, and a custom emoji
+                                                    is given that does not exist or the client cannot access.                                   
+        :return: A BasedEmoji representing the given string emoji
+        :rtype: BasedEmoji
+        """
+        raise NotImplementedError(f"Cannot invoke the abstract implementation {cls}.fromStr")
+
+
+    @classmethod
+    @abstractmethod
+    def fromUninitialized(cls, e: UninitializedBasedEmoji, rejectInvalid=True) -> BasedEmoji:
+        """This method will only be valid for BasedEmoji, and not for UninitializedBasedEmoji.
+        Construct a BasedEmoji object from an UninitializedBasedEmoji object.
+
+        :param UninitializedBasedEmoji e: The emoji to initialize
+        :raise exceptions.UnrecognisedCustomEmoji: When rejectInvalid=True is present in kwargs, and a custom emoji
+                                                    is given that does not exist or the client cannot access.       
+        :return: A BasedEmoji representing the given emoji
+        :rtype: BasedEmoji
+        """
+        raise NotImplementedError(f"Cannot invoke the abstract implementation {cls}.fromUninitialized")
+
+
+class BasedEmoji(IBasedEmoji):
     """A class that really shouldnt be necessary, acting as a union over the str (unicode) and Emoji type emojis used
     and returned by discord. To instance this class, provide exactly one of the constructor's keyword arguments.
 
@@ -291,7 +389,7 @@ BasedEmoji.EMPTY.unicode = ""
 BasedEmoji.EMPTY.sendable = ""
 
 
-class UninitializedBasedEmoji:
+class UninitializedBasedEmoji(IBasedEmoji):
     """A data class representing a BasedEmoji waiting to be initialized.
     No instances of this class should be present after bot client's on_ready event
     has finished executing.
@@ -303,3 +401,44 @@ class UninitializedBasedEmoji:
                         a string unicode character.
         """
         self.value = value
+
+    
+    def serialize(self, **kwargs) -> PrimativeType:
+        """This method is only valid on the concrete BasedEmoji class, and not UninitializedBasedEmoji.
+        """
+        raise NotImplementedError(f"Cannot invoke {type(self)}.serialize, this method is only valid for {BasedEmoji.__name__}")
+
+
+    @classmethod
+    def deserialize(cls, data: PrimativeType, **kwargs) -> IBasedEmoji:
+        """This method is only valid on the concrete BasedEmoji class, and not UninitializedBasedEmoji.
+        """
+        raise NotImplementedError(f"Cannot invoke {cls}.deserialize, this method is only valid for {BasedEmoji.__name__}")
+
+
+    @classmethod
+    def fromPartial(cls, e: PartialEmoji, rejectInvalid: bool = False) -> BasedEmoji:
+        """This method is only valid on the concrete BasedEmoji class, and not UninitializedBasedEmoji.
+        """
+        raise NotImplementedError(f"Cannot invoke {cls}.fromPartial, this method is only valid for {BasedEmoji.__name__}")
+
+
+    @classmethod
+    def fromReaction(cls, e: Union[Emoji, PartialEmoji, str], rejectInvalid: bool = False) -> BasedEmoji:
+        """This method is only valid on the concrete BasedEmoji class, and not UninitializedBasedEmoji.
+        """
+        raise NotImplementedError(f"Cannot invoke {cls}.fromReaction, this method is only valid for {BasedEmoji.__name__}")
+
+
+    @classmethod
+    def fromStr(cls, s: str, rejectInvalid: bool = False) -> BasedEmoji:
+        """This method is only valid on the concrete BasedEmoji class, and not UninitializedBasedEmoji.
+        """
+        raise NotImplementedError(f"Cannot invoke {cls}.fromStr, this method is only valid for {BasedEmoji.__name__}")
+
+
+    @classmethod
+    def fromUninitialized(cls, e: UninitializedBasedEmoji, rejectInvalid=True) -> BasedEmoji:
+        """This method is only valid on the concrete BasedEmoji class, and not UninitializedBasedEmoji.
+        """
+        raise NotImplementedError(f"Cannot invoke {cls}.fromUninitialized, this method is only valid for {BasedEmoji.__name__}")
