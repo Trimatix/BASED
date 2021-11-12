@@ -481,8 +481,8 @@ async def on_raw_bulk_message_delete(payload: discord.RawBulkMessageDeleteEvent)
 
 
 def run():
-    """Runs the bot. Ensure that prior to importing this module, you have initialized your bot config
-    by running cfg.configurator.init()
+    """Runs the bot.
+    If you wish to use a toml config file, ensure that you have loaded it first with carica.loadCfg.
 
     :return: A description of what behaviour should follow shutdown
     :rtype: int
