@@ -122,7 +122,7 @@ class IBasedEmoji(ISerializable, ABC):
         """This method will only be valid for BasedEmoji, and not for UninitializedBasedEmoji.
         Construct a BasedEmoji object from a string containing either a unicode emoji or a discord custom emoji.
         
-        s may also be a BasedEmoji (returns s), a dictionary-serialized BasedEmoji (returns BasedEmoji.fromDict(s)), or
+        s may also be a BasedEmoji (returns s), a dictionary-serialized BasedEmoji (returns BasedEmoji.deserialize(s)), or
         only an ID of a discord custom emoji (may be either str or int)
 
         :param str s: A string containing only one of: A unicode emoji, a discord custom emoji, or
@@ -217,7 +217,7 @@ class BasedEmoji(IBasedEmoji):
         self._classInit = True
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this emoji to dictionary format for saving to file.
 
         :return: A dictionary containing all information needed to reconstruct this emoji.
@@ -268,7 +268,7 @@ class BasedEmoji(IBasedEmoji):
 
 
     @classmethod
-    def fromDict(cls, emojiDict: dict, **kwargs) -> BasedEmoji:
+    def deserialize(cls, emojiDict: dict, **kwargs) -> BasedEmoji:
         """Construct a BasedEmoji object from its dictionary representation.
         If both an ID and a unicode representation are provided, the emoji ID will be used.
 
@@ -344,10 +344,8 @@ class BasedEmoji(IBasedEmoji):
     def fromStr(cls, s: str, rejectInvalid: bool = False) -> BasedEmoji:
         """Construct a BasedEmoji object from a string containing either a unicode emoji or a discord custom emoji.
         
-        s may also be a BasedEmoji (returns s), a dictionary-serialized BasedEmoji (returns BasedEmoji.fromDict(s)), or
+        s may also be a BasedEmoji (returns s), a dictionary-serialized BasedEmoji (returns BasedEmoji.deserialize(s)), or
         only an ID of a discord custom emoji (may be either str or int)
-
-        If 
 
         :param str s: A string containing only one of: A unicode emoji, a discord custom emoji, or
                         the ID of a discord custom emoji.
@@ -361,7 +359,7 @@ class BasedEmoji(IBasedEmoji):
         if type(s) == BasedEmoji:
             return s
         if type(s) == dict:
-            return BasedEmoji.fromDict(s, rejectInvalid=rejectInvalid)
+            return BasedEmoji.deserialize(s, rejectInvalid=rejectInvalid)
         if strIsUnicodeEmoji(s):
             return BasedEmoji(unicode=s, rejectInvalid=rejectInvalid)
         elif strIsCustomEmoji(s):
@@ -388,7 +386,7 @@ class BasedEmoji(IBasedEmoji):
         elif isinstance(e.value, str):
             return BasedEmoji.fromStr(e.value, rejectInvalid=rejectInvalid)
         elif isinstance(e.value, dict):
-            return BasedEmoji.fromDict(e.value, rejectInvalid=rejectInvalid)
+            return BasedEmoji.deserialize(e.value, rejectInvalid=rejectInvalid)
         # Unrecognised uninitialized value
         else:
             raise ValueError("Unrecognised UninitializedBasedEmoji value type. Expecting int, str or dict, given '" +
