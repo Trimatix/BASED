@@ -11,9 +11,9 @@ def convertEmoji(o) -> EmojisFieldType:
     if isinstance(o, UninitializedBasedEmoji):
         return o.initialize()
     elif isinstance(o, (list, set, tuple)):
-        return type(o)(convertEmoji(o) for x in o)
+        return type(o)(convertEmoji(x) for x in o)
     elif isinstance(o, dict):
-        return {k: convertEmoji(o) for k, v in o.items()}
+        return {k: convertEmoji(v) for k, v in o.items()}
     else:
         raise TypeError(f"Found non-UninitializedBasedEmoji object, type {type(o).__name__}: {o}")
 
