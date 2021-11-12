@@ -98,7 +98,7 @@ class Logger:
 
         for category in self.logs:
             if bool(self.logs[category]):
-                currentFName = cfg.paths.logsFolder + ("" if cfg.paths.logsFolder.endswith("/") else "/") + category + ".txt"
+                currentFName = cfg.paths.logsFolder + (category + ".txt")
                 logsSaved += category + ".txt, "
 
                 if category not in files:
