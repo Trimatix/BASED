@@ -103,7 +103,7 @@ async def checkForUpdates(httpClient: aiohttp.ClientSession) -> UpdateCheckResul
         latest = await getNewestTagOnRemote(httpClient, BASED_API_URL)
 
         # Schedule next updates check
-        nextCheck = datetime.utcnow() + lib.timeUtil.timeDeltaFromDict(cfg.timeouts.BASED_updateCheckFrequency)
+        nextCheck = datetime.utcnow() + cfg.timeouts.BASED_updateCheckFrequency
         lib.jsonHandler.writeJSON(BASED_VERSIONFILE,
                                   {"BASED_version": BASED_VERSION,
                                    "next_update_check": nextCheck.timestamp()})

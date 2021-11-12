@@ -40,13 +40,14 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
             if owningUser.helpMenuOwned:
                 await message.channel.send(":x: Please close your existing help menu before making a new one!\n" +
                                             "In case you can't find it, help menus auto exire after **" +
-                                            lib.timeUtil.td_format_noYM(lib.timeUtil.timeDeltaFromDict(cfg.timeouts.helpMenu))
+                                            lib.timeUtil.td_format_noYM(cfg.timeouts.helpMenu)
                                             + "**.")
                 return
             owningUser.helpMenuOwned = True
             menuMsg = await sendChannel.send("‎")
-            helpTT = timedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(
-                cfg.timeouts.helpMenu), expiryFunction=expiryFunctions.expireHelpMenu, expiryFunctionArgs=menuMsg.id)
+            helpTT = timedTask.TimedTask(expiryDelta=cfg.timeouts.helpMenu,
+                                        expiryFunction=expiryFunctions.expireHelpMenu,
+                                        expiryFunctionArgs=menuMsg.id)
             botState.taskScheduler.scheduleTask(helpTT)
             indexEmbed = lib.discordUtil.makeEmbed(titleTxt=cfg.userAccessLevels[userAccessLevel] + " Commands",
                                                     desc="Select " + cfg.defaultEmojis.next.sendable + " to go to page one.",
@@ -88,13 +89,12 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
                 if owningUser.helpMenuOwned:
                     await message.channel.send(":x: Please close your existing help menu before making a new one!\n" +
                                                 "In case you can't find it, help menus auto exire after **" +
-                                                lib.timeUtil.td_format_noYM(lib.timeUtil.timeDeltaFromDict(
-                                                    cfg.timeouts.helpMenu)) + "**.")
+                                                lib.timeUtil.td_format_noYM(cfg.timeouts.helpMenu) + "**.")
                     return
                 owningUser.helpMenuOwned = True
                 menuMsg = await sendChannel.send("‎")
-                helpTT = timedTask.TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(
-                    cfg.timeouts.helpMenu), expiryFunction=expiryFunctions.expireHelpMenu, expiryFunctionArgs=menuMsg.id)
+                helpTT = timedTask.TimedTask(expiryDelta=cfg.timeouts.helpMenu, expiryFunction=expiryFunctions.expireHelpMenu,
+                                            expiryFunctionArgs=menuMsg.id)
                 botState.taskScheduler.scheduleTask(helpTT)
                 pages = {}
                 for helpEmbed in botCommands.helpSectionEmbeds[userAccessLevel][args]:

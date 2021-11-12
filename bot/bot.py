@@ -328,10 +328,10 @@ async def on_ready():
     ##### SCHEDULING #####
 
     # Schedule database saving
-    botState.dbSaveTT = TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(cfg.timeouts.dataSaveFrequency),
+    botState.dbSaveTT = TimedTask(expiryDelta=cfg.timeouts.dataSaveFrequency,
                                     autoReschedule=True, expiryFunction=botState.client.saveAllDBs)
     # Schedule BASED updates checking
-    botState.updatesCheckTT = TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(cfg.timeouts.BASED_updateCheckFrequency),
+    botState.updatesCheckTT = TimedTask(expiryDelta=cfg.timeouts.BASED_updateCheckFrequency,
                                         autoReschedule=True, expiryFunction=checkForUpdates)
 
     botState.taskScheduler.scheduleTask(botState.dbSaveTT)
