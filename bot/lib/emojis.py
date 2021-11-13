@@ -159,7 +159,7 @@ class BasedEmoji(IBasedEmoji):
     :var EMPTY: static class variable representing an empty emoji
     :vartype EMPTY: BasedEmoji
     """
-    EMPTY = None
+    EMPTY = cast("BasedEmoji", None)
 
     def __init__(self, id: int = -1, unicode: str = "", rejectInvalid: bool = False):
         """
