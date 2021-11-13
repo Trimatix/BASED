@@ -93,16 +93,29 @@ class ReactionMenuOption(ISerializable):
         :param discord.Member member: The member adding the reaction
         :return: The result of the option's addFunc function, if one exists.
         """
+        # This function contains a series of type ignores.
+        # These ignores fix false positive errors due to the number of arguments in the callback signatures.
+        # These signatures are verified by the conditionals in this method.
         if self.addFunc is not None:
             if self.addIncludeUser:
                 if self.addHasArgs:
-                    return await self.addFunc(self.addArgs, reactingUser=member) if self.addIsCoroutine else \
-                                self.addFunc(self.addArgs, reactingUser=member)
-                return await self.addFunc(reactingUser=member) if self.addIsCoroutine else \
-                                self.addFunc(reactingUser=member)
+                    if self.addIsCoroutine:
+                        return await self.addFunc(self.addArgs, reactingUser=member) # type: ignore
+                    else:
+                        return self.addFunc(self.addArgs, reactingUser=member) # type: ignore
+                if self.addIsCoroutine:
+                    return await self.addFunc(reactingUser=member) # type: ignore
+                else:
+                    return self.addFunc(reactingUser=member) # type: ignore
             if self.addHasArgs:
-                return await self.addFunc(self.addArgs) if self.addIsCoroutine else self.addFunc(self.addArgs)
-            return await self.addFunc() if self.addIsCoroutine else self.addFunc()
+                if self.addIsCoroutine:
+                    return await self.addFunc(self.addArgs) # type: ignore
+                else:
+                    return self.addFunc(self.addArgs) # type: ignore
+            if self.addIsCoroutine:
+                return await self.addFunc() # type: ignore
+            else:
+                return self.addFunc() # type: ignore
 
 
     async def remove(self, member: Union[Member, User]):
@@ -113,16 +126,29 @@ class ReactionMenuOption(ISerializable):
         :param discord.Member member: The member that removed the reaction
         :return: The result of the option's removeFunc function, if one exists.
         """
+        # This function contains a series of type ignores.
+        # These ignores fix false positive errors due to the number of arguments in the callback signatures.
+        # These signatures are verified by the conditionals in this method.
         if self.removeFunc is not None:
             if self.removeIncludeUser:
                 if self.removeHasArgs:
-                    return await self.removeFunc(self.removeArgs, reactingUser=member) if self.removeIsCoroutine else \
-                                self.removeFunc(self.removeArgs, reactingUser=member)
-                return await self.removeFunc(reactingUser=member) if self.removeIsCoroutine else \
-                                self.removeFunc(reactingUser=member)
+                    if self.removeIsCoroutine:
+                        return await self.removeFunc(self.removeArgs, reactingUser=member) # type: ignore
+                    else:
+                        return self.removeFunc(self.removeArgs, reactingUser=member) # type: ignore
+                if self.removeIsCoroutine:
+                    return await self.removeFunc(reactingUser=member) # type: ignore
+                else:
+                    return self.removeFunc(reactingUser=member) # type: ignore
             if self.removeHasArgs:
-                return await self.removeFunc(self.removeArgs) if self.removeIsCoroutine else self.removeFunc(self.removeArgs)
-            return await self.removeFunc() if self.removeIsCoroutine else self.removeFunc()
+                if self.removeIsCoroutine:
+                    return await self.removeFunc(self.removeArgs) # type: ignore
+                else:
+                    return self.removeFunc(self.removeArgs) # type: ignore
+            if self.removeIsCoroutine:
+                return await self.removeFunc() # type: ignore
+            else:
+                return self.removeFunc() # type: ignore
 
 
     def __hash__(self) -> int:
