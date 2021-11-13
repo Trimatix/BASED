@@ -1,7 +1,7 @@
 from . import timedTask
 from heapq import heappop, heappush
 import inspect
-from types import FunctionType
+from typing import Any, List, Union
 import asyncio
 from datetime import datetime
 
@@ -9,11 +9,10 @@ from datetime import datetime
 class TimedTaskHeap:
     """A min-heap of TimedTasks, sorted by task expiration time.
     TODO: Return a value from the expiryFunction in case someone wants to use that
-
     :var tasksHeap: The heap, stored as an array. tasksHeap[0] is always the TimedTask with the closest expiry time.
     :vartype tasksHeap: list[TimedTask]
     :var expiryFunction: function reference to call upon the expiry of any TimedTask managed by this heap.
-    :vartype expiryFunction: FunctionType
+    :vartype expiryFunction: timedTask.TTCallbackType
     :var hasExpiryFunction: Whether or not this heap has an expiry function to call
     :vartype hasExpiryFunction: bool
     :var expiryFunctionArgs: an object to pass to expiryFunction when calling. There is no type requirement,
@@ -24,14 +23,14 @@ class TimedTaskHeap:
     :vartype asyncExpiryFunction: bool
     """
 
-    def __init__(self, expiryFunction: FunctionType = None, expiryFunctionArgs = None):
+    def __init__(self, expiryFunction : timedTask.TTCallbackType = None, expiryFunctionArgs : Any = None):
         """
         :param function expiryFunction: function reference to call upon the expiry of any
                                         TimedTask managed by this heap. (Default None)
         :param expiryFunctionArgs: an object to pass to expiryFunction when calling. There is no type requirement,
                                     but a dictionary is recommended as a close representation of KWArgs. (Default {})
         """
-        self.tasksHeap = []
+        self.tasksHeap: List[timedTask.TimedTask] = []
 
         self.expiryFunction = expiryFunction
         self.hasExpiryFunction = expiryFunction is not None
@@ -53,7 +52,6 @@ class TimedTaskHeap:
 
     def scheduleTask(self, task: timedTask.TimedTask):
         """Schedule a new task onto this heap.
-
         :param TimedTask task: the task to schedule
         """
         heappush(self.tasksHeap, task)
@@ -62,7 +60,6 @@ class TimedTaskHeap:
     def unscheduleTask(self, task: timedTask.TimedTask):
         """Forcebly remove a task from the heap without 'expiring' it - no expiry functions or auto-rescheduling are called.
         This method overrides task autoRescheduling, forcibly removing the task from the heap entirely.
-
         :param TimedTask task: the task to remove from the heap
         """
         task.gravestone = True
@@ -72,7 +69,6 @@ class TimedTaskHeap:
     async def callExpiryFunction(self):
         """Call the HEAP's expiry function - not a task expiry function.
         Accounts for expiry function arguments (if specified) and asynchronous expiry functions
-
         TODO: pass down whatever the expiry function returns
         """
         # Await coroutine asynchronous functions
@@ -113,7 +109,7 @@ class TimedTaskHeap:
 def startSleeper(delay: int, loop: asyncio.AbstractEventLoop, result: bool = None) -> asyncio.Task:
     async def _start(delay, loop, result=None):
         coro = asyncio.sleep(delay, result=result, loop=loop)
-        task = asyncio.ensure_future(coro)
+        task = asyncio.create_task(coro)
         try:
             return await task
         except asyncio.CancelledError:
@@ -126,15 +122,13 @@ class AutoCheckingTimedTaskHeap(TimedTaskHeap):
     """A TimedTaskHeap that spawns a new thread to periodically perform expiry checking for you.
     Sleeping between task checks is handled by asyncio.sleep-ing precicely to the expiry time of the
     next closest task - found at the head of the heap.
-
     When a new task is scheduled onto the heap, its expiry time is compared with the task at the head of the heap.
     If it expires sooner, the expiry checking thread's sleep is cancelled, the task is placed at the head of the heap,
     and the expiry checking thread is restarted, automatically sleeping to the new expiry at the head of the heap.
-
     :var tasksHeap: The heap, stored as an array. tasksHeap[0] is always the TimedTask with the closest expiry time.
     :vartype tasksHeap: List[TimedTask]
     :var expiryFunction: function reference to call upon the expiry of any TimedTask managed by this heap.
-    :vartype expiryFunction: FunctionType
+    :vartype expiryFunction: timedTask.TTCallbackType
     :var hasExpiryFunction: Whether or not this heap has an expiry function to call
     :vartype hasExpiryFunction: bool
     :var expiryFunctionArgs: an object to pass to expiryFunction when calling. There is no type requirement,
@@ -147,7 +141,7 @@ class AutoCheckingTimedTaskHeap(TimedTaskHeap):
     :vartype active: bool
     """
 
-    def __init__(self, loop: asyncio.AbstractEventLoop, expiryFunction: FunctionType = None, expiryFunctionArgs = None):
+    def __init__(self, loop: asyncio.AbstractEventLoop, expiryFunction: timedTask.TTCallbackType = None, expiryFunctionArgs = None):
         """
         :param asyncio.AbstractEventLoop loop: The event loop to schedule the heap into
         :param function expiryFunction: function reference to call upon the expiry of any
@@ -158,8 +152,8 @@ class AutoCheckingTimedTaskHeap(TimedTaskHeap):
         super().__init__(expiryFunction=expiryFunction, expiryFunctionArgs=expiryFunctionArgs)
         self.loop = loop
         self.active = False
-        self.checkingLoopFuture: asyncio.Future = None
-        self.sleepTask: asyncio.Task = None
+        self.checkingLoopFuture: Union[None, asyncio.Future] = None
+        self.sleepTask: Union[None, asyncio.Task] = None
 
 
     async def _checkingLoop(self):
@@ -172,7 +166,7 @@ class AutoCheckingTimedTaskHeap(TimedTaskHeap):
             if len(self.tasksHeap) > 0:
                 sleepDelta = self.tasksHeap[0].expiryTime - datetime.utcnow()
                 coro = asyncio.sleep(sleepDelta.total_seconds(), loop=self.loop)
-                self.sleepTask = asyncio.ensure_future(coro)
+                self.sleepTask = asyncio.create_task(coro)
 
                 try:
                     await self.sleepTask
@@ -192,7 +186,7 @@ class AutoCheckingTimedTaskHeap(TimedTaskHeap):
         if self.active:
             raise RuntimeError("loop already active")
         self.active = True
-        self.checkingLoopFuture = asyncio.ensure_future(self._checkingLoop())
+        self.checkingLoopFuture = asyncio.create_task(self._checkingLoop())
 
 
     def stopTaskChecking(self):
@@ -209,8 +203,7 @@ class AutoCheckingTimedTaskHeap(TimedTaskHeap):
         """Schedule a new task onto the heap.
         If no checking loop is currently active, a new one is started.
         If a checking loop is already active and waiting for task that expires after this one,
-        the loop's current waiting time is updated to exire this task first.
-
+        the loop's current waiting time is updated to expire this task first.
         :param TimedTask task: the task to schedule
         :param bool startLoop: Give False here to override the starting of a new loop. This may be useful when creating
                                 a new AutoCheckingTimedTaskheap with a large number of starting tasks, after which you start
@@ -218,7 +211,7 @@ class AutoCheckingTimedTaskHeap(TimedTaskHeap):
         """
         if self.active:
             if len(self.tasksHeap) > 0:
-                soonest = self.tasksHeap[0]
+                soonest: Union[None, timedTask.TimedTask] = self.tasksHeap[0]
             else:
                 soonest = None
 
@@ -238,12 +231,10 @@ class AutoCheckingTimedTaskHeap(TimedTaskHeap):
         This method overrides task autoRescheduling, forcibly removing the task from the heap entirely.
         If a checking loop is running and waiting for this task, the checking loop is updated to wait for the next
         available task.
-
         :param TimedTask task: the task to remove from the heap
         """
-        if self.active and len(self.tasksHeap) > 0 and task == self.tasksHeap[0]:
+        if self.active and self.sleepTask is not None and len(self.tasksHeap) > 0 and task == self.tasksHeap[0]:
             self.sleepTask.cancel()
             self.sleepTask = None
 
         super().unscheduleTask(task)
-
