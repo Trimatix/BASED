@@ -3,7 +3,8 @@ import emoji
 from .. import botState
 from . import stringTyping, exceptions
 import traceback
-from carica import ISerializable, PrimativeType
+from carica import ISerializable, PrimativeType, SerializableType
+from carica.typeChecking import objectIsShallowSerializable
 from abc import ABC, abstractmethod
 
 from typing import Union, TYPE_CHECKING
@@ -425,16 +426,34 @@ class UninitializedBasedEmoji(IBasedEmoji):
 
     
     def serialize(self, **kwargs) -> PrimativeType:
-        """This method is only valid on the concrete BasedEmoji class, and not UninitializedBasedEmoji.
+        """Serialize this emoji to dictionary format for saving to file.
+        For an UninitializedBasedEmoji, this is simply the 'value' of the emoji.
+        If the value is a Serializable type, then it will be serialized before returning.
+
+        :return: A dictionary containing all information needed to reconstruct this emoji.
+        :rtype: dict
         """
-        raise NotImplementedError(f"Cannot invoke {type(self)}.serialize, this method is only valid for {BasedEmoji.__name__}")
+        if not objectIsShallowSerializable(self.value):
+            raise ValueError(f"The emoji's value ({type(self.value).__name__}) is not serializable: {self.value}")
+        elif isinstance(self.value, SerializableType):
+            return self.value.serialize(**kwargs)
+        else:
+            return self.value
 
 
     @classmethod
-    def deserialize(cls, data: PrimativeType, **kwargs) -> IBasedEmoji:
-        """This method is only valid on the concrete BasedEmoji class, and not UninitializedBasedEmoji.
+    def deserialize(cls, data: PrimativeType, **kwargs) -> UninitializedBasedEmoji:
+        """Recreate a serialized UninitializedBasedEmoji.
+        This simply wraps the given data in a new UninitializedBasedEmoji instance, with the data as the emoji's 'value'
+        field. If `data` is intended to represent a serialized object, this function is not able to infer the intended type
+        from `data` by default, and `data` will be wrapped as is without deserializing. It is completely feasible to add
+        type inferrence or specification as a parameter as an extension of this method.
+
+        :param PrimativeType data: A primative to take as the value of the new emoji
+        :return: A new UninitializedBasedEmoji as specified by data
+        :rtype: UninitializedBasedEmoji
         """
-        raise NotImplementedError(f"Cannot invoke {cls}.deserialize, this method is only valid for {BasedEmoji.__name__}")
+        return UninitializedBasedEmoji(data)
 
 
     @classmethod
@@ -462,7 +481,8 @@ class UninitializedBasedEmoji(IBasedEmoji):
     def fromUninitialized(cls, e: UninitializedBasedEmoji, rejectInvalid=True) -> BasedEmoji:
         """This method is only valid on the concrete BasedEmoji class, and not UninitializedBasedEmoji.
         """
-        raise NotImplementedError(f"Cannot invoke {cls}.fromUninitialized, this method is only valid for {BasedEmoji.__name__}")
+        raise NotImplementedError(f"Cannot invoke {cls}.fromUninitialized, " \
+                                + f"this method is only valid for {BasedEmoji.__name__}")
 
 
     def initialize(self) -> BasedEmoji:
