@@ -4,7 +4,7 @@ from typing import Union
 from ..cfg import cfg
 
 
-class InlineConfirmationMenu(reactionMenu.InlineReactionMenu):
+class InlineConfirmationMenu(reactionMenu.SingleUserReactionMenu):
     def __init__(self, msg: Message, targetMember: Union[Member, User], timeoutSeconds: int,
                  titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), footerTxt: str = "", img: str = "",
                  thumb: str = "", icon: str = "", authorName: str = ""):
