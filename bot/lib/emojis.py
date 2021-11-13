@@ -338,7 +338,7 @@ class BasedEmoji(IBasedEmoji):
         if type(s) == BasedEmoji:
             return s
         if type(s) == dict:
-            return BasedEmoji.deserialize(s, rejectInvalid=rejectInvalid)
+            return BasedEmoji.deserialize(cast(dict, s), rejectInvalid=rejectInvalid)
         if strIsUnicodeEmoji(s):
             return BasedEmoji(unicode=s, rejectInvalid=rejectInvalid)
         elif strIsCustomEmoji(s):
