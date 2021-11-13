@@ -226,7 +226,7 @@ class BasedEmoji(IBasedEmoji):
         return hash(repr(self))
 
 
-    def __eq__(self, other: BasedEmoji) -> bool:
+    def __eq__(self, other) -> bool:
         """Decide if this BasedEmoji is equal to another.
         Two BasedEmojis are equal if they represent the same emoji (i.e ID/unicode) of the same type (custom/unicode)
 
