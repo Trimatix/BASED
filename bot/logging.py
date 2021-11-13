@@ -2,7 +2,7 @@ from .cfg import cfg
 from os import path
 from datetime import datetime
 import traceback
-from typing import Tuple
+from typing import Optional, Tuple, cast
 
 
 LOG_TIME_FORMAT = "(%d/%m/%H:%M)"
@@ -40,7 +40,7 @@ class Logger:
         return True
 
 
-    def peekHeadTimeAndCategory(self) -> Tuple[datetime, str]:
+    def peekHeadTimeAndCategory(self) -> Tuple[Optional[datetime], str]:
         """Get the log time of the earliest-logged event currently stored in the logger, as well as the category of the event.
         If the logger is currently empty, None is returned as the log time, and "" as the category.
 
