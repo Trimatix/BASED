@@ -643,7 +643,8 @@ class SingleUserReactionMenu(ReactionMenu):
         :rtype: bool
         """
         try:
-            return (reactPL.message_id == self.msg.id and reactPL.user_id == self.targetMember.id) and \
+            # targetMember is a required parameter for this subclass
+            return (reactPL.message_id == self.msg.id and reactPL.user_id == cast(_DCUserUnion, self.targetMember).id) and \
                     (not self.returnTriggers or lib.emojis.BasedEmoji.fromPartial(reactPL.emoji) in self.returnTriggers)
         except lib.exceptions.UnrecognisedCustomEmoji:
             return False
