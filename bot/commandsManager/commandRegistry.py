@@ -1,6 +1,6 @@
 from types import FunctionType
 from typing import List
-from discord import Message
+from discord import Message # type: ignore[import]
 from ..lib.exceptions import IncorrectCommandCallContext
 
 

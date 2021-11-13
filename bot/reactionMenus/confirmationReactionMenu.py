@@ -1,5 +1,5 @@
 from . import reactionMenu
-from discord import Message, Member, User, Colour
+from discord import Message, Member, User, Colour # type: ignore[import]
 from typing import Union
 from ..cfg import cfg
 

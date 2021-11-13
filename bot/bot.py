@@ -7,8 +7,8 @@ from .cfg import cfg, versionInfo
 
 # Discord Imports
 
-import discord
-from discord.ext.commands import Bot as ClientBaseClass
+import discord # type: ignore[import]
+from discord.ext.commands import Bot as ClientBaseClass # type: ignore[import]
 
 
 # Util imports

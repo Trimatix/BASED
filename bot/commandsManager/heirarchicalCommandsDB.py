@@ -1,6 +1,6 @@
 # Typing imports
 from types import FunctionType
-from discord import Message, Embed, Colour
+from discord import Message, Embed, Colour # type: ignore[import]
 from typing import List
 from ..cfg import cfg
 from .commandRegistry import CommandRegistry

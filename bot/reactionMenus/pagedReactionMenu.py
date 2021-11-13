@@ -1,6 +1,6 @@
 from ..users import basedUser
 from .import reactionMenu
-from discord import Message, Member, Role, Embed
+from discord import Message, Member, Role, Embed # type: ignore[import]
 from .. import lib, botState
 from typing import Dict
 from ..scheduling import timedTask

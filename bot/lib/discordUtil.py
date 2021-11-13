@@ -1,12 +1,12 @@
 from __future__ import annotations
 from typing import Union, TYPE_CHECKING, Tuple, Dict
 if TYPE_CHECKING:
-    from discord import Member, Guild, Message
+    from discord import Member, Guild, Message # type: ignore[import]
 
 from . import stringTyping, emojis, exceptions
 from .. import botState
-from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, Reaction, User
-from discord import DMChannel, GroupChannel, TextChannel
+from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, User # type: ignore[import]
+from discord import DMChannel, GroupChannel, TextChannel # type: ignore[import]
 import random
 from ..cfg import cfg
 

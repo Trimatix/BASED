@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 
 from typing import Union, TYPE_CHECKING
 if TYPE_CHECKING:
-    from discord import PartialEmoji, Emoji
+    from discord import PartialEmoji, Emoji # type: ignore[import]
 
 
 err_UnknownEmoji = "❓"

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from discord import Guild
+from discord import Guild # type: ignore[import]
 
 from .. import botState, lib
 from carica import ISerializable
