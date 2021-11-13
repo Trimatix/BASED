@@ -8,7 +8,7 @@ from discord import Member, User, Message, Role, RawReactionActionEvent # type: 
 from ..cfg import cfg
 from .. import botState, lib
 from abc import abstractmethod
-from typing import Any, Awaitable, Callable, Union, Dict, List
+from typing import Any, Awaitable, Callable, Type, Union, Dict, List
 import asyncio
 from carica import ISerializable # type: ignore[import]
 from . import expiryFunctions
@@ -702,7 +702,7 @@ def isSaveableMenuTypeName(clsName: str) -> bool:
     return clsName in saveableNameMenuTypes
 
 
-def saveableMenuClassFromName(clsName: str) -> type:
+def saveableMenuClassFromName(clsName: str) -> Type[ISerializable]:
     """Retreive the saveable ReactionMenu subclass that as the given class name.
     clsName must correspond to a ReactionMenu subclass that has been registered as saveble with the saveableMenu decorator.
 
