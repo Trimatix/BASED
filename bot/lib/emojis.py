@@ -247,7 +247,7 @@ class BasedEmoji(IBasedEmoji):
 
 
     @classmethod
-    def deserialize(cls, emojiDict: dict, **kwargs) -> BasedEmoji:
+    def deserialize(cls, emojiDict: dict, rejectInvalid: bool = False, **kwargs) -> BasedEmoji:
         """Construct a BasedEmoji object from its dictionary representation.
         If both an ID and a unicode representation are provided, the emoji ID will be used.
 
@@ -262,8 +262,6 @@ class BasedEmoji(IBasedEmoji):
         :return: A new BasedEmoji object as described in emojiDict
         :rtype: BasedEmoji
         """
-        rejectInvalid = kwargs["rejectInvalid"] if "rejectInvalid" in kwargs else False
-
         if type(emojiDict) == BasedEmoji:
             return emojiDict
         if "id" in emojiDict:
