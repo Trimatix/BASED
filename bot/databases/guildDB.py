@@ -122,7 +122,7 @@ class GuildDB(ISerializable):
         self.removeID(guild.id)
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialise this GuildDB into dictionary format
 
         :return: A dictionary containing all data needed to recreate this GuildDB
@@ -133,7 +133,7 @@ class GuildDB(ISerializable):
         for guild in self.getGuilds():
             # Serialise and then store each guild
             # JSON stores properties as strings, so ids must be converted to str first.
-            data[str(guild.id)] = guild.toDict(**kwargs)
+            data[str(guild.id)] = guild.serialize(**kwargs)
         return data
 
 
@@ -148,8 +148,8 @@ class GuildDB(ISerializable):
 
 
     @classmethod
-    def fromDict(cls, guildDBDict: dict, **kwargs) -> GuildDB:
-        """Construct a GuildDB object from dictionary-serialised format; the reverse of GuildDB.todict()
+    def deserialize(cls, guildDBDict: dict, **kwargs) -> GuildDB:
+        """Construct a GuildDB object from dictionary-serialised format; the reverse of GuildDB.serialize()
 
         :param dict bountyDBDict: The dictionary representation of the GuildDB to create
         :return: The new GuildDB
@@ -162,10 +162,10 @@ class GuildDB(ISerializable):
             # Instance new BasedGuilds for each ID, with the provided data
             # JSON stores properties as strings, so ids must be converted to int first.
             try:
-                newDB.addGuild(basedGuild.BasedGuild.fromDict(guildDBDict[id], id=int(id)))
+                newDB.addGuild(basedGuild.BasedGuild.deserialize(guildDBDict[id], id=int(id)))
             # Ignore guilds that don't have a corresponding dcGuild
             except lib.exceptions.NoneDCGuildObj:
-                botState.logger.log("GuildDB", "fromDict", "no corresponding discord guild found for ID " + id +
+                botState.logger.log("GuildDB", "deserialize", "no corresponding discord guild found for ID " + id +
                                                             ", guild removed from database",
                                     category="guildsDB", eventType="NULL_GLD")
         return newDB

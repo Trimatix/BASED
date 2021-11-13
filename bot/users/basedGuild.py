@@ -33,7 +33,7 @@ class BasedGuild(ISerializable):
         self.commandPrefix = commandPrefix
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this BasedGuild into dictionary format to be saved to file.
 
         :return: A dictionary containing all information needed to reconstruct this BasedGuild
@@ -43,9 +43,9 @@ class BasedGuild(ISerializable):
 
 
     @classmethod
-    def fromDict(cls, guildDict: dict, **kwargs) -> BasedGuild:
+    def deserialize(cls, guildDict: dict, **kwargs) -> BasedGuild:
         """Factory function constructing a new BasedGuild object from the information
-        in the provided guildDict - the opposite of BasedGuild.toDict
+        in the provided guildDict - the opposite of BasedGuild.serialize
 
         :param int id: The discord ID of the guild
         :param dict guildDict: A dictionary containing all information required to build the BasedGuild object

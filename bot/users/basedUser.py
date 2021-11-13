@@ -26,7 +26,7 @@ class BasedUser(ISerializable):
         pass
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this BasedUser to a dictionary representation for saving to file.
 
         :return: A dictionary containing all information needed to recreate this user
@@ -45,9 +45,9 @@ class BasedUser(ISerializable):
 
 
     @classmethod
-    def fromDict(cls, userDict: dict, **kwargs) -> BasedUser:
+    def deserialize(cls, userDict: dict, **kwargs) -> BasedUser:
         """Construct a new BasedUser object from the given ID and the information in the
-        given dictionary - The opposite of BasedUser.toDict
+        given dictionary - The opposite of BasedUser.serialize
 
         :param int id: The discord ID of the user
         :param dict userDict: A dictionary containing all information necessary to construct

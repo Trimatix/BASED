@@ -195,7 +195,7 @@ def loadUsersDB(filePath: str) -> userDB.UserDB:
     :return: a UserDB as described by the dictionary-serialized representation stored in the file located in filePath.
     """
     if os.path.isfile(filePath):
-        return userDB.UserDB.fromDict(lib.jsonHandler.readJSON(filePath))
+        return userDB.UserDB.deserialize(lib.jsonHandler.readJSON(filePath))
     return userDB.UserDB()
 
 
@@ -206,7 +206,7 @@ def loadGuildsDB(filePath: str, dbReload: bool = False) -> guildDB.GuildDB:
     :return: a GuildDB as described by the dictionary-serialized representation stored in the file located in filePath.
     """
     if os.path.isfile(filePath):
-        return guildDB.GuildDB.fromDict(lib.jsonHandler.readJSON(filePath))
+        return guildDB.GuildDB.deserialize(lib.jsonHandler.readJSON(filePath))
     return guildDB.GuildDB()
 
 
@@ -218,7 +218,7 @@ async def loadReactionMenusDB(filePath: str) -> reactionMenuDB.ReactionMenuDB:
     :return: a reactionMenuDB as described by the dictionary-serialized representation stored in the file located in filePath.
     """
     if os.path.isfile(filePath):
-        return await reactionMenuDB.fromDict(lib.jsonHandler.readJSON(filePath))
+        return await reactionMenuDB.deserialize(lib.jsonHandler.readJSON(filePath))
     return reactionMenuDB.ReactionMenuDB()
 
 

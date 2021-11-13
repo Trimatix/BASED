@@ -33,23 +33,23 @@ def writeJSON(dbFile: str, db: dict, prettyPrint=False):
 
 
 def saveDB(dbPath: str, db, **kwargs):
-    """Call the given database object's toDict method, and save the resulting dictionary to the specified JSON file.
+    """Call the given database object's serialize method, and save the resulting dictionary to the specified JSON file.
     TODO: child database classes to a single ABC, and type check to that ABC here before saving
 
     :param str dbPath: path to the JSON file to save to. Theoretically, this can be absolute or relative.
     :param db: the database object to save
     """
-    writeJSON(dbPath, db.toDict(**kwargs))
+    writeJSON(dbPath, db.serialize(**kwargs))
 
 
 async def saveDBAsync(dbPath: str, db, **kwargs):
-    """This function should be used in place of saveDB for database objects whose toDict method is asynchronous.
+    """This function should be used in place of saveDB for database objects whose serialize method is asynchronous.
     This function is currently unused.
 
-    Await the given database object's toDict method, and save the resulting dictionary to the specified JSON file.
+    Await the given database object's serialize method, and save the resulting dictionary to the specified JSON file.
     TODO: child database classes to a single ABC, and type check to that ABC here before saving
 
     :param str dbPath: path to the JSON file to save to. Theoretically, this can be absolute or relative.
     :param db: the database object to save
     """
-    writeJSON(dbPath, await db.toDict(**kwargs))
+    writeJSON(dbPath, await db.serialize(**kwargs))

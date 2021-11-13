@@ -30,7 +30,7 @@ def td_format_noYM(td_object: timedelta) -> str:
     return ", ".join(strings)
 
 
-def timeDeltaFromDict(timeDict: dict) -> timedelta:
+def timeDeltadeserialize(timeDict: dict) -> timedelta:
     """Construct a datetime.timedelta from a dictionary,
     transforming keys into keyword arguments for the timedelta constructor.
 
