@@ -99,7 +99,7 @@ class GuildDB(ISerializable):
         """
         # Ensure the requested ID does not yet exist in the database
         if self.idExists(id):
-            raise KeyError("Attempted to add a guild that already exists: " + id)
+            raise KeyError(f"Attempted to add a guild that already exists: {id}")
         # Create and return a BasedGuild for the requested ID
         self.guilds[id] = basedGuild.BasedGuild(id, botState.client.get_guild(id))
         return self.guilds[id]
