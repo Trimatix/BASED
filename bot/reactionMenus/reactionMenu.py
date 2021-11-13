@@ -8,7 +8,7 @@ from discord import Member, User, Message, Role, RawReactionActionEvent # type: 
 from ..cfg import cfg
 from .. import botState, lib
 from abc import abstractmethod
-from typing import Any, Awaitable, Callable, Type, Union, Dict, List
+from typing import Any, Awaitable, Callable, Type, Union, Dict, List, cast
 import asyncio
 from carica import ISerializable # type: ignore[import]
 from . import expiryFunctions
@@ -79,7 +79,8 @@ class ReactionMenuOption(ISerializable):
         self.removeFunc = removeFunc
         self.removeArgs = removeArgs
         self.removeIsCoroutine = removeFunc is not None and inspect.iscoroutinefunction(removeFunc)
-        self.removeIncludeUser = removeFunc is not None and 'reactingUser' in inspect.signature(addFunc).parameters
+        self.removeIncludeUser = removeFunc is not None and \
+                                'reactingUser' in inspect.signature(cast(Callable, addFunc)).parameters
         self.removeHasArgs = removeFunc is not None and len(inspect.signature(
             removeFunc).parameters) != (1 if self.removeIncludeUser else 0)
 
