@@ -1,9 +1,9 @@
-from carica.models import SerializableDataClass, SerializableTimedelta
+from carica.models import SerializableDataClass, SerializableTimedelta # type: ignore[import]
 from dataclasses import dataclass
 
-from carica.models.path import SerializablePath
+from carica.models.path import SerializablePath # type: ignore[import]
 from ..lib.emojis import IBasedEmoji, UninitializedBasedEmoji
-from typing import Dict, List, Set, Tuple, Union, Any
+from typing import Dict, List, Set, Tuple, Union, Any, cast
 
 EmojisFieldType = Union[IBasedEmoji, List["EmojisFieldType"], Set["EmojisFieldType"], Tuple["EmojisFieldType"], Dict[Any, "EmojisFieldType"]] # type: ignore
 
