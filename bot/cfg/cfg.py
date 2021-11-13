@@ -1,5 +1,5 @@
 from ..lib.emojis import UninitializedBasedEmoji
-from .schema import *
+from .schema import EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, SerializablePath
 
 # All emojis used by the bot
 defaultEmojis = EmojisConfig(
