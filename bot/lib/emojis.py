@@ -1,5 +1,5 @@
 from __future__ import annotations
-import emoji
+import emoji # type: ignore[import]
 from .. import botState
 from . import stringTyping, exceptions
 import traceback
