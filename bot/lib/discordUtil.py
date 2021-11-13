@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, TYPE_CHECKING, Tuple, Dict
+from typing import Optional, Union, TYPE_CHECKING, Tuple, Dict
 if TYPE_CHECKING:
     from discord import Member, Guild, Message # type: ignore[import]
 
@@ -91,7 +91,8 @@ async def endLongProcess(message: Message):
         pass
 
 
-async def reactionFromRaw(payload: RawReactionActionEvent) -> Tuple[Message, Union[User, Member], emojis.BasedEmoji]:
+async def reactionFromRaw(payload: RawReactionActionEvent) -> Tuple[Optional[Message], Optional[Union[User, Member]],
+                                                                    Optional[emojis.BasedEmoji]]:
     """Retrieve complete Reaction and user info from a RawReactionActionEvent payload.
 
     :param RawReactionActionEvent payload: Payload describing the reaction action
