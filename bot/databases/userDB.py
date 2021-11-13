@@ -4,10 +4,10 @@ from .. import lib
 from .. import botState
 import traceback
 from typing import List
-from ..baseClasses import serializable
+from carica import ISerializable
 
 
-class UserDB(serializable.Serializable):
+class UserDB(ISerializable):
     """A database of BasedUser objects.
 
     :var users: Dictionary of users in the database, where values are the BasedUser objects and keys are the ids
@@ -160,7 +160,7 @@ class UserDB(serializable.Serializable):
         return list(self.users.keys())
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialise this UserDB into dictionary format.
 
         :return: A dictionary containing all data needed to recreate this UserDB
@@ -172,9 +172,9 @@ class UserDB(serializable.Serializable):
             # Serialise each BasedUser in the database and save it, along with its ID to dict
             # JSON stores properties as strings, so ids must be converted to str first.
             try:
-                data[str(userID)] = self.users[userID].toDict(**kwargs)
+                data[str(userID)] = self.users[userID].serialize(**kwargs)
             except Exception as e:
-                botState.logger.log("UserDB", "toDict", "Error serialising BasedUser: " +
+                botState.logger.log("UserDB", "serialize", "Error serialising BasedUser: " +
                                     e.__class__.__name__, trace=traceback.format_exc(), eventType="USERERR")
         return data
 
@@ -190,8 +190,8 @@ class UserDB(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, userDBDict: dict, **kwargs) -> UserDB:
-        """Construct a UserDB from a dictionary-serialised representation - the reverse of UserDB.toDict()
+    def deserialize(cls, userDBDict: dict, **kwargs) -> UserDB:
+        """Construct a UserDB from a dictionary-serialised representation - the reverse of UserDB.serialize()
 
         :param dict userDBDict: a dictionary-serialised representation of the UserDB to construct
         :return: the new UserDB
@@ -203,5 +203,5 @@ class UserDB(serializable.Serializable):
         for userID in userDBDict.keys():
             # Construct new BasedUsers for each ID in the database
             # JSON stores properties as strings, so ids must be converted to int first.
-            newDB.addUser(BasedUser.fromDict(userDBDict[userID], id=int(userID)))
+            newDB.addUser(BasedUser.deserialize(userDBDict[userID], id=int(userID)))
         return newDB

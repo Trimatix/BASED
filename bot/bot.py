@@ -1,5 +1,7 @@
 # Set up bot config
 
+from typing import List, Union, cast
+from bot.lib.emojis import UninitializedBasedEmoji
 from .cfg import cfg, versionInfo
 
 
@@ -40,50 +42,6 @@ async def checkForUpdates():
         if BASED_versionCheck.updatesChecked and not BASED_versionCheck.upToDate:
             print("⚠ New BASED update " + BASED_versionCheck.latestVersion + " now available! See " +
                   versionInfo.BASED_REPO_URL + " for instructions on how to update your BASED fork.")
-
-
-async def initializeEmojis():
-    """Converts all of the expected emoji config vars from UninitializedBasedEmoji to BasedEmoji.
-    Throws errors if initialization of any emoji failed.
-    """
-    emojiVars = []
-    emojiListVars = []
-
-    # Gather attribute names of emoji config vars
-    for varname in cfg.defaultEmojis.attrNames:
-        varvalue = getattr(cfg.defaultEmojis, varname)
-
-        # ensure single emoji vars are emojis
-        if type(varvalue) == lib.emojis.UninitializedBasedEmoji:
-            emojiVars.append(varname)
-            continue
-
-        # ensure list emoji vars only contain emojis
-        elif type(varvalue) == list:
-            onlyEmojis = True
-            for item in varvalue:
-                if type(item) != lib.emojis.UninitializedBasedEmoji:
-                    onlyEmojis = False
-                    break
-            if onlyEmojis:
-                emojiListVars.append(varname)
-                continue
-
-        # raise an error on unexpected types
-        raise ValueError("Invalid config variable in cfg.defaultEmojis: " + 
-                            "Emoji config variables must be either UninitializedBasedEmoji or List[UninitializedBasedEmoji]")
-
-    # Initialize emoji vars
-    for varname in emojiVars:
-        setattr(cfg.defaultEmojis, varname, lib.emojis.BasedEmoji.fromUninitialized(getattr(cfg.defaultEmojis, varname)))
-
-    # Initialize lists of emojis vars
-    for varname in emojiListVars:
-        working = []
-        for item in getattr(cfg.defaultEmojis, varname):
-            working.append(lib.emojis.BasedEmoji.fromUninitialized(item))
-
-        setattr(cfg.defaultEmojis, varname, working)
 
 
 def setHelpEmbedThumbnails():
@@ -237,7 +195,7 @@ def loadUsersDB(filePath: str) -> userDB.UserDB:
     :return: a UserDB as described by the dictionary-serialized representation stored in the file located in filePath.
     """
     if os.path.isfile(filePath):
-        return userDB.UserDB.fromDict(lib.jsonHandler.readJSON(filePath))
+        return userDB.UserDB.deserialize(lib.jsonHandler.readJSON(filePath))
     return userDB.UserDB()
 
 
@@ -248,7 +206,7 @@ def loadGuildsDB(filePath: str, dbReload: bool = False) -> guildDB.GuildDB:
     :return: a GuildDB as described by the dictionary-serialized representation stored in the file located in filePath.
     """
     if os.path.isfile(filePath):
-        return guildDB.GuildDB.fromDict(lib.jsonHandler.readJSON(filePath))
+        return guildDB.GuildDB.deserialize(lib.jsonHandler.readJSON(filePath))
     return guildDB.GuildDB()
 
 
@@ -260,7 +218,7 @@ async def loadReactionMenusDB(filePath: str) -> reactionMenuDB.ReactionMenuDB:
     :return: a reactionMenuDB as described by the dictionary-serialized representation stored in the file located in filePath.
     """
     if os.path.isfile(filePath):
-        return await reactionMenuDB.fromDict(lib.jsonHandler.readJSON(filePath))
+        return await reactionMenuDB.deserialize(lib.jsonHandler.readJSON(filePath))
     return reactionMenuDB.ReactionMenuDB()
 
 
@@ -351,7 +309,7 @@ async def on_ready():
     ##### EMOJI INITIALIZATION #####
 
     # Convert all UninitializedBasedEmojis in config to BasedEmoji
-    await initializeEmojis()
+    cfg.defaultEmojis.initializeEmojis()
 
     # Ensure all emojis have been initialized
     for varName, varValue in vars(cfg).items():
@@ -370,10 +328,10 @@ async def on_ready():
     ##### SCHEDULING #####
 
     # Schedule database saving
-    botState.dbSaveTT = TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(cfg.timeouts.dataSaveFrequency),
+    botState.dbSaveTT = TimedTask(expiryDelta=cfg.timeouts.dataSaveFrequency,
                                     autoReschedule=True, expiryFunction=botState.client.saveAllDBs)
     # Schedule BASED updates checking
-    botState.updatesCheckTT = TimedTask(expiryDelta=lib.timeUtil.timeDeltaFromDict(cfg.timeouts.BASED_updateCheckFrequency),
+    botState.updatesCheckTT = TimedTask(expiryDelta=cfg.timeouts.BASED_updateCheckFrequency,
                                         autoReschedule=True, expiryFunction=checkForUpdates)
 
     botState.taskScheduler.scheduleTask(botState.dbSaveTT)
@@ -454,7 +412,8 @@ async def on_message(message: discord.Message):
 
         # Command not found, send an error message.
         if not commandFound:
-            await message.channel.send(":question: Unknown command. Type `" + commandPrefix + "help` for a list of commands.")
+            await message.channel.send(f"{cfg.defaultEmojis.error.sendable} Unknown command. " \
+                                        + f"Type `{commandPrefix}help` for a list of commands.")
 
 
 @botState.client.event
@@ -523,8 +482,8 @@ async def on_raw_bulk_message_delete(payload: discord.RawBulkMessageDeleteEvent)
 
 
 def run():
-    """Runs the bot. Ensure that prior to importing this module, you have initialized your bot config
-    by running cfg.configurator.init()
+    """Runs the bot.
+    If you wish to use a toml config file, ensure that you have loaded it first with carica.loadCfg.
 
     :return: A description of what behaviour should follow shutdown
     :rtype: int
