@@ -59,29 +59,7 @@ class IBasedEmoji(ISerializable, ABC):
     """
     def __init__(self) -> None:
         self._sendable = err_UnknownEmoji
-
-
-    @abstractmethod
-    def serialize(self, **kwargs) -> PrimativeType:
-        """Serialize the emoji into primative types.
-
-        :return: A primative containing all information needed to recreate this emoji
-        :rtype: PrimativeType
-        """
-        raise NotImplementedError(f"Cannot invoke the abstract implementation {type(self)}.serialize")
-
-
-    @classmethod
-    @abstractmethod
-    def deserialize(cls, data: PrimativeType, **kwargs) -> IBasedEmoji:
-        """Recreate a serialized emoji
-
-        :param PrimativeType data: A primative containing all information needed to recreate the emoji
-        :return: A new emoji as specified by data
-        :rtype: IBasedEmoji
-        """
-        raise NotImplementedError(f"Cannot invoke the abstract implementation {cls}.deserialize")
-
+        
 
     @classmethod
     @abstractmethod
