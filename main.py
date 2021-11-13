@@ -1,6 +1,6 @@
 import sys
 from bot.cfg import cfg
-import carica
+import carica # type: ignore[import]
 
 # Load config if one is given
 if len(sys.argv) > 1:

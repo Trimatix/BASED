@@ -1,6 +1,6 @@
 import sys
 from bot.cfg import cfg
-from carica import makeDefaultCfg
+from carica import makeDefaultCfg # type: ignore[import]
 
 # If a file name was provided, pass to config generator
 if len(sys.argv) > 1:

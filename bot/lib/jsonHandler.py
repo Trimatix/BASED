@@ -28,7 +28,7 @@ def writeJSON(dbFile: str, db: dict, prettyPrint=False):
     else:
         txt = json.dumps(db)
     f = open(dbFile, "w")
-    txt = f.write(txt)
+    f.write(txt)
     f.close()
 
 

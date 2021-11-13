@@ -40,7 +40,7 @@ async def deserialize(dbDict: dict) -> ReactionMenuDB:
                                     "Invalid menu dict (missing " + attr + "), ignoring and removing. " \
                                         + " ".join(foundAttr + "=" + menuData[foundAttr] \
                                             for foundAttr in requiredAttrs if foundAttr in menuData),
-                                    category="reactionMenus", eventType="dictNo" + attr.capitalize)
+                                    category="reactionMenus", eventType="dictNo" + attr.capitalize())
 
         menuDescriptor = menuData["type"] + "(" + "/".join(str(id) \
                             for id in [menuData["guild"], menuData["channel"], msgID]) + ")"

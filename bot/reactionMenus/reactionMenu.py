@@ -3,15 +3,23 @@
 
 from ..scheduling.timedTask import TimedTask
 import inspect
-from discord import Embed, Colour, NotFound, HTTPException, Forbidden, Member, User, Message, Role, RawReactionActionEvent
+from discord import Embed, Colour, NotFound, HTTPException, Forbidden # type: ignore[import]
+from discord import Member, User, Message, Role, RawReactionActionEvent # type: ignore[import]
 from ..cfg import cfg
 from .. import botState, lib
 from abc import abstractmethod
-from typing import Union, Dict, List
+from typing import Any, Awaitable, Callable, Type, Union, Dict, List, cast
 import asyncio
-from types import FunctionType
-from carica import ISerializable
+from carica import ISerializable # type: ignore[import]
 from . import expiryFunctions
+
+
+_DCUserUnion = Union[User, Member]
+
+MenuOptionCallbackType = Union[Callable[[], Any], Callable[[Any], Any], Callable[[_DCUserUnion], Any],
+                                Callable[[Any, _DCUserUnion], Any], Callable[[], Awaitable[Any]],
+                                Callable[[Any], Awaitable[Any]], Callable[[_DCUserUnion], Awaitable[Any]],
+                                Callable[[Any, _DCUserUnion], Awaitable[Any]]]
 
 
 class ReactionMenuOption(ISerializable):
@@ -26,9 +34,9 @@ class ReactionMenuOption(ISerializable):
     :var emoji: The emoji that a user must react with to trigger this option
     :vartype emoji: lib.emojis.BasedEmoji
     :var addFunc: The function to call when this option is added by a user
-    :vartype addFunc: FunctionType
+    :vartype addFunc: MenuOptionCallbackType
     :var removeFunc: The function to call when this option is removed by a user
-    :vartype removeFunc: FunctionType
+    :vartype removeFunc: MenuOptionCallbackType
     :var addArgs: The arguments to pass to addFunc. No type checking is done on this parameter,
                     but a dict is recommended as a close replacement for keyword args.
     :var removeArgs: The arguments to pass to removeFunc.
@@ -46,8 +54,8 @@ class ReactionMenuOption(ISerializable):
     :vartype removeHasArgs: bool
     """
 
-    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, addFunc: FunctionType = None, addArgs=None,
-                    removeFunc: FunctionType = None, removeArgs=None):
+    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, addFunc: MenuOptionCallbackType = None, addArgs=None,
+                    removeFunc: MenuOptionCallbackType = None, removeArgs=None):
         """
         :param str name: The name of this option, as displayed in the menu embed.
         :param lib.emojis.BasedEmoji emoji: The emoji that a user must react with to trigger this option
@@ -71,7 +79,8 @@ class ReactionMenuOption(ISerializable):
         self.removeFunc = removeFunc
         self.removeArgs = removeArgs
         self.removeIsCoroutine = removeFunc is not None and inspect.iscoroutinefunction(removeFunc)
-        self.removeIncludeUser = removeFunc is not None and 'reactingUser' in inspect.signature(addFunc).parameters
+        self.removeIncludeUser = removeFunc is not None and \
+                                'reactingUser' in inspect.signature(cast(Callable, addFunc)).parameters
         self.removeHasArgs = removeFunc is not None and len(inspect.signature(
             removeFunc).parameters) != (1 if self.removeIncludeUser else 0)
 
@@ -84,16 +93,29 @@ class ReactionMenuOption(ISerializable):
         :param discord.Member member: The member adding the reaction
         :return: The result of the option's addFunc function, if one exists.
         """
+        # This function contains a series of type ignores.
+        # These ignores fix false positive errors due to the number of arguments in the callback signatures.
+        # These signatures are verified by the conditionals in this method.
         if self.addFunc is not None:
             if self.addIncludeUser:
                 if self.addHasArgs:
-                    return await self.addFunc(self.addArgs, reactingUser=member) if self.addIsCoroutine else \
-                                self.addFunc(self.addArgs, reactingUser=member)
-                return await self.addFunc(reactingUser=member) if self.addIsCoroutine else \
-                                self.addFunc(reactingUser=member)
+                    if self.addIsCoroutine:
+                        return await self.addFunc(self.addArgs, reactingUser=member) # type: ignore
+                    else:
+                        return self.addFunc(self.addArgs, reactingUser=member) # type: ignore
+                if self.addIsCoroutine:
+                    return await self.addFunc(reactingUser=member) # type: ignore
+                else:
+                    return self.addFunc(reactingUser=member) # type: ignore
             if self.addHasArgs:
-                return await self.addFunc(self.addArgs) if self.addIsCoroutine else self.addFunc(self.addArgs)
-            return await self.addFunc() if self.addIsCoroutine else self.addFunc()
+                if self.addIsCoroutine:
+                    return await self.addFunc(self.addArgs) # type: ignore
+                else:
+                    return self.addFunc(self.addArgs) # type: ignore
+            if self.addIsCoroutine:
+                return await self.addFunc() # type: ignore
+            else:
+                return self.addFunc() # type: ignore
 
 
     async def remove(self, member: Union[Member, User]):
@@ -104,16 +126,29 @@ class ReactionMenuOption(ISerializable):
         :param discord.Member member: The member that removed the reaction
         :return: The result of the option's removeFunc function, if one exists.
         """
+        # This function contains a series of type ignores.
+        # These ignores fix false positive errors due to the number of arguments in the callback signatures.
+        # These signatures are verified by the conditionals in this method.
         if self.removeFunc is not None:
             if self.removeIncludeUser:
                 if self.removeHasArgs:
-                    return await self.removeFunc(self.removeArgs, reactingUser=member) if self.removeIsCoroutine else \
-                                self.removeFunc(self.removeArgs, reactingUser=member)
-                return await self.removeFunc(reactingUser=member) if self.removeIsCoroutine else \
-                                self.removeFunc(reactingUser=member)
+                    if self.removeIsCoroutine:
+                        return await self.removeFunc(self.removeArgs, reactingUser=member) # type: ignore
+                    else:
+                        return self.removeFunc(self.removeArgs, reactingUser=member) # type: ignore
+                if self.removeIsCoroutine:
+                    return await self.removeFunc(reactingUser=member) # type: ignore
+                else:
+                    return self.removeFunc(reactingUser=member) # type: ignore
             if self.removeHasArgs:
-                return await self.removeFunc(self.removeArgs) if self.removeIsCoroutine else self.removeFunc(self.removeArgs)
-            return await self.removeFunc() if self.removeIsCoroutine else self.removeFunc()
+                if self.removeIsCoroutine:
+                    return await self.removeFunc(self.removeArgs) # type: ignore
+                else:
+                    return self.removeFunc(self.removeArgs) # type: ignore
+            if self.removeIsCoroutine:
+                return await self.removeFunc() # type: ignore
+            else:
+                return self.removeFunc() # type: ignore
 
 
     def __hash__(self) -> int:
@@ -163,8 +198,8 @@ class NonSaveableReactionMenuOption(ReactionMenuOption):
     Instead, inherit directly from ReactionMenuOption or another suitable subclass that is not marked as unsaveable.
     """
 
-    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, addFunc: FunctionType = None, addArgs=None,
-                        removeFunc: FunctionType = None, removeArgs=None):
+    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, addFunc: MenuOptionCallbackType = None, addArgs=None,
+                        removeFunc: MenuOptionCallbackType = None, removeArgs=None):
         """
         :param str name: The name of this option, as displayed in the menu embed.
         :param lib.emojis.BasedEmoji emoji: The emoji that a user must react with to trigger this option
@@ -480,7 +515,7 @@ class ReactionMenu(ISerializable):
         if self.authorName != "":
             data["authorName"] = self.authorName
 
-        if self.timeout != None:
+        if self.timeout is not None:
             data["timeout"] = self.timeout.expiryTime.timestamp()
 
         if self.targetMember is not None:
@@ -512,7 +547,7 @@ class CancellableReactionMenu(ReactionMenu):
     :vartype cancelEmoji: lib.emojis.BasedEmoji
     """
 
-    def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = None,
+    def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption],
                     cancelEmoji: lib.emojis.BasedEmoji = cfg.defaultEmojis.cancel,
                     titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: TimedTask = None,
                     footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "", authorName: str = "",
@@ -608,7 +643,8 @@ class SingleUserReactionMenu(ReactionMenu):
         :rtype: bool
         """
         try:
-            return (reactPL.message_id == self.msg.id and reactPL.user_id == self.targetMember.id) and \
+            # targetMember is a required parameter for this subclass
+            return (reactPL.message_id == self.msg.id and reactPL.user_id == cast(_DCUserUnion, self.targetMember).id) and \
                     (not self.returnTriggers or lib.emojis.BasedEmoji.fromPartial(reactPL.emoji) in self.returnTriggers)
         except lib.exceptions.UnrecognisedCustomEmoji:
             return False
@@ -694,7 +730,7 @@ def isSaveableMenuTypeName(clsName: str) -> bool:
     return clsName in saveableNameMenuTypes
 
 
-def saveableMenuClassFromName(clsName: str) -> type:
+def saveableMenuClassFromName(clsName: str) -> Type[ISerializable]:
     """Retreive the saveable ReactionMenu subclass that as the given class name.
     clsName must correspond to a ReactionMenu subclass that has been registered as saveble with the saveableMenu decorator.
 

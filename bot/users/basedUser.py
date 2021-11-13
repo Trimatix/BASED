@@ -1,7 +1,7 @@
 # Typing imports
 from __future__ import annotations
 
-from carica import ISerializable
+from carica import ISerializable # type: ignore[import]
 
 
 class BasedUser(ISerializable):

@@ -2,8 +2,14 @@ import os
 from . import cfg
 from .. import lib
 from datetime import datetime
-from typing import Dict, Union
 import aiohttp
+from carica import SerializableDataClass # type: ignore[import]
+from dataclasses import dataclass
+
+@dataclass
+class VersionInfo(SerializableDataClass):
+    BASED_version: str # a version indicator from github
+    next_update_check: float # a POSIX timestamp in UTC
 
 # Path to the BASED version json descriptor file. File also contains the timestamp of the next scheduled version check.
 BASED_VERSIONFILE = "bot" + os.sep + "cfg" + os.sep + "version" + os.sep + "BASED_version.json"
@@ -50,7 +56,7 @@ class UpdateCheckResults:
         self.upToDate = upToDate
 
 
-def getBASEDVersion() -> Dict[str, Union[str, float]]:
+def getBASEDVersion() -> VersionInfo:
     """Get info about the running BASED version, from file.
 
     :return: A dictionary describing the current BASED version, and the next scheduled updates check.
@@ -60,7 +66,7 @@ def getBASEDVersion() -> Dict[str, Union[str, float]]:
     if not os.path.isfile(BASED_VERSIONFILE):
         raise RuntimeError("BASED version file not found, please update cfg.versionInfo.BASED_VERSIONFILE path")
     # Read version file
-    return lib.jsonHandler.readJSON(BASED_VERSIONFILE)
+    return VersionInfo.deserialize(lib.jsonHandler.readJSON(BASED_VERSIONFILE))
 
 
 async def getNewestTagOnRemote(httpClient: aiohttp.ClientSession, url: str) -> str:
@@ -82,7 +88,7 @@ async def getNewestTagOnRemote(httpClient: aiohttp.ClientSession, url: str) -> s
 
 
 # Version of BASED currently installed
-BASED_VERSION = getBASEDVersion()["BASED_version"]
+BASED_VERSION = getBASEDVersion().BASED_version
 
 
 async def checkForUpdates(httpClient: aiohttp.ClientSession) -> UpdateCheckResults:
@@ -95,7 +101,7 @@ async def checkForUpdates(httpClient: aiohttp.ClientSession) -> UpdateCheckResul
     :rtype: UpdateCheckResults
     """
     # Fetch the next scheduled updates check from file
-    nextUpdateCheck = datetime.utcfromtimestamp(getBASEDVersion()["next_update_check"])
+    nextUpdateCheck = datetime.utcfromtimestamp(getBASEDVersion().next_update_check)
 
     # Is it time to check yet?
     if datetime.utcnow() >= nextUpdateCheck:
@@ -104,9 +110,7 @@ async def checkForUpdates(httpClient: aiohttp.ClientSession) -> UpdateCheckResul
 
         # Schedule next updates check
         nextCheck = datetime.utcnow() + cfg.timeouts.BASED_updateCheckFrequency
-        lib.jsonHandler.writeJSON(BASED_VERSIONFILE,
-                                  {"BASED_version": BASED_VERSION,
-                                   "next_update_check": nextCheck.timestamp()})
+        lib.jsonHandler.writeJSON(BASED_VERSIONFILE, VersionInfo(BASED_VERSION, nextCheck.timestamp()).serialize())
 
         # If no tags were found on remote, assume up to date.
         upToDate = (latest == BASED_VERSION) if latest else True

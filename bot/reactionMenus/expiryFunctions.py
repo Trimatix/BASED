@@ -1,5 +1,5 @@
 from .. import botState
-from discord import NotFound, HTTPException, Forbidden
+from discord import NotFound, HTTPException, Forbidden # type: ignore[import]
 from ..cfg import cfg
 
 

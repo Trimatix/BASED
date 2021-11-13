@@ -3,7 +3,7 @@ from __future__ import annotations
 from ..users import basedGuild
 from typing import List
 from .. import botState
-from carica import ISerializable
+from carica import ISerializable # type: ignore[import]
 from .. import lib
 
 
@@ -84,7 +84,7 @@ class GuildDB(ISerializable):
         """
         # Ensure guild is not yet in the database
         if self.guildExists(guild):
-            raise KeyError("Attempted to add a guild that already exists: " + guild.id)
+            raise KeyError(f"Attempted to add a guild that already exists: {guild.id}")
         self.guilds[guild.id] = guild
 
 
@@ -99,7 +99,7 @@ class GuildDB(ISerializable):
         """
         # Ensure the requested ID does not yet exist in the database
         if self.idExists(id):
-            raise KeyError("Attempted to add a guild that already exists: " + id)
+            raise KeyError(f"Attempted to add a guild that already exists: {id}")
         # Create and return a BasedGuild for the requested ID
         self.guilds[id] = basedGuild.BasedGuild(id, botState.client.get_guild(id))
         return self.guilds[id]

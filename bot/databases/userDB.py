@@ -4,7 +4,7 @@ from .. import lib
 from .. import botState
 import traceback
 from typing import List
-from carica import ISerializable
+from carica import ISerializable # type: ignore[import]
 
 
 class UserDB(ISerializable):

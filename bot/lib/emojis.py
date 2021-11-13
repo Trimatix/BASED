@@ -1,15 +1,15 @@
 from __future__ import annotations
-import emoji
+import emoji # type: ignore[import]
 from .. import botState
 from . import stringTyping, exceptions
 import traceback
-from carica import ISerializable, PrimativeType, SerializableType
-from carica.typeChecking import objectIsShallowSerializable
+from carica import ISerializable, PrimativeType, SerializableType # type: ignore[import]
+from carica.typeChecking import objectIsShallowSerializable # type: ignore[import]
 from abc import ABC, abstractmethod
 
-from typing import Union, TYPE_CHECKING
+from typing import Union, TYPE_CHECKING, cast
 if TYPE_CHECKING:
-    from discord import PartialEmoji, Emoji
+    from discord import PartialEmoji, Emoji # type: ignore[import]
 
 
 err_UnknownEmoji = "❓"
@@ -159,7 +159,7 @@ class BasedEmoji(IBasedEmoji):
     :var EMPTY: static class variable representing an empty emoji
     :vartype EMPTY: BasedEmoji
     """
-    EMPTY = None
+    EMPTY = cast("BasedEmoji", None)
 
     def __init__(self, id: int = -1, unicode: str = "", rejectInvalid: bool = False):
         """
@@ -226,7 +226,7 @@ class BasedEmoji(IBasedEmoji):
         return hash(repr(self))
 
 
-    def __eq__(self, other: BasedEmoji) -> bool:
+    def __eq__(self, other) -> bool:
         """Decide if this BasedEmoji is equal to another.
         Two BasedEmojis are equal if they represent the same emoji (i.e ID/unicode) of the same type (custom/unicode)
 
@@ -316,7 +316,7 @@ class BasedEmoji(IBasedEmoji):
         if type(e) == PartialEmoji:
             return BasedEmoji.fromPartial(e, rejectInvalid=rejectInvalid)
         else:
-            return BasedEmoji(id=e.id, rejectInvalid=rejectInvalid)
+            return BasedEmoji(id=cast(PartialEmoji, e).id, rejectInvalid=rejectInvalid)
 
 
     @classmethod
@@ -338,7 +338,7 @@ class BasedEmoji(IBasedEmoji):
         if type(s) == BasedEmoji:
             return s
         if type(s) == dict:
-            return BasedEmoji.deserialize(s, rejectInvalid=rejectInvalid)
+            return BasedEmoji.deserialize(cast(dict, s), rejectInvalid=rejectInvalid)
         if strIsUnicodeEmoji(s):
             return BasedEmoji(unicode=s, rejectInvalid=rejectInvalid)
         elif strIsCustomEmoji(s):
