@@ -175,10 +175,10 @@ class BasedEmoji(IBasedEmoji):
             raise ValueError("At least one of id or unicode is required")
         elif id != -1 and unicode != "":
             raise ValueError("Can only accept one of id or unicode, not both")
-        if type(id) != int:
-            raise TypeError("Given incorrect type for BasedEmoji ID: " + type(id).__name__)
-        if type(unicode) != str:
-            raise TypeError("Given incorrect type for BasedEmoji unicode: " + type(unicode).__name__)
+        if not isinstance(id, int):
+            raise TypeError("Given incorrect type for BasedEmoji ID: " + type(id).__name__ + " " + str(id))
+        if not isinstance(unicode, str):
+            raise TypeError("Given incorrect type for BasedEmoji unicode: " + type(unicode).__name__ + " " + str(unicode))
 
         self.id = id
         self.unicode = unicode
