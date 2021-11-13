@@ -2,10 +2,10 @@ from carica.models import SerializableDataClass, SerializableTimedelta
 from dataclasses import dataclass
 
 from carica.models.path import SerializablePath
-from ..lib.emojis import BasedEmoji, IBasedEmoji, UninitializedBasedEmoji
-from typing import Dict, List, Set, Tuple, Union, cast, Any
+from ..lib.emojis import IBasedEmoji, UninitializedBasedEmoji
+from typing import Dict, List, Set, Tuple, Union, Any
 
-EmojisFieldType = Union[BasedEmoji, List["EmojisFieldType"], Set["EmojisFieldType"], Tuple["EmojisFieldType"], Dict[Any, "EmojisFieldType"]] # type: ignore
+EmojisFieldType = Union[IBasedEmoji, List["EmojisFieldType"], Set["EmojisFieldType"], Tuple["EmojisFieldType"], Dict[Any, "EmojisFieldType"]] # type: ignore
 
 def convertEmoji(o) -> EmojisFieldType:
     if isinstance(o, UninitializedBasedEmoji):
@@ -22,7 +22,7 @@ def convertEmoji(o) -> EmojisFieldType:
 class EmojisConfig(SerializableDataClass):
     longProcess: Union[UninitializedBasedEmoji, IBasedEmoji]
     # When a user message prompts a DM to be sent, this emoji will be added to the message reactions.
-    dmSent: IBasedEmoji
+    dmSent: Union[UninitializedBasedEmoji, IBasedEmoji]
     cancel: Union[UninitializedBasedEmoji, IBasedEmoji]
     submit: Union[UninitializedBasedEmoji, IBasedEmoji]
     spiral: Union[UninitializedBasedEmoji, IBasedEmoji]
