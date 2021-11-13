@@ -1,7 +1,10 @@
 from discord import Message, Embed, Colour # type: ignore[import]
-from typing import List
+from typing import Dict, List
 from ..cfg import cfg
 from .commandRegistry import CommandRegistry, COMMAND_FUNCTION_TYPE
+
+
+HelpSectionsType = List[Dict[str, List[CommandRegistry]]]
 
 
 class HeirarchicalCommandsDB:
@@ -26,7 +29,7 @@ class HeirarchicalCommandsDB:
             raise ValueError("Cannot create a HeirarchicalCommandsDB with less than one access level")
         self.numAccessLevels = numAccessLevels
         self.clear()
-        self.helpSections = [{"miscellaneous": []} for _ in range(self.numAccessLevels)]
+        self.helpSections: HelpSectionsType = [{"miscellaneous": []} for _ in range(self.numAccessLevels)]
         self.helpSectionEmbeds = [{"miscellaneous": [Embed(title=cfg.userAccessLevels[accessLevel] + " Commands",
                                                             description=cfg.helpIntro + "\n__Miscellaneous__",
                                                             colour=Colour.blue())]}
@@ -82,8 +85,9 @@ class HeirarchicalCommandsDB:
             helpSection = helpSection.lower()
 
             # Infer help strings from the function docstrings, if instructed to
-            if useDoc:
-                longHelp = function.__doc__
+            if useDoc and function.__doc__ not in [None, ""]:
+                # Optionality of this attribute is checked above
+                longHelp = function.__doc__ # type: ignore
 
             if longHelp and not shortHelp:
                 # max out shortHelp string lengths at 200 characters here to keep things short.
