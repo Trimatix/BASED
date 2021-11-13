@@ -3,7 +3,7 @@ from __future__ import annotations
 from ..users import basedGuild
 from typing import List
 from .. import botState
-from carica import ISerializable
+from carica import ISerializable # type: ignore[import]
 from .. import lib
 
 

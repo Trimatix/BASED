@@ -3,7 +3,7 @@ from __future__ import annotations
 from discord import Guild # type: ignore[import]
 
 from .. import botState, lib
-from carica import ISerializable
+from carica import ISerializable # type: ignore[import]
 from ..cfg import cfg
 
 

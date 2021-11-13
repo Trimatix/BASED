@@ -3,8 +3,8 @@ import emoji
 from .. import botState
 from . import stringTyping, exceptions
 import traceback
-from carica import ISerializable, PrimativeType, SerializableType
-from carica.typeChecking import objectIsShallowSerializable
+from carica import ISerializable, PrimativeType, SerializableType # type: ignore[import]
+from carica.typeChecking import objectIsShallowSerializable # type: ignore[import]
 from abc import ABC, abstractmethod
 
 from typing import Union, TYPE_CHECKING

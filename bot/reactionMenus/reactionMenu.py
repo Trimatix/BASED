@@ -11,7 +11,7 @@ from abc import abstractmethod
 from typing import Union, Dict, List
 import asyncio
 from types import FunctionType
-from carica import ISerializable
+from carica import ISerializable # type: ignore[import]
 from . import expiryFunctions
 
 
