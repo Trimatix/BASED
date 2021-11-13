@@ -7,7 +7,7 @@ from carica import ISerializable, PrimativeType, SerializableType # type: ignore
 from carica.typeChecking import objectIsShallowSerializable # type: ignore[import]
 from abc import ABC, abstractmethod
 
-from typing import Union, TYPE_CHECKING
+from typing import Union, TYPE_CHECKING, cast
 if TYPE_CHECKING:
     from discord import PartialEmoji, Emoji # type: ignore[import]
 
@@ -316,7 +316,7 @@ class BasedEmoji(IBasedEmoji):
         if type(e) == PartialEmoji:
             return BasedEmoji.fromPartial(e, rejectInvalid=rejectInvalid)
         else:
-            return BasedEmoji(id=e.id, rejectInvalid=rejectInvalid)
+            return BasedEmoji(id=cast(PartialEmoji, e).id, rejectInvalid=rejectInvalid)
 
 
     @classmethod
