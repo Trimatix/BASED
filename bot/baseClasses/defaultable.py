@@ -18,7 +18,7 @@ def get_default_args(func: Callable) -> Dict[str, Any]:
     }
 
 
-class Defaultable:
+class DefaultableMixin:
     """Adds the following two methods: _makeDefaults and _allArgs.
     _makeDefaults constructs a maskable and overridable mapping of constructor keyword argument names to default values
     for those arguments. The unmodified default values mapping is saved to the _defaults class attribute as a naive cache.
@@ -28,6 +28,10 @@ class Defaultable:
     :type defaults: Optional[Dict[str, Any]]
     """
     _defaults: Optional[Dict[str, Any]] = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
 
     @classmethod
     def _makeDefaults(cls, args : Dict[str, Any] = {}, ignores : Tuple[str, ...] = (), **overrides) -> Dict[str, Any]:
