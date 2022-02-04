@@ -82,3 +82,9 @@ developers = [188618589102669826]
 # botToken_envVarName contains the name of an environment variable to get your bot token from
 botToken = ""
 botToken_envVarName = ""
+
+# The number of times to retry API calls when HTTP exceptions are thrown
+httpErrRetries = 3
+
+# The number of seconds to wait between API call retries upon HTTP exception catching
+httpErrRetryDelaySeconds = 1
