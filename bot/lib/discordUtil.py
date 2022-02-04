@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Awaitable, Callable, Coroutine, Optional, Protocol, Set, Union, Tuple, Dict
+from typing import Any, Awaitable, Callable, Coroutine, Optional, Protocol, Set, Union, Tuple, Dict, cast
 
 from discord.errors import NotFound # type: ignore[import]
 from discord import User, Member, Guild, Message # type: ignore[import]
@@ -353,7 +353,7 @@ def logExceptionsOnTask(task: asyncio.Task, logCategory: str = None, className: 
     :param noPrint: Give True to skip printing the exception entirely (will still be logged to file) (Default False)
     :type noPrint: Optional[bool]
     """
-    if e := task.exception():
+    if e := cast(Optional[Exception], task.exception()):
         if logCategory is None:
             logCategory = "misc"
 
@@ -547,5 +547,5 @@ def scheduleCoroWithLogging(coro: Awaitable, logCategory: str = None, className:
     :return: A task wrapping the execution
     :rtype: asyncio.Task
     """
-    return asyncio.create_task(awaitCoroAndLogExceptions(coro, logCategory=logCategory, className=className, funcName=funcName,
-                        noPrintEvent=noPrintEvent, noPrint=noPrint))
+    return asyncio.create_task(awaitCoroAndLogExceptions(coro, logCategory=logCategory, className=className,
+                                                        funcName=funcName, noPrintEvent=noPrintEvent, noPrint=noPrint))
