@@ -2,7 +2,7 @@ from .cfg import cfg
 from os import path
 from datetime import datetime
 import traceback
-from typing import Optional, Tuple, cast
+from typing import Dict, Optional, Tuple, cast
 
 
 LOG_TIME_FORMAT = "(%d/%m/%H:%M)"
@@ -25,7 +25,7 @@ class Logger:
     def clearLogs(self):
         """Clears all logs from the database.
         """
-        self.logs = {"usersDB": {}, "guildsDB": {}, "reactionMenus": {}, "misc": {}}
+        self.logs: Dict[str, Dict[datetime, str]] = {"usersDB": {}, "guildsDB": {}, "reactionMenus": {}, "misc": {}}
 
 
     def isEmpty(self) -> bool:

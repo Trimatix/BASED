@@ -2,3 +2,4 @@ discord.py
 emoji
 toml
 carica
+aiohttp[speedups]
