@@ -310,6 +310,8 @@ async def on_ready():
 
     # Convert all UninitializedBasedEmojis in config to BasedEmoji
     cfg.defaultEmojis.initializeEmojis()
+    # Create missing directories
+    cfg.paths.createMissingDirectories()
 
     # Ensure all emojis have been initialized
     for varName, varValue in vars(cfg).items():

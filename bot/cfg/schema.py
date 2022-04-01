@@ -1,9 +1,9 @@
-from carica.models import SerializableDataClass, SerializableTimedelta # type: ignore[import]
+from carica.models import SerializableDataClass, SerializableTimedelta, SerializablePath # type: ignore[import]
 from dataclasses import dataclass
-
-from carica.models.path import SerializablePath # type: ignore[import]
-from ..lib.emojis import IBasedEmoji, UninitializedBasedEmoji
+import os
 from typing import Dict, List, Set, Tuple, Union, Any, cast
+
+from ..lib.emojis import IBasedEmoji, UninitializedBasedEmoji
 
 EmojisFieldType = Union[IBasedEmoji, List["EmojisFieldType"], Set["EmojisFieldType"], Tuple["EmojisFieldType"], Dict[Any, "EmojisFieldType"]] # type: ignore
 
@@ -59,3 +59,18 @@ class PathsConfig(SerializableDataClass):
     reactionMenusDB: SerializablePath
     # path to folder to save log txts to
     logsFolder: SerializablePath
+
+    def createMissingDirectories(self):
+        # Normalize all paths and create missing directories
+        for varname in self._fieldNames():
+            # Normalize path
+            normalized = os.path.normpath(getattr(self, varname))
+            setattr(self, varname, normalized)
+            
+            # If the path is a file, get the path to the parent directory
+            pathSplit = os.path.splitext(normalized)
+            pathDir = os.path.dirname(pathSplit[0]) if pathSplit[1] else pathSplit[0]
+            
+            # Create missing directories
+            if pathDir and not os.path.isdir(pathDir):
+                os.makedirs(pathDir)
