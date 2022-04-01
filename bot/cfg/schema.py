@@ -59,6 +59,8 @@ class PathsConfig(SerializableDataClass):
     reactionMenusDB: SerializablePath
     # path to folder to save log txts to
     logsFolder: SerializablePath
+    # path to file to save BASED version to
+    BASED_versionFile: SerializablePath
 
     def createMissingDirectories(self):
         # Normalize all paths and create missing directories
