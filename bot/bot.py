@@ -313,11 +313,6 @@ async def on_ready():
     # Create missing directories
     cfg.paths.createMissingDirectories()
 
-    # Ensure all emojis have been initialized
-    for varName, varValue in vars(cfg).items():
-        if isinstance(varValue, lib.emojis.UninitializedBasedEmoji):
-            raise RuntimeError("Uninitialized emoji still remains in cfg after emoji initialization: '" + varName + "'")
-
 
     ##### LOAD USER DATA #####
 
