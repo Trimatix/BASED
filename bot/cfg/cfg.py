@@ -1,4 +1,5 @@
 from ..lib.emojis import UninitializedBasedEmoji
+from ..lib.discordUtil import SerializableDiscordObject
 from .schema import EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, SerializablePath
 
 # All emojis used by the bot
@@ -40,7 +41,9 @@ paths = PathsConfig(
     reactionMenusDB = SerializablePath("saveData", "reactionMenus.json"),
 
     # path to folder to save log txts to
-    logsFolder = SerializablePath("saveData", "logs")
+    logsFolder = SerializablePath("saveData", "logs"),
+    # path to file to save BASED version to
+    BASED_versionFile = SerializablePath(".BASED", "BASED_version.json")
 )
 
 # Names of user access levels to be used in help menus.
@@ -76,6 +79,9 @@ defaultCommandPrefix = "."
 
 # discord user IDs of developers - will be granted developer command permissions
 developers = [188618589102669826]
+
+# IDs of 'development' servers, where commands will be synced to immediately, and dev commands will be enabled.
+developmentGuilds = [SerializableDiscordObject(1)]
 
 # Exactly one of botToken or botToken_envVarName must be given.
 # botToken contains a string of your bot token
