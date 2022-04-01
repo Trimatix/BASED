@@ -1,4 +1,4 @@
-import discord
+import discord # type: ignore[import]
 import traceback
 from datetime import datetime
 

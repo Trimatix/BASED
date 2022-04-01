@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from discord import Guild
+from discord import Guild # type: ignore[import]
 
 from .. import botState, lib
-from ..baseClasses import serializable
+from carica import ISerializable # type: ignore[import]
 from ..cfg import cfg
 
 
-class BasedGuild(serializable.Serializable):
+class BasedGuild(ISerializable):
     """A class representing a guild in discord, and storing extra bot-specific information about it.
 
     :var id: The ID of the guild, directly corresponding to a discord guild's ID.
@@ -33,7 +33,7 @@ class BasedGuild(serializable.Serializable):
         self.commandPrefix = commandPrefix
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this BasedGuild into dictionary format to be saved to file.
 
         :return: A dictionary containing all information needed to reconstruct this BasedGuild
@@ -43,9 +43,9 @@ class BasedGuild(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, guildDict: dict, **kwargs) -> BasedGuild:
+    def deserialize(cls, guildDict: dict, **kwargs) -> BasedGuild:
         """Factory function constructing a new BasedGuild object from the information
-        in the provided guildDict - the opposite of BasedGuild.toDict
+        in the provided guildDict - the opposite of BasedGuild.serialize
 
         :param int id: The discord ID of the guild
         :param dict guildDict: A dictionary containing all information required to build the BasedGuild object

@@ -1,6 +1,6 @@
 from bot import botState
 from bot.cfg import versionInfo
-import discord
+import discord # type: ignore[import]
 from datetime import datetime
 
 from . import commandsDB as botCommands

@@ -67,8 +67,11 @@ BASED is *not* a library, it is a *template* to be used as a starting point for 
 
 # Configuring Your Bot
 
-BASED v0.3 adds the ability to configure all of the bot's cfg attributes externally with toml.<br>
-If a bot token is provided by the default config values (found in `cfg/cfg.py`), use of a config file is entirely optional.
+As of v2.0, BASED now uses [Carica](https://pypi.org/project/carica/) for configuration by default. This allows your bot to be configured with convenient, auto-generated toml configuration files, while receiving the configuration in code as strongly typed python objects.
+
+Any config variables added to the module as part of your application will automatically be read into the module from toml. For more information, including how to store and receive custom classes in config, see the [Carica repository](https://github.com/Trimatix/Carica).
+
+There is only one required config variable: Your bot's token. You can eliminate the need for a config file entirely by providing your bot token as a default config value (found in `cfg/cfg.py`).
 
 - All config variables are optional.
 - Generate a default config file with all variables and their defaults, by running `makeDefaultConfig.py`.

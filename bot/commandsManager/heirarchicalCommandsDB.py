@@ -1,9 +1,10 @@
-# Typing imports
-from types import FunctionType
-from discord import Message, Embed, Colour
-from typing import List
+from discord import Message, Embed, Colour # type: ignore[import]
+from typing import Dict, List
 from ..cfg import cfg
-from .commandRegistry import CommandRegistry
+from .commandRegistry import CommandRegistry, COMMAND_FUNCTION_TYPE
+
+
+HelpSectionsType = List[Dict[str, List[CommandRegistry]]]
 
 
 class HeirarchicalCommandsDB:
@@ -28,7 +29,7 @@ class HeirarchicalCommandsDB:
             raise ValueError("Cannot create a HeirarchicalCommandsDB with less than one access level")
         self.numAccessLevels = numAccessLevels
         self.clear()
-        self.helpSections = [{"miscellaneous": []} for _ in range(self.numAccessLevels)]
+        self.helpSections: HelpSectionsType = [{"miscellaneous": []} for _ in range(self.numAccessLevels)]
         self.helpSectionEmbeds = [{"miscellaneous": [Embed(title=cfg.userAccessLevels[accessLevel] + " Commands",
                                                             description=cfg.helpIntro + "\n__Miscellaneous__",
                                                             colour=Colour.blue())]}
@@ -36,14 +37,14 @@ class HeirarchicalCommandsDB:
         self.helpSectionEmbeds[0]["miscellaneous"][0].set_footer(text="Page 1 of 1")
         self.totalEmbeds = [1 for _ in range(numAccessLevels)]
 
-    def register(self, command: str, function: FunctionType, accessLevel: int, aliases: List[str] = [],
+    def register(self, command: str, function: COMMAND_FUNCTION_TYPE, accessLevel: int, aliases: List[str] = [],
                  forceKeepArgsCasing: bool = False, forceKeepCommandCasing: bool = False, allowDM: bool = True,
                  noHelp: bool = False, signatureStr: str = "", shortHelp: str = "", longHelp: str = "",
                  useDoc: bool = False, helpSection: str = "miscellaneous"):
         """Register a command in the database.
 
         :param str command: the text name users should call the function by. Commands are case sensitive.
-        :param FunctionType function: reference to the function that should be called
+        :param COMMAND_FUNCTION_TYPE function: reference to the function that should be called
         :param int accessLevel: The level of access required to call this command
         :param List[str] aliases: List of alternative commands which may be used to call this one. The same accessLevel will
                                     be required for all aliases. (Default []) 
@@ -84,8 +85,9 @@ class HeirarchicalCommandsDB:
             helpSection = helpSection.lower()
 
             # Infer help strings from the function docstrings, if instructed to
-            if useDoc:
-                longHelp = function.__doc__
+            if useDoc and function.__doc__ not in [None, ""]:
+                # Optionality of this attribute is checked above
+                longHelp = function.__doc__ # type: ignore
 
             if longHelp and not shortHelp:
                 # max out shortHelp string lengths at 200 characters here to keep things short.

@@ -1,10 +1,10 @@
 # Typing imports
 from __future__ import annotations
 
-from ..baseClasses import serializable
+from carica import ISerializable # type: ignore[import]
 
 
-class BasedUser(serializable.Serializable):
+class BasedUser(ISerializable):
     """A user of the bot. There is currently no guarantee that user still shares any guilds with the bot,
     though this is planned to change in the future.
 
@@ -26,7 +26,7 @@ class BasedUser(serializable.Serializable):
         pass
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this BasedUser to a dictionary representation for saving to file.
 
         :return: A dictionary containing all information needed to recreate this user
@@ -45,9 +45,9 @@ class BasedUser(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, userDict: dict, **kwargs) -> BasedUser:
+    def deserialize(cls, userDict: dict, **kwargs) -> BasedUser:
         """Construct a new BasedUser object from the given ID and the information in the
-        given dictionary - The opposite of BasedUser.toDict
+        given dictionary - The opposite of BasedUser.serialize
 
         :param int id: The discord ID of the user
         :param dict userDict: A dictionary containing all information necessary to construct

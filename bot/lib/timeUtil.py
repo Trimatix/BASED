@@ -1,5 +1,4 @@
 from datetime import timedelta
-from typing import Dict
 
 
 def td_format_noYM(td_object: timedelta) -> str:
@@ -28,21 +27,3 @@ def td_format_noYM(td_object: timedelta) -> str:
             strings.append("%s %s%s" % (period_value, period_name, has_s))
 
     return ", ".join(strings)
-
-
-def timeDeltaFromDict(timeDict: dict) -> timedelta:
-    """Construct a datetime.timedelta from a dictionary,
-    transforming keys into keyword arguments for the timedelta constructor.
-
-    :param dict timeDict: dictionary containing measurements for each time interval. i.e weeks, days, hours, minutes,
-                            seconds, microseconds and milliseconds. all are optional and case sensitive.
-    :return: a timedelta with all of the attributes requested in the dictionary.
-    :rtype: datetime.timedelta
-    """
-    return timedelta(weeks=timeDict["weeks"] if "weeks" in timeDict else 0,
-                     days=timeDict["days"] if "days" in timeDict else 0,
-                     hours=timeDict["hours"] if "hours" in timeDict else 0,
-                     minutes=timeDict["minutes"] if "minutes" in timeDict else 0,
-                     seconds=timeDict["seconds"] if "seconds" in timeDict else 0,
-                     microseconds=timeDict["microseconds"] if "microseconds" in timeDict else 0,
-                     milliseconds=timeDict["milliseconds"] if "milliseconds" in timeDict else 0)
