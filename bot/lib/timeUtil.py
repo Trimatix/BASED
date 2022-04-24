@@ -27,3 +27,22 @@ def td_format_noYM(td_object: timedelta) -> str:
             strings.append("%s %s%s" % (period_value, period_name, has_s))
 
     return ", ".join(strings)
+
+
+def td_secondsMinutesHours(td: timedelta):
+    seconds = int(td.total_seconds())
+    periods = [
+        ('hours', 60 * 60),
+        ('minutes', 60),
+        ('seconds', 1)
+    ]
+    results = {
+        'hours': 0,
+        'minutes': 0,
+        'seconds': 0
+    }
+    for period_name, period_seconds in periods:
+        if seconds >= period_seconds:
+            results[period_name], seconds = divmod(seconds, period_seconds)
+        
+    return results

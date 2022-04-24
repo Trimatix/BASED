@@ -53,7 +53,7 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
             botState.taskScheduler.scheduleTask(helpTT)
             indexEmbed = lib.discordUtil.makeEmbed(titleTxt=cfg.userAccessLevels[userAccessLevel] + " Commands",
                                                     desc="Select " + cfg.defaultEmojis.next.sendable + " to go to page one.",
-                                                    thumb=botState.client.user.avatar_url_as(size=64),
+                                                    thumb=botState.client.user.display_avatar.url,
                                                     footerTxt="This menu will expire in " +
                                                                 lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
             sectionsStr = ""
@@ -114,7 +114,7 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
                                                     desc=cfg.helpIntro +
                                                     "\n__" + botCommands.commands[userAccessLevel][args].helpSection.title() +
                                                     "__", col=discord.Colour.blue(),
-                                                    thumb=botState.client.user.avatar_url_as(size=64))
+                                                    thumb=botState.client.user.display_avatar.url)
             helpEmbed.add_field(name=botCommands.commands[userAccessLevel][args].signatureStr,
                                 value=botCommands.commands[userAccessLevel][args].longHelp, inline=False)
             helpEmbed.add_field(name="DMable", value="Yes" if botCommands.commands[userAccessLevel][args].allowDM else "No")

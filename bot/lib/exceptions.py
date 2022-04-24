@@ -39,3 +39,21 @@ class NoneDCGuildObj(Exception):
     """Raised when constructing a guild object, but the corresponding dcGuild was either not given or invalid.
     """
     pass
+
+
+class NotReady(Exception):
+    """Raised when attempting to perform an action on the client when the client is not ready yet.
+    E.g:
+    - databases not loaded yet
+    - client not logged in yet
+    """
+    pass
+
+
+class ClientInitFailed(Exception):
+    """Raised when initialization of the discord client fails.
+    """
+    def __init__(self, inner: Exception) -> None:
+        self.inner = inner
+        super().__init__("Initialization of the discord client failed due to the following exception:\n" \
+                        + formatExceptionTrace(inner))

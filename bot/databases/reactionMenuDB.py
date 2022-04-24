@@ -18,6 +18,10 @@ class ReactionMenuDB(dict):
                 data[msgID] = self[msgID].serialize(**kwargs)
         return data
 
+    
+    def deserialize(d, *args, **kwargs):
+        raise NotImplementedError()
+
 
 async def deserialize(dbDict: dict) -> ReactionMenuDB:
     """Factory function constructing a new ReactionMenuDB from dictionary-serialized format;

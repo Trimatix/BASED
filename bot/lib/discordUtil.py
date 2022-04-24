@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Awaitable, Callable, Coroutine, Optional, Protocol, Set, Union, Tuple, Dict, cast
 
-import discord
+import discord # type: ignore[import]
 from discord.errors import NotFound # type: ignore[import]
 from discord import User, Member, Guild, Message # type: ignore[import]
 from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent # type: ignore[import]
@@ -13,7 +13,7 @@ from ..cfg import cfg
 
 from functools import wraps, partial
 import asyncio
-from carica import ISerializable
+from carica import ISerializable # type: ignore[import]
 
 class AnyCoroutine(Protocol):
     def __call__(*args, **kwargs) -> Awaitable: ...

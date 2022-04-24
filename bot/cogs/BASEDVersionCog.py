@@ -1,11 +1,18 @@
 import os
-from . import cfg
+from ..cfg import cfg
 from .. import lib
+from .. import client
 from datetime import datetime
 import aiohttp
 from carica import SerializableDataClass # type: ignore[import]
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
+
+from typing import List
+import discord # type: ignore[import]
+from discord.ext import commands, tasks # type: ignore[import]
+from discord import app_commands # type: ignore[import]
 
 @dataclass
 class VersionInfo(SerializableDataClass):
@@ -18,43 +25,24 @@ BASED_VERSIONFILE = str(Path(".BASED", "BASED_version.json"))
 BASED_REPO_USER = "Trimatix"
 BASED_REPO_NAME = "BASED"
 # Pointer to the BASED repository. Do not change this.
-BASED_REPO_URL = "https://github.com/" + "/".join([BASED_REPO_USER, BASED_REPO_NAME])
-BASED_API_URL = "https://api.github.com/repos/" + "/".join([BASED_REPO_USER, BASED_REPO_NAME]) + "/releases"
+BASED_REPO_URL = f"https://github.com/{BASED_REPO_USER}/{BASED_REPO_NAME}"
+BASED_API_URL = f"https://api.github.com/repos/{BASED_REPO_USER}/{BASED_REPO_NAME}/releases"
 
 
-class UpdatesCheckFailed(Exception):
-    """Exception to indicate that checking for updates failed. This could be for several reasons,
-    e.g if the GitHub API is down.
-    
-    The reason for the failure should be given in the constructor.
-
-    :param str reason: The reason that the updates check failed
-    """
-    def __init__(self, reason: str, *args) -> None:
-        super().__init__(reason, *args)
-
-
+@dataclass
 class UpdateCheckResults:
     """Data class representing the results of a bot version check.
 
     :var updatesChecked: whether or not an updates check was attempted
     :vartype updatesChecked: bool
-    :var latestVersion: String name of the latest version
+    :var latestVersion: String name of the latest version. None when updatesChecked is False
     :vartype latestVersion: str
-    :var upToDate: Whether or not the current bot version is latestVersion
+    :var upToDate: Whether or not the current bot version is latestVersion. None when updatesChecked is False
     :vartype upToDate: bool
     """
-
-    def __init__(self, updatesChecked: bool, latestVersion: str = None, upToDate: bool = None):
-        """Data class representing the results of a bot version check.
-
-        :param bool updatesChecked: whether or not an updates check was attempted
-        :param str latestVersion: String name of the latest version. None when updatesChecked is False
-        :param bool upToDate: Whether or not the current bot version is latestVersion. None when updatesChecked is False
-        """
-        self.updatesChecked = updatesChecked
-        self.latestVersion = latestVersion
-        self.upToDate = upToDate
+    updatesChecked: bool
+    latestVersion: Optional[str]
+    upToDate: Optional[bool]
 
 
 def getBASEDVersion() -> VersionInfo:
@@ -67,25 +55,7 @@ def getBASEDVersion() -> VersionInfo:
     if not os.path.isfile(BASED_VERSIONFILE):
         raise RuntimeError("BASED version file not found, please update cfg.versionInfo.BASED_VERSIONFILE path")
     # Read version file
-    return VersionInfo.deserialize(lib.jsonHandler.readJSON(BASED_VERSIONFILE))
-
-
-async def getNewestTagOnRemote(httpClient: aiohttp.ClientSession, url: str) -> str:
-    """Fetch the name of the latest tag on the given git remote.
-    If the remote has no tags, empty string is returned.
-
-    :param aiohttp.ClientSession httpClient: The ClientSession to request git info with
-    :param str url: URL to the git remote to check
-    :return: String name of the the latest tag on the remote at URL, if the remote at URL has any tags. Empty string otherwise
-    :rtype: str 
-    """
-    async with httpClient.get(url) as resp:
-        try:
-            resp.raise_for_status()
-            respJSON = await resp.json()
-            return respJSON[0]["tag_name"]
-        except (IndexError, KeyError, aiohttp.ContentTypeError, aiohttp.ClientResponseError):
-            raise UpdatesCheckFailed("Could not fetch latest release info from GitHub. Is the GitHub API down?")
+    return lib.jsonHandler.loadObject(BASED_VERSIONFILE, VersionInfo)
 
 
 # Version of BASED currently installed
@@ -107,15 +77,47 @@ async def checkForUpdates(httpClient: aiohttp.ClientSession) -> UpdateCheckResul
     # Is it time to check yet?
     if datetime.utcnow() >= nextUpdateCheck:
         # Get latest version
-        latest = await getNewestTagOnRemote(httpClient, BASED_API_URL)
+        latest = await lib.github.getNewestTagOnRemote(httpClient, BASED_API_URL)
 
         # Schedule next updates check
         nextCheck = datetime.utcnow() + cfg.timeouts.BASED_updateCheckFrequency
-        lib.jsonHandler.writeJSON(BASED_VERSIONFILE, VersionInfo(BASED_VERSION, nextCheck.timestamp()).serialize())
+        newVersion = VersionInfo(BASED_VERSION, nextCheck.timestamp())
+        lib.jsonHandler.saveObject(BASED_VERSIONFILE, newVersion)
 
         # If no tags were found on remote, assume up to date.
         upToDate = (latest == BASED_VERSION) if latest else True
         return UpdateCheckResults(True, latestVersion=latest, upToDate=upToDate)
 
     # If not time to check yet, indicate as such
-    return UpdateCheckResults(False)
+    return UpdateCheckResults(False, None, None)
+
+
+class BASED_VersionCog(commands.Cog):
+    def __init__(self, bot: client.BasedClient, *args, **kwargs):
+        self.bot = bot
+        super().__init__(*args, **kwargs)
+        bot.add_listener(self.on_ready)
+
+
+    async def on_ready(self):
+        if not self.bot.loggedIn:
+            return
+        self.BASED_updatesCheck.start()
+
+    
+    @tasks.loop(**lib.timeUtil.td_secondsMinutesHours(cfg.timeouts.BASED_updateCheckFrequency),
+                reconnect=False)
+    async def BASED_updatesCheck(self):
+        try:
+            BASED_versionCheck = await checkForUpdates(self.bot.httpClient)
+        except lib.github.GithubError:
+            print("⚠ BASED updates check failed. Either the GitHub API is down, " +
+                    f"or your BASED updates checker version is depracated: {BASED_REPO_URL}")
+        else:
+            if BASED_versionCheck.updatesChecked and not BASED_versionCheck.upToDate:
+                print(f"⚠ New BASED update {BASED_versionCheck.latestVersion} now available! See " +
+                    f"{BASED_REPO_URL} for instructions on how to update your BASED fork.")
+
+
+async def setup(bot: client.BasedClient):
+    await bot.add_cog(BASED_VersionCog(bot), guilds=cfg.developmentGuilds)

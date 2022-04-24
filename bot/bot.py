@@ -8,7 +8,6 @@ from .cfg import cfg, versionInfo
 # Discord Imports
 
 import discord # type: ignore[import]
-from discord.ext.commands import Bot as ClientBaseClass # type: ignore[import]
 
 
 # Util imports
@@ -27,31 +26,18 @@ from . import lib, botState, logging
 from .databases import guildDB, reactionMenuDB, userDB
 from .scheduling.timedTask import TimedTask
 from .scheduling.timedTaskHeap import TimedTaskHeap
-from bot.scheduling import timedTaskHeap
-
-
-async def checkForUpdates():
-    """Check if any new BASED versions are available, and print a message to console if one is found.
-    """
-    try:
-        BASED_versionCheck = await versionInfo.checkForUpdates(botState.httpClient)
-    except versionInfo.UpdatesCheckFailed:
-        print("⚠ BASED updates check failed. Either the GitHub API is down, " +
-                "or your BASED updates checker version is depracated: " + versionInfo.BASED_REPO_URL)
-    else:
-        if BASED_versionCheck.updatesChecked and not BASED_versionCheck.upToDate:
-            print("⚠ New BASED update " + BASED_versionCheck.latestVersion + " now available! See " +
-                  versionInfo.BASED_REPO_URL + " for instructions on how to update your BASED fork.")
-
+from .scheduling import timedTaskHeap
+from .client import BasedClient
 
 def setHelpEmbedThumbnails():
     """Loads the bot application's profile picture into all help menu embeds as the embed thumbnail.
     If no profile picture is set for the application, the default profile picture is used instead.
     """
+    avatar = botState.client.user.display_avatar.url
     for levelSection in botCommands.helpSectionEmbeds:
         for helpSection in levelSection.values():
             for embed in helpSection:
-                embed.set_thumbnail(url=botState.client.user.avatar_url_as(size=64))
+                embed.set_thumbnail(url=avatar)
 
 
 def inferUserPermissions(message: discord.Message) -> int:
@@ -68,158 +54,27 @@ def inferUserPermissions(message: discord.Message) -> int:
         return 0
 
 
-class GracefulKiller:
-    """Class tracking receipt of SIGINT and SIGTERM signals under linux.
-    This is used during the main loop to put the bot to sleep when requested.
-
-    :var kill_now: Whether or not a termination signal has been received
-    :vartype kill_now: bool
-    """
-
-    def __init__(self):
-        """Register signal handlers"""
-        self.kill_now = False
-        signal.signal(signal.SIGINT, self.exit_gracefully) # keyboard interrupt
-        signal.signal(signal.SIGTERM, self.exit_gracefully) # graceful exit request
-
-    def exit_gracefully(self, signum, frame):
-        """Termination signal received, mark kill indicator"""
-        self.kill_now = True
-
-
-class BasedClient(ClientBaseClass):
-    """A minor extension to discord.ext.commands.Bot to include database saving and extended shutdown procedures.
-
-    A command_prefix is assigned to this bot, but no commands are registered to it, so this is effectively meaningless.
-    I chose to assign a zero-width character, as this is unlikely to ever be chosen as the bot's actual command prefix,
-    minimising erroneous commands.Bot command recognition. 
-
-    :var bot_loggedIn: Tracks whether or not the bot is currently logged in
-    :vartype bot_loggedIn: bool
-    :var storeUsers: Whether or not to track users with botState
-    :vartype storeUsers: bool
-    :var storeGuilds: Whether or not to track guilds with botState
-    :vartype storeGuilds: bool
-    :var storeMenus: Whether or not to track reaction menus with botState
-    :vartype storeMenus: bool
-    :var storeNone: True if none of storeUsers, storeGuilds and storeMenus are True
-    :vartype storeNone: bool
-    :var launchTime: The time that the client was instanciated
-    :vartype launchTime: datetime
-    :var killer: Indicator of when OS termination signals are received
-    :vartype killer: GracefulKiller
-    """
-
-    def __init__(self, storeUsers: bool = True, storeGuilds: bool = True, storeMenus: bool = True):
-        """
-        :param bool storeUsers: Whether or not to track users with botState (default True)
-        :param bool storeGuilds: Whether or not to track guilds with botState (default True)
-        :param bool storeMenus: Whether or not to track reaction menus with botState (default True)
-        """
-        intents = discord.Intents.default()
-        intents.members = True
-        super().__init__(command_prefix="‎", intents=intents)
-        self.loggedIn = False
-        self.storeUsers = storeUsers
-        self.storeGuilds = storeGuilds
-        self.storeMenus = storeMenus
-        self.storeNone = not(storeUsers or storeGuilds or storeMenus)
-        self.launchTime = datetime.utcnow()
-        self.killer = GracefulKiller()
-
-
-    def saveAllDBs(self):
-        """Save all of the bot's savedata to file.
-        This currently saves:
-        - the users database
-        - the guilds database
-        - the reaction menus database
-        - logs
-        """
-        if self.storeUsers:
-            lib.jsonHandler.saveDB(cfg.paths.usersDB, botState.usersDB)
-        if self.storeGuilds:
-            lib.jsonHandler.saveDB(cfg.paths.guildsDB, botState.guildsDB)
-        if self.storeMenus:
-            lib.jsonHandler.saveDB(cfg.paths.reactionMenusDB, botState.reactionMenusDB)
-        botState.logger.save()
-        if not self.storeNone:
-            print(datetime.now().strftime("%H:%M:%S: Data saved!"))
-
-    async def shutdown(self):
-        """Cleanly prepare for, and then perform, shutdown of the bot.
-
-        This currently:
-        - expires all non-saveable reaction menus
-        - logs out of discord
-        - saves all savedata to file
-        """
-        botState.taskScheduler.stopTaskChecking()
-        if self.storeMenus:
-            # expire non-saveable reaction menus
-            menus = list(botState.reactionMenusDB.values())
-            for menu in menus:
-                if not menu.saveable:
-                    await menu.delete()
-
-        # log out of discord
-        self.loggedIn = False
-        await self.logout()
-        # save bot save data
-        self.saveAllDBs()
-        print(datetime.now().strftime("%H:%M:%S: Shutdown complete."))
-        # close the bot's aiohttp session
-        await botState.httpClient.close()
-
 
 ####### GLOBAL VARIABLES #######
 
 botState.logger = logging.Logger()
 
 # interface into the discord servers
-botState.client = BasedClient(storeUsers=True,
-                              storeGuilds=True,
-                              storeMenus=True)
+botState.client = BasedClient()
+
+cogsPackage = "bot.cogs"
+def cogPath(cogName: str, basePackage: str = cogsPackage) -> str:
+    return ".".join((basePackage, cogName))
+
+
+async def loadExtensions():
+    await botState.client.load_extension(cogPath("BASEDVersionCog"))
+
 
 # commands DB
 from . import commands
 botCommands = commands.loadCommands()
 
-
-####### DATABASE FUNCTIONS #####
-
-def loadUsersDB(filePath: str) -> userDB.UserDB:
-    """Build a UserDB from the specified JSON file.
-
-    :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
-    :return: a UserDB as described by the dictionary-serialized representation stored in the file located in filePath.
-    """
-    if os.path.isfile(filePath):
-        return userDB.UserDB.deserialize(lib.jsonHandler.readJSON(filePath))
-    return userDB.UserDB()
-
-
-def loadGuildsDB(filePath: str, dbReload: bool = False) -> guildDB.GuildDB:
-    """Build a GuildDB from the specified JSON file.
-
-    :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
-    :return: a GuildDB as described by the dictionary-serialized representation stored in the file located in filePath.
-    """
-    if os.path.isfile(filePath):
-        return guildDB.GuildDB.deserialize(lib.jsonHandler.readJSON(filePath))
-    return guildDB.GuildDB()
-
-
-async def loadReactionMenusDB(filePath: str) -> reactionMenuDB.ReactionMenuDB:
-    """Build a reactionMenuDB from the specified JSON file.
-    This method must be called asynchronously, to allow awaiting of discord message fetching functions.
-
-    :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
-    :return: a reactionMenuDB as described by the dictionary-serialized representation stored in the file located in filePath.
-    """
-    if os.path.isfile(filePath):
-        return await reactionMenuDB.deserialize(lib.jsonHandler.readJSON(filePath))
-    return reactionMenuDB.ReactionMenuDB()
 
 
 ####### SYSTEM COMMANDS #######
@@ -275,85 +130,18 @@ async def on_guild_remove(guild: discord.Guild):
 
 @botState.client.event
 async def on_ready():
-    """Bot initialisation (called on bot login) and behaviour loops.
-    Currently includes:
-    - regular database saving to JSON
-
-    TODO: Implement dynamic timedtask checking period
-    """
-    ##### CLIENT INITIALIZATION #####
-    
-    botState.httpClient = aiohttp.ClientSession()
-
-    if cfg.timedTaskCheckingType == "fixed":
-        botState.taskScheduler = timedTaskHeap.TimedTaskHeap()
-    elif cfg.timedTaskCheckingType == "dynamic":
-        botState.taskScheduler = timedTaskHeap.AutoCheckingTimedTaskHeap(asyncio.get_running_loop())
-        botState.taskScheduler.startTaskChecking()
-    else:
-        raise ValueError("Unsupported cfg.timedTaskCheckingType: " + str(cfg.timedTaskCheckingType))
-
     # Set help embed thumbnails
     setHelpEmbedThumbnails()
 
-    # Check for upates to BASED
     print("BASED " + versionInfo.BASED_VERSION + " loaded.\nClient logged in as {0.user}".format(botState.client))
-    await checkForUpdates()
 
     # Set custom bot status
     await botState.client.change_presence(activity=discord.Game("BASED APP"))
-    # bot is now logged in
-    botState.client.loggedIn = True
-
-
-    ##### EMOJI INITIALIZATION #####
 
     # Convert all UninitializedBasedEmojis in config to BasedEmoji
     cfg.defaultEmojis.initializeEmojis()
     # Create missing directories
     cfg.paths.createMissingDirectories()
-
-
-    ##### LOAD USER DATA #####
-
-    # Load save data. If the specified files do not exist, an empty database will be created instead.
-    botState.usersDB = loadUsersDB(cfg.paths.usersDB)
-    
-    botState.guildsDB = loadGuildsDB(cfg.paths.guildsDB)
-    async for guild in botState.client.fetch_guilds(limit=None):
-        if not botState.guildsDB.idExists(guild.id):
-            botState.guildsDB.addID(guild.id)
-
-    botState.reactionMenusDB = await loadReactionMenusDB(cfg.paths.reactionMenusDB)
-
-
-    ##### SCHEDULING #####
-
-    # Schedule database saving
-    botState.dbSaveTT = TimedTask(expiryDelta=cfg.timeouts.dataSaveFrequency,
-                                    autoReschedule=True, expiryFunction=botState.client.saveAllDBs)
-    # Schedule BASED updates checking
-    botState.updatesCheckTT = TimedTask(expiryDelta=cfg.timeouts.BASED_updateCheckFrequency,
-                                        autoReschedule=True, expiryFunction=checkForUpdates)
-
-    botState.taskScheduler.scheduleTask(botState.dbSaveTT)
-    botState.taskScheduler.scheduleTask(botState.updatesCheckTT)
-
-
-    ##### MAIN LOOP #####
-    
-    while botState.client.loggedIn:
-        await asyncio.sleep(cfg.timedTaskLatenessThresholdSeconds)
-        
-        if cfg.timedTaskCheckingType == "fixed":
-            await botState.taskScheduler.doTaskChecking()
-        # elif cfg.timedTaskCheckingType == "dynamic":
-
-        # termination signal received from OS. Trigger graceful shutdown with database saving
-        if botState.client.killer.kill_now:
-            botState.shutdown = botState.ShutDownState.shutdown
-            print("shutdown signal received, shutting down...")
-            await botState.client.shutdown()
 
 
 @botState.client.event
@@ -364,6 +152,9 @@ async def on_message(message: discord.Message):
 
     :param discord.Message message: The message that triggered this command on sending
     """
+    if not botState.client.loggedIn:
+        return
+        
     # ignore messages sent by bots
     if message.author.bot:
         return
@@ -425,6 +216,9 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 
     :param discord.RawReactionActionEvent payload: An event describing the message and the reaction added
     """
+    if not botState.client.loggedIn:
+        return
+
     # ignore bot reactions
     if payload.user_id != botState.client.user.id:
         # Get rich, useable reaction data
@@ -446,6 +240,9 @@ async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
 
     :param discord.RawReactionActionEvent payload: An event describing the message and the reaction removed
     """
+    if not botState.client.loggedIn:
+        return
+        
     # ignore bot reactions
     if payload.user_id != botState.client.user.id:
         # Get rich, useable reaction data
@@ -467,6 +264,9 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
 
     :param discord.RawMessageDeleteEvent payload: An event describing the message deleted.
     """
+    if not botState.client.loggedIn:
+        return
+        
     if payload.message_id in botState.reactionMenusDB:
         await botState.reactionMenusDB[payload.message_id].delete()
 
@@ -478,12 +278,15 @@ async def on_raw_bulk_message_delete(payload: discord.RawBulkMessageDeleteEvent)
 
     :param discord.RawBulkMessageDeleteEvent payload: An event describing all messages deleted.
     """
+    if not botState.client.loggedIn:
+        return
+        
     for msgID in payload.message_ids:
         if msgID in botState.reactionMenusDB:
             await botState.reactionMenusDB[msgID].delete()
 
 
-def run():
+async def runAsync():
     """Runs the bot.
     If you wish to use a toml config file, ensure that you have loaded it first with carica.loadCfg.
 
@@ -497,6 +300,19 @@ def run():
     if cfg.botToken_envVarName and cfg.botToken_envVarName not in os.environ:
         raise KeyError("Bot token environment variable " + cfg.botToken_envVarName + " not set (cfg.botToken_envVarName")
 
-    # Launch the bot!! 🤘🚀
-    botState.client.run(cfg.botToken if cfg.botToken else os.environ[cfg.botToken_envVarName])
+    async with botState.client:
+        await loadExtensions()
+        # Launch bot
+        await botState.client.start(cfg.botToken if cfg.botToken else os.environ[cfg.botToken_envVarName])
+    
     return botState.shutdown
+
+
+def run():
+    """Runs the bot.
+    If you wish to use a toml config file, ensure that you have loaded it first with carica.loadCfg.
+
+    :return: A description of what behaviour should follow shutdown
+    :rtype: int
+    """
+    return asyncio.run(runAsync())

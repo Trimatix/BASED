@@ -41,9 +41,7 @@ paths = PathsConfig(
     reactionMenusDB = SerializablePath("saveData", "reactionMenus.json"),
 
     # path to folder to save log txts to
-    logsFolder = SerializablePath("saveData", "logs"),
-    # path to file to save BASED version to
-    BASED_versionFile = SerializablePath(".BASED", "BASED_version.json")
+    logsFolder = SerializablePath("saveData", "logs")
 )
 
 # Names of user access levels to be used in help menus.
@@ -64,12 +62,8 @@ includedCommandModules = ("usr_misc",
 # Text to edit into expired menu messages
 expiredMenuMsg = "😴 This role menu has now expired."
 
-# Use "fixed" to check for task expiry every timedTaskLatenessThresholdSeconds (polling-based scheduler)
-# Use "dynamic" to check for task expiry exactly at the time of task expiry (interrupts-based scheduler)
-timedTaskCheckingType = "dynamic"
-# Number of seconds by with the expiry of a timedtask may acceptably be late.
-# Regardless of timedTaskCheckingType, this is used for the termination signal checking period.
-timedTaskLatenessThresholdSeconds = 10
+# The termination signal checking period.
+shutdownCheckPeriodSeconds = 10
 
 # Whether or not to check for updates to BASED
 BASED_checkForUpdates = True
