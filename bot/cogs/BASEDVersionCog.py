@@ -111,8 +111,8 @@ class BASED_VersionCog(commands.Cog):
         try:
             BASED_versionCheck = await checkForUpdates(self.bot.httpClient)
         except lib.github.GithubError:
-            print("⚠ BASED updates check failed. Either the GitHub API is down, " +
-                    f"or your BASED updates checker version is depracated: {BASED_REPO_URL}")
+            print("⚠ BASED updates check failed. You may be checking for updates too quickly, the GitHub API may be down, " +
+                    f"or your BASED updates checker version may be depracated: {BASED_REPO_URL}")
         else:
             if BASED_versionCheck.updatesChecked and not BASED_versionCheck.upToDate:
                 print(f"⚠ New BASED update {BASED_versionCheck.latestVersion} now available! See " +

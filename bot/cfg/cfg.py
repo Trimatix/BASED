@@ -1,6 +1,6 @@
 from ..lib.emojis import UninitializedBasedEmoji
 from ..lib.discordUtil import SerializableDiscordObject
-from .schema import EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, SerializablePath
+from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, SerializablePath
 
 # All emojis used by the bot
 defaultEmojis = EmojisConfig(
@@ -44,9 +44,15 @@ paths = PathsConfig(
     logsFolder = SerializablePath("saveData", "logs")
 )
 
+basicAccessLevels = BasicAccessLevelNames(
+    user = "user",
+    serverAdmin = "admin",
+    developer = "developer"
+)
+
 # Names of user access levels to be used in help menus.
 # Also determines the number of access levels available, e.g when registering commands
-userAccessLevels = ["user", "mod", "admin", "dev"]
+userAccessLevels = [basicAccessLevels.user, "mod", basicAccessLevels.serverAdmin, basicAccessLevels.developer]
 
 # Message to print alongside cmd_help menus
 helpIntro = "Here are my commands!"
@@ -58,6 +64,14 @@ maxCommandsPerHelpPage = 5
 includedCommandModules = ("usr_misc",
                           "admn_misc",
                           "dev_misc")
+
+def cogPath(cogName: str, basePackage: str = "bot.cogs") -> str:
+    return ".".join((basePackage, cogName))
+
+includedCogs = (
+    cogPath("BASEDVersionCog"),
+    cogPath("AdminMiscCog")
+)
 
 # Text to edit into expired menu messages
 expiredMenuMsg = "😴 This role menu has now expired."

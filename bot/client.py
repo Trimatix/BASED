@@ -259,6 +259,10 @@ class BasedClient(ClientBaseClass):
             self.shutdownCheckTask.start()
 
         await self.reloadDBs()
+        
+        for g in cfg.developmentGuilds:
+            await self.tree.sync(guild=g)
+
         self.loggedIn = True
         if dispatchReady:
             self.dispatch("ready", *args, **kwargs)

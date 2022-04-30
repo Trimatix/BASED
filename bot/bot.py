@@ -62,13 +62,9 @@ botState.logger = logging.Logger()
 # interface into the discord servers
 botState.client = BasedClient()
 
-cogsPackage = "bot.cogs"
-def cogPath(cogName: str, basePackage: str = cogsPackage) -> str:
-    return ".".join((basePackage, cogName))
-
-
 async def loadExtensions():
-    await botState.client.load_extension(cogPath("BASEDVersionCog"))
+    for c in cfg.includedCogs:
+        await botState.client.load_extension(c)
 
 
 # commands DB
