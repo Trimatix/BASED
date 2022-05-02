@@ -187,7 +187,7 @@ class BasedEmoji(IBasedEmoji):
         self._sendable = self.unicode if self.isUnicode else str(botState.client.get_emoji(self.id))
         if self.sendable == "None":
             if logUnknownEmojis:
-                botState.logger.log("BasedEmoji", "init", "Unrecognised custom emoji ID in BasedEmoji constructor: " +
+                botState.client.logger.log("BasedEmoji", "init", "Unrecognised custom emoji ID in BasedEmoji constructor: " +
                                     str(self.id), trace=traceback.format_exc())
             if raiseUnkownEmojis or rejectInvalid:
                 raise exceptions.UnrecognisedCustomEmoji(

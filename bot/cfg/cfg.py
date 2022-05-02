@@ -70,7 +70,8 @@ def cogPath(cogName: str, basePackage: str = "bot.cogs") -> str:
 
 includedCogs = (
     cogPath("BASEDVersionCog"),
-    cogPath("AdminMiscCog")
+    cogPath("AdminMiscCog"),
+    cogPath("HelpCog")
 )
 
 # Text to edit into expired menu messages

@@ -4,6 +4,7 @@ import inspect
 from typing import Any, List, Union
 import asyncio
 from datetime import datetime
+import discord
 
 
 class TimedTaskHeap:
@@ -164,7 +165,7 @@ class AutoCheckingTimedTaskHeap(TimedTaskHeap):
         """
         while self.active:
             if len(self.tasksHeap) > 0:
-                sleepDelta = self.tasksHeap[0].expiryTime - datetime.utcnow()
+                sleepDelta = self.tasksHeap[0].expiryTime - discord.utils.utcnow()
                 coro = asyncio.sleep(sleepDelta.total_seconds(), loop=self.loop)
                 self.sleepTask = asyncio.create_task(coro)
 

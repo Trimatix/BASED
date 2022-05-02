@@ -286,7 +286,7 @@ async def asyncOperationWithRetry(f: AnyCoroutine, opName: str, logCategory: str
 
     def logError(e: Exception):
         eName = type(e).__name__
-        botState.logger.log(className, camelFName,
+        botState.client.logger.log(className, camelFName,
                             f"{eName} thrown on {opName}. Meta: " + meta,
                             category=logCategory, eventType=eName)
 
@@ -296,7 +296,7 @@ async def asyncOperationWithRetry(f: AnyCoroutine, opName: str, logCategory: str
         for tryNum in range(cfg.httpErrRetries):
             try:
                 msg = await f(*fArgs, **fKwargs)
-                botState.logger.log(className, camelFName,
+                botState.client.logger.log(className, camelFName,
                                     f"{opName} successful, but only after " \
                                         + f"{tryNum} retr{'y' if tryNum == 1 else 'ies'}. Meta: " + meta,
                                     category=logCategory, eventType="RETRY-SUCCESS")
@@ -339,7 +339,7 @@ def extractFuncName(f: Union[Awaitable, Callable]) -> Tuple[str, str]:
 
 def logExceptionsOnTask(task: asyncio.Task, logCategory: str = None, className: str = None, funcName: str = None,
                         noPrintEvent: bool = False, noPrint: bool = False):
-    """See if any exceptions occurred in `task`. If they did, then log them using `botState.logger`.
+    """See if any exceptions occurred in `task`. If they did, then log them using `botState.client.logger`.
     If `task` has not finished execution, this is treated as an exception and is logged.
     If `task` has no exceptions set, do nothing.
     All parameters other than `task` are optional. If not given, they will be inferred from `task`.
@@ -364,7 +364,7 @@ def logExceptionsOnTask(task: asyncio.Task, logCategory: str = None, className: 
             className = extractedClass if className is None else className
             funcName = extractedFunc if funcName is None else funcName
 
-        botState.logger.log(className, funcName, str(e), category=logCategory, exception=e, noPrint=noPrint,
+        botState.client.logger.log(className, funcName, str(e), category=logCategory, exception=e, noPrint=noPrint,
                             noPrintEvent=noPrintEvent)
 
 
@@ -373,6 +373,10 @@ class BasicScheduler:
     """
     def __init__(self) -> None:
         self.tasks: Set[asyncio.Task] = set()
+
+
+    def any(self) -> bool:
+        return bool(self.tasks)
 
 
     def add(self, coro: Awaitable) -> asyncio.Task:
@@ -399,7 +403,7 @@ class BasicScheduler:
 
     def logExceptions(self, logCategory: str = None, className: str = None, funcName: str = None, noPrintEvent: bool = False,
                         noPrint: bool = False):
-        """See if any exceptions occurred in the registered tasks. If they did, then log them using `botState.logger`.
+        """See if any exceptions occurred in the registered tasks. If they did, then log them using `botState.client.logger`.
 
         :param logCategory: The category to log into (Default None)
         :type logCategory: Optional[str]
@@ -499,7 +503,7 @@ class BasicScheduler:
 
 async def awaitCoroAndLogExceptions(coro: Awaitable, logCategory: str = None, className: str = None, funcName: str = None,
                         noPrintEvent: bool = False, noPrint: bool = False) -> Any:
-    """Await `coro`, and then log any exceptions that occurred using `botState.logger`.
+    """Await `coro`, and then log any exceptions that occurred using `botState.client.logger`.
     All parameters other than `coro` are optional. If not given, they will be inferred from `coro`.
 
     :param coro: The coroutine whose exceptions to log
@@ -527,7 +531,7 @@ async def awaitCoroAndLogExceptions(coro: Awaitable, logCategory: str = None, cl
 def scheduleCoroWithLogging(coro: Awaitable, logCategory: str = None, className: str = None, funcName: str = None,
                         noPrintEvent: bool = False, noPrint: bool = False) -> asyncio.Task:
     """Schedule a coroutine execution onto the event loop, and log any exceptions that occur during
-    execution with `botState.logger`.
+    execution with `botState.client.logger`.
     Very useful for synchronously scheduling a coroutine for execution without *completely* missing any exceptions.
     Pass a normal parenthesized call to a coroutine, but without awaiting it.
     The task that is contructed is returned, but you don't need to do anything with this for execution to complete.

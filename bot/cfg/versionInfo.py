@@ -1,11 +1,12 @@
 import os
 from . import cfg
 from .. import lib
-from datetime import datetime
+from datetime import datetime, timezone
 import aiohttp
 from carica import SerializableDataClass # type: ignore[import]
 from dataclasses import dataclass
 from pathlib import Path
+import discord
 
 @dataclass
 class VersionInfo(SerializableDataClass):
@@ -102,15 +103,15 @@ async def checkForUpdates(httpClient: aiohttp.ClientSession) -> UpdateCheckResul
     :rtype: UpdateCheckResults
     """
     # Fetch the next scheduled updates check from file
-    nextUpdateCheck = datetime.utcfromtimestamp(getBASEDVersion().next_update_check)
+    nextUpdateCheck = datetime.fromtimestamp(getBASEDVersion().next_update_check, timezone.utc)
 
     # Is it time to check yet?
-    if datetime.utcnow() >= nextUpdateCheck:
+    if discord.utils.utcnow() >= nextUpdateCheck:
         # Get latest version
         latest = await getNewestTagOnRemote(httpClient, BASED_API_URL)
 
         # Schedule next updates check
-        nextCheck = datetime.utcnow() + cfg.timeouts.BASED_updateCheckFrequency
+        nextCheck = discord.utils.utcnow() + cfg.timeouts.BASED_updateCheckFrequency
         lib.jsonHandler.writeJSON(BASED_VERSIONFILE, VersionInfo(BASED_VERSION, nextCheck.timestamp()).serialize())
 
         # If no tags were found on remote, assume up to date.

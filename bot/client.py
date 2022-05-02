@@ -1,6 +1,6 @@
 import asyncio
 import signal
-from typing import Optional
+from typing import Optional, Dict
 import aiohttp
 import discord # type: ignore[import]
 from discord.ext.commands import Bot as ClientBaseClass # type: ignore[import]
@@ -12,6 +12,7 @@ from . import lib
 from .cfg import cfg
 from . import logging
 from .scheduling import timedTaskHeap
+from .interactions import basedCommand, accessLevel
 
 
 class ShutDownState:
@@ -102,6 +103,7 @@ class BasedClient(ClientBaseClass):
                         taskScheduler: timedTaskHeap.TimedTaskHeap = None,
                         httpClient: aiohttp.ClientSession = None):
         intents = discord.Intents.default()
+        intents.message_content = True
         intents.members = True
         super().__init__(command_prefix="‎", intents=intents)
 
@@ -111,7 +113,7 @@ class BasedClient(ClientBaseClass):
         self._dbsLoaded = None not in (usersDB, guildsDB, reactionMenusDB)
 
         self.loggedIn = False
-        self.launchTime = datetime.utcnow()
+        self.launchTime = discord.utils.utcnow()
         self.killer = GracefulKiller()
 
         self.taskScheduler = taskScheduler
@@ -120,10 +122,20 @@ class BasedClient(ClientBaseClass):
         self.logger = logger if logger is not None else logging.Logger()
         self.httpClient = httpClient
 
+        self.__basedCommandMeta__: Dict[discord.app_commands.Command, basedCommand.BasedCommandMeta] = {}
+
 
     async def setup_hook(self):
         if self.httpClient is None:
             self.httpClient = aiohttp.ClientSession()
+
+
+    def commandMeta(self, command: discord.app_commands.Command) -> basedCommand.BasedCommandMeta:
+        return self.__basedCommandMeta__[command]
+
+
+    def accessLevel(self, command: discord.app_commands.Command) -> accessLevel._AccessLevelBase:
+        return self.commandMeta(command).accessLevel
 
     
     @property
@@ -135,7 +147,7 @@ class BasedClient(ClientBaseClass):
         :return: The bot's database of user metadata.
         :rtype: databases.userDB.UserDB
         """
-        if self._dbsLoaded:
+        if not self._dbsLoaded:
             raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient.usersDB is only available after on_ready.")
         return self._usersDB
 
@@ -149,7 +161,7 @@ class BasedClient(ClientBaseClass):
         :return: The bot's database of user metadata.
         :rtype: databases.guildDB.GuildDB
         """
-        if self._dbsLoaded:
+        if not self._dbsLoaded:
             raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient.usersDB is only available after on_ready.")
         return self._guildsDB
 
@@ -163,7 +175,7 @@ class BasedClient(ClientBaseClass):
         :return: The bot's database of user metadata.
         :rtype: databases.reactionMenuDB.ReactionMenuDB
         """
-        if self._dbsLoaded:
+        if not self._dbsLoaded:
             raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient.usersDB is only available after on_ready.")
         return self._reactionMenusDB
 
@@ -172,13 +184,18 @@ class BasedClient(ClientBaseClass):
         """Save all savedata to file, and start the db saving task if it is not running.
         """
         self._usersDB = loadUsersDB(cfg.paths.usersDB)
+        print(f"{len(self._usersDB.users)} users loaded")
     
         self._guildsDB = loadGuildsDB(cfg.paths.guildsDB)
         async for guild in self.fetch_guilds(limit=None):
             if not self._guildsDB.idExists(guild.id):
                 self._guildsDB.addID(guild.id)
+                
+        print(f"{len(self._guildsDB.guilds)} guilds loaded")
 
         self._reactionMenusDB = await loadReactionMenusDB(cfg.paths.reactionMenusDB)
+
+        print(f"{len(self._reactionMenusDB)} reaction menus loaded")
         
         self._dbsLoaded = True
 
@@ -260,8 +277,12 @@ class BasedClient(ClientBaseClass):
 
         await self.reloadDBs()
         
+        treeSyncTasks = lib.discordUtil.BasicScheduler()
         for g in cfg.developmentGuilds:
-            await self.tree.sync(guild=g)
+            treeSyncTasks.add(self.tree.sync(guild=g))
+        if treeSyncTasks.any():
+            await treeSyncTasks.wait()
+            treeSyncTasks.raiseExceptions()
 
         self.loggedIn = True
         if dispatchReady:

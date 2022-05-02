@@ -4,6 +4,7 @@ from datetime import datetime
 import traceback
 from typing import Dict, Optional, Tuple
 from .lib.exceptions import formatExceptionTrace
+import discord
 
 
 LOG_TIME_FORMAT = "(%d/%m/%H:%M)"
@@ -95,7 +96,7 @@ class Logger:
 
         logsSaved = ""
         files = {}
-        nowStr = datetime.utcnow().strftime(LOG_TIME_FORMAT)
+        nowStr = discord.utils.utcnow().strftime(LOG_TIME_FORMAT)
 
         for category in self.logs:
             if bool(self.logs[category]):
@@ -174,7 +175,7 @@ class Logger:
         if eventType is None:
             eventType = "MISC_ERR"
 
-        now = datetime.utcnow()
+        now = discord.utils.utcnow()
         if noPrintEvent:
             eventStr = now.strftime(LOG_TIME_FORMAT) + "-[" + str(classStr).upper() \
                         + "::" + str(funcStr).upper() + "]>" + str(eventType)

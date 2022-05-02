@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 import inspect
+import discord
 from typing import Any, Callable, Awaitable, Union
 from .. import botState
 
@@ -64,7 +65,7 @@ class TimedTask:
             raise ValueError("No expiry time given, both expiryTime and expiryDelta are None")
 
         # Calculate issueTime as now if none is given
-        self.issueTime = datetime.utcnow() if issueTime is None else issueTime
+        self.issueTime = discord.utils.utcnow() if issueTime is None else issueTime
         # Calculate expiryTime as issueTime + expiryDelta if none is given
         # Incorrect type here cannot happen as none expiryDelta is checked for above
         self.expiryTime = (self.issueTime + expiryDelta) if expiryTime is None else expiryTime # type: ignore
@@ -141,7 +142,7 @@ class TimedTask:
         :return: True if this timedTask has been manually expired, or has reached its expiryTime. False otherwise
         :rtype: bool
         """
-        self.gravestone = self.gravestone or self.expiryTime <= datetime.utcnow()
+        self.gravestone = self.gravestone or self.expiryTime <= discord.utils.utcnow()
         return self.gravestone
 
 
@@ -170,7 +171,7 @@ class TimedTask:
         except Exception as e:
             # If the task is marked to reschedule on expiry func failure, reschedule the task
             if self.rescheduleOnExpiryFuncFailure:
-                botState.logger.log(type(self).__name__, "callExpiryFunction",
+                botState.client.logger.log(type(self).__name__, "callExpiryFunction",
                                     f"Exception occured in callExpiryFunction {self.expiryFunction}, rescheduling: {self}.",
                                     exception=e, noPrint=True)
                 await self.reschedule()
@@ -210,7 +211,7 @@ class TimedTask:
                                                 Default: now + self.expiryTime
         """
         # Update the task's issueTime to now
-        self.issueTime = datetime.utcnow()
+        self.issueTime = discord.utils.utcnow()
         # Create the new expiryTime from now + expirydelta
         if expiryTime is not None:
             self.expiryTime = expiryTime
@@ -227,7 +228,7 @@ class TimedTask:
         :return: The result of the expiry function, if it is called
         """
         # Update expiryTime
-        self.expiryTime = datetime.utcnow()
+        self.expiryTime = discord.utils.utcnow()
         # Call expiryFunction and reschedule if specified
         if callExpiryFunc and self.hasExpiryFunction:
             expiryFuncResults = await self.callExpiryFunction()
@@ -336,7 +337,7 @@ class DynamicRescheduleTask(TimedTask):
         """Override. Start a new scheduling period for this task using the timedelta produced by delayTimeGenerator.
         """
         # Update the task's issueTime to now
-        self.issueTime = datetime.utcnow()
+        self.issueTime = discord.utils.utcnow()
         # Create the new expiryTime from now + delayTimeGenerator result
         self.expiryTime = self.issueTime + await self.callDelayTimeGenerator()
         # reset the gravestone to False, in case the task had been expired and marked for removal

@@ -1,25 +1,33 @@
-from typing import Union
-from discord import app_commands, Interaction, Message, User, Member
+from typing import Type, Union
+from discord import Interaction
 from ..cfg import cfg
+from . import accessLevel
 
-_levels = {l: cfg.userAccessLevels.index(l) for l in cfg.userAccessLevels}
 
-def inferUserPermissions(interaction: Interaction) -> str:
-    """Get the commands access level of the user that sent the given message.
+async def _checkLevel(level: accessLevel._AccessLevelBase, interaction: Interaction) -> bool:
+    return await level.userHasAccess(interaction) \
+            if issubclass(level, accessLevel.AccessLevelAsync) \
+            else level.userHasAccess(interaction)
+
+
+async def inferUserPermissions(interaction: Interaction) -> Type[accessLevel._AccessLevelBase]:
+    """Get the commands access level of the user that triggered an interaction.
     
-    :return: message.author's access level, as an index of cfg.userAccessLevels
-    :rtype: int
+    :return: message.author's access level
+    :rtype: Type[accessLevel._AccessLevelBase]
     """
-    if interaction.user.id in cfg.developers:
-        return cfg.basicAccessLevels.developer
-    elif isinstance(interaction.user, Member) and interaction.channel.permissions_for(interaction.user).administrator:
-        return cfg.basicAccessLevels.serverAdmin
-    else:
-        return cfg.basicAccessLevels.user
+    for levelName in cfg.userAccessLevels[::-1]:
+        level = accessLevel._accessLevels[levelName]
+        if await _checkLevel(level, interaction):
+            return level
+    return accessLevel.defaultAccessLevel()
 
 
-def requireAccess(level: str):
-    def inner(interaction: Interaction):
-        return _levels[inferUserPermissions(interaction)] >= _levels[level]
+def requireAccess(level: Union[Type[accessLevel._AccessLevelBase], str]):
+    if isinstance(level, str):
+        level = accessLevel.accessLevelNamed(level)
+    intLevel = level._intLevel()
+    async def inner(interaction: Interaction):
+        return (await inferUserPermissions(interaction))._intLevel() >= intLevel
 
     return inner

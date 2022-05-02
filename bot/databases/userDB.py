@@ -174,7 +174,7 @@ class UserDB(ISerializable):
             try:
                 data[str(userID)] = self.users[userID].serialize(**kwargs)
             except Exception as e:
-                botState.logger.log("UserDB", "serialize", "Error serialising BasedUser: " +
+                botState.client.logger.log("UserDB", "serialize", "Error serialising BasedUser: " +
                                     e.__class__.__name__, trace=traceback.format_exc(), eventType="USERERR")
         return data
 

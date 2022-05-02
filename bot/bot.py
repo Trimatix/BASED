@@ -4,7 +4,6 @@ from typing import List, Union, cast
 from bot.lib.emojis import UninitializedBasedEmoji
 from .cfg import cfg, versionInfo
 
-
 # Discord Imports
 
 import discord # type: ignore[import]
@@ -57,8 +56,6 @@ def inferUserPermissions(message: discord.Message) -> int:
 
 ####### GLOBAL VARIABLES #######
 
-botState.logger = logging.Logger()
-
 # interface into the discord servers
 botState.client = BasedClient()
 
@@ -97,12 +94,12 @@ async def on_guild_join(guild: discord.Guild):
     """
     if botState.client.storeGuilds:
         guildExists = True
-        if not botState.guildsDB.idExists(guild.id):
+        if not botState.client.guildsDB.idExists(guild.id):
             guildExists = False
-            botState.guildsDB.addID(guild.id)
+            botState.client.guildsDB.addID(guild.id)
 
-        botState.logger.log("Main", "guild_join", "I joined a new guild! " + guild.name + "#" + str(guild.id) +
-                                ("\n -- The guild was added to botState.guildsDB" if not guildExists else ""),
+        botState.client.logger.log("Main", "guild_join", "I joined a new guild! " + guild.name + "#" + str(guild.id) +
+                                ("\n -- The guild was added to botState.client.guildsDB" if not guildExists else ""),
                                 category="guildsDB", eventType="NW_GLD")
 
 
@@ -115,12 +112,12 @@ async def on_guild_remove(guild: discord.Guild):
     """
     if botState.client.storeGuilds:
         guildExists = False
-        if botState.guildsDB.idExists(guild.id):
+        if botState.client.guildsDB.idExists(guild.id):
             guildExists = True
-            botState.guildsDB.removeID(guild.id)
+            botState.client.guildsDB.removeID(guild.id)
 
-        botState.logger.log("Main", "guild_remove", "I left a guild! " + guild.name + "#" + str(guild.id) +
-                                ("\n -- The guild was removed from botState.guildsDB" if guildExists else ""),
+        botState.client.logger.log("Main", "guild_remove", "I left a guild! " + guild.name + "#" + str(guild.id) +
+                                ("\n -- The guild was removed from botState.client.guildsDB" if guildExists else ""),
                                 category="guildsDB", eventType="NW_GLD")
 
 
@@ -163,7 +160,7 @@ async def on_message(message: discord.Message):
     if isDM:
         commandPrefix = cfg.defaultCommandPrefix
     else:
-        commandPrefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        commandPrefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     # For any messages beginning with commandPrefix
     if message.content.startswith(commandPrefix) and len(message.content) > len(commandPrefix):
@@ -194,7 +191,7 @@ async def on_message(message: discord.Message):
             await message.channel.send("An unexpected error occured when calling this command. The error has been logged." +
                                         "\nThis command probably won't work until we've looked into it.")
             # log the exception as misc
-            botState.logger.log("Main", "on_message", "An unexpected error occured when calling command '" +
+            botState.client.logger.log("Main", "on_message", "An unexpected error occured when calling command '" +
                                 command + "' with args '" + args + "': " + type(e).__name__, trace=traceback.format_exc())
             print(traceback.format_exc())
             commandFound = True
@@ -223,10 +220,10 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
             return
 
         # If the message reacted to is a reaction menu
-        if payload.message_id in botState.reactionMenusDB and \
-                botState.reactionMenusDB[payload.message_id].hasEmojiRegistered(emoji):
+        if payload.message_id in botState.client.reactionMenusDB and \
+                botState.client.reactionMenusDB[payload.message_id].hasEmojiRegistered(emoji):
             # Envoke the reacted option's behaviour
-            await botState.reactionMenusDB[payload.message_id].reactionAdded(emoji, user)
+            await botState.client.reactionMenusDB[payload.message_id].reactionAdded(emoji, user)
 
 
 @botState.client.event
@@ -247,10 +244,10 @@ async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
             return
 
         # If the message reacted to is a reaction menu
-        if payload.message_id in botState.reactionMenusDB and \
-                botState.reactionMenusDB[payload.message_id].hasEmojiRegistered(emoji):
+        if payload.message_id in botState.client.reactionMenusDB and \
+                botState.client.reactionMenusDB[payload.message_id].hasEmojiRegistered(emoji):
             # Envoke the reacted option's behaviour
-            await botState.reactionMenusDB[payload.message_id].reactionRemoved(emoji, user)
+            await botState.client.reactionMenusDB[payload.message_id].reactionRemoved(emoji, user)
 
 
 @botState.client.event
@@ -263,8 +260,8 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
     if not botState.client.loggedIn:
         return
         
-    if payload.message_id in botState.reactionMenusDB:
-        await botState.reactionMenusDB[payload.message_id].delete()
+    if payload.message_id in botState.client.reactionMenusDB:
+        await botState.client.reactionMenusDB[payload.message_id].delete()
 
 
 @botState.client.event
@@ -278,8 +275,8 @@ async def on_raw_bulk_message_delete(payload: discord.RawBulkMessageDeleteEvent)
         return
         
     for msgID in payload.message_ids:
-        if msgID in botState.reactionMenusDB:
-            await botState.reactionMenusDB[msgID].delete()
+        if msgID in botState.client.reactionMenusDB:
+            await botState.client.reactionMenusDB[msgID].delete()
 
 
 async def runAsync():
