@@ -122,7 +122,7 @@ class BasedClient(ClientBaseClass):
         self.logger = logger if logger is not None else logging.Logger()
         self.httpClient = httpClient
 
-        self.__basedCommandMeta__: Dict[discord.app_commands.Command, basedCommand.BasedCommandMeta] = {}
+        self.__basedCommandMeta__: Dict[discord.app_commands.Command, "basedCommand.BasedCommandMeta"] = {}
 
 
     async def setup_hook(self):
@@ -130,7 +130,7 @@ class BasedClient(ClientBaseClass):
             self.httpClient = aiohttp.ClientSession()
 
 
-    def commandMeta(self, command: discord.app_commands.Command) -> basedCommand.BasedCommandMeta:
+    def commandMeta(self, command: discord.app_commands.Command) -> "basedCommand.BasedCommandMeta":
         return self.__basedCommandMeta__[command]
 
 

@@ -7,6 +7,9 @@ from .cfg import cfg, versionInfo
 # Discord Imports
 
 import discord # type: ignore[import]
+from discord import app_commands, Interaction
+from discord.ext.commands import ExtensionNotLoaded, ExtensionNotFound, NoEntryPointError, ExtensionFailed
+from .interactions import basedCommand
 
 
 # Util imports
@@ -277,6 +280,65 @@ async def on_raw_bulk_message_delete(payload: discord.RawBulkMessageDeleteEvent)
     for msgID in payload.message_ids:
         if msgID in botState.client.reactionMenusDB:
             await botState.client.reactionMenusDB[msgID].delete()
+
+
+def removeViewFromMessageCallback(message: discord.Message):
+    async def removeViewFromMessage(interaction: Interaction):
+        await message.edit(content="🛑 Cancelled.", view=None)
+    return removeViewFromMessage
+
+
+def loadExtensionCallback(extensionName: str):
+    async def loadExtension(interaction: Interaction):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        try:
+            await botState.client.load_extension(extensionName)
+        except Exception as e:
+            await interaction.followup.send(f"{type(e).__name__}: {e}", ephemeral=True)
+        else:
+            await interaction.followup.send(f"reloaded successfully!", ephemeral=True)
+    return loadExtension
+
+
+
+@basedCommand.command(accessLevel=cfg.basicAccessLevels.developer)
+@app_commands.command(name="reload-extension",
+                        description="Unload and re-load a cog or other extension.")
+@app_commands.guilds(*cfg.developmentGuilds)
+async def dev_cmd_reload_extension(interaction: Interaction, extension_name: str):
+    await interaction.response.defer(ephemeral=True, thinking=True)
+    try:
+        await botState.client.reload_extension(extension_name)
+    except ExtensionNotLoaded:
+        view = discord.ui.View()
+        cancelButton = discord.ui.Button(style=discord.ButtonStyle.red, label="cancel")
+        cancelButton.callback = removeViewFromMessageCallback(await interaction.original_message())
+        acceptButton = discord.ui.Button(style=discord.ButtonStyle.green, label="load")
+        acceptButton.callback = loadExtensionCallback(extension_name)
+        view.add_item(cancelButton).add_item(acceptButton)
+        await interaction.followup.send("No such extension is currently loaded. Load it?", ephemeral=True, view=view)
+    except Exception as e:
+        await interaction.followup.send(f"{type(e).__name__}: {e}", ephemeral=True)
+    else:
+        await interaction.followup.send(f"reloaded successfully!", ephemeral=True)
+
+botState.client.tree.add_command(dev_cmd_reload_extension, guilds=cfg.developmentGuilds)
+
+
+@basedCommand.command(accessLevel=cfg.basicAccessLevels.developer)
+@app_commands.command(name="unload-extension",
+                        description="Unload a cog or other extension.")
+@app_commands.guilds(*cfg.developmentGuilds)
+async def dev_cmd_unload_extension(interaction: Interaction, extension_name: str):
+    await interaction.response.defer(ephemeral=True, thinking=True)
+    try:
+        await botState.client.unload_extension(extension_name)
+    except Exception as e:
+        await interaction.followup.send(f"{type(e).__name__}: {e}", ephemeral=True)
+    else:
+        await interaction.followup.send(f"unloaded successfully!", ephemeral=True)
+
+botState.client.tree.add_command(dev_cmd_unload_extension, guilds=cfg.developmentGuilds)
 
 
 async def runAsync():

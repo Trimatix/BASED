@@ -27,7 +27,7 @@ class BasedCog(Cog):
         # __cog_app_commands__ is assigned in discord._CogMeta.__new__, which does not make new copies of commands
         for command in self.__cog_app_commands__:
             try:
-                self.__basedCommandMeta__[command] = command._callback.__basedCommandMeta__
+                self.__basedCommandMeta__[command] = command.callback.__basedCommandMeta__
             except AttributeError:
                 pass
 
@@ -49,7 +49,7 @@ def command(
         if isinstance(accessLevel, str):
             accessLevel = accessLevelNamed(accessLevel)
 
-        func._callback.__basedCommandMeta__ = BasedCommandMeta(accessLevel, showInHelp, helpSection)
+        func.callback.__basedCommandMeta__ = BasedCommandMeta(accessLevel, showInHelp, helpSection)
 
         if accessLevel is not MISSING:
             func.add_check(requireAccess(accessLevel))
