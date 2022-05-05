@@ -125,16 +125,7 @@ class HelpCog(basedCommand.BasedCog):
         # Only show unique commands
         choices = sorted(set(choices), key=lambda c: c.name)
         return choices[:25]
-
-
-    @basedCommand.command(accessLevel=basicAccessLevels.user)
-    @app_commands.describe(x="some command")
-    @app_commands.command(name="test",
-                            description="Look up help for a particular command, or view all available commands.")
-    @app_commands.guilds(*cfg.developmentGuilds)
-    async def cmd_test(self, interaction: Interaction, x: str, y: Range[int, 2, 30], z: Optional[Union[CategoryChannel, VoiceChannel]] = None):
-        await interaction.response.send_message("hello", ephemeral=True)
-
+        
 
 async def setup(bot: client.BasedClient):
     bot.remove_command("help")
