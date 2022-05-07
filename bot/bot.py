@@ -1,14 +1,14 @@
 # Set up bot config
 
-from typing import List, Union, cast
+from typing import List, Literal, Optional, Union, cast
 from bot.lib.emojis import UninitializedBasedEmoji
 from .cfg import cfg, versionInfo
 
 # Discord Imports
 
 import discord # type: ignore[import]
-from discord import app_commands, Interaction
-from discord.ext.commands import ExtensionNotLoaded, ExtensionNotFound, NoEntryPointError, ExtensionFailed
+from discord import Object, app_commands, Interaction
+from discord.ext.commands import ExtensionNotLoaded
 from .interactions import basedCommand
 
 
@@ -339,6 +339,51 @@ async def dev_cmd_unload_extension(interaction: Interaction, extension_name: str
         await interaction.followup.send(f"unloaded successfully!", ephemeral=True)
 
 botState.client.tree.add_command(dev_cmd_unload_extension, guilds=cfg.developmentGuilds)
+
+
+@basedCommand.command(accessLevel=cfg.basicAccessLevels.developer)
+@app_commands.command(name="sync",
+                        description="Sync app commands with guilds. Give no args to sync global commands, or give one of `spec`/`guilds`")
+@app_commands.describe(guilds="comma separated list of guild IDs to sync",
+                        spec="'here' to sync this guild, 'copy to here' to copy global commands to this guild and sync")
+@app_commands.guilds(*cfg.developmentGuilds)
+async def dev_cmd_sync_app_commands(interaction: Interaction, guilds: Optional[str] = None, spec: Optional[Literal["here", "copy to here"]] = None) -> None:
+    await interaction.response.defer(ephemeral=True, thinking=True)
+    if guilds in (None, ""):
+        if not spec:
+            fmt = await botState.client.tree.sync()
+            await interaction.followup.send(f"Synced {len(fmt)} commands globally")
+        else:
+            if interaction.guild is None:
+                await interaction.followup.send("The spec option is only valid when used from within a guild")
+                return
+            if spec == "copy to here":
+                botState.client.tree.copy_global_to(guild=interaction.guild)
+            fmt = await botState.client.tree.sync(guild=interaction.guild)
+            await interaction.followup.send(f"{'Copied' if spec == 'copy to here' else 'Synced'} {len(fmt)} commands to the current guild")
+        return
+
+    synced = []
+    async def syncGuild(guild):
+        try:
+            await botState.client.tree.sync(guild=guild)
+        except discord.HTTPException:
+            pass
+        else:
+            synced.append(None) # stupid scoping workaround, can't use an int
+
+    guilds = set(map(lambda x: discord.Object(int(x)), guilds.split(", ")))
+
+    tasks = lib.discordUtil.BasicScheduler()
+    for guild in guilds:
+        tasks.add(syncGuild(guild))
+    
+    await tasks.wait()
+    tasks.logExceptions()
+
+    await interaction.followup.send(f"Synced the tree to {len(synced)}/{len(guilds)} guilds.")
+
+botState.client.tree.add_command(dev_cmd_sync_app_commands, guilds=cfg.developmentGuilds)
 
 
 async def runAsync():
