@@ -129,14 +129,6 @@ class BasedClient(ClientBaseClass):
         if self.httpClient is None:
             self.httpClient = aiohttp.ClientSession()
 
-
-    def commandMeta(self, command: discord.app_commands.Command) -> "basedCommand.BasedCommandMeta":
-        return self.__basedCommandMeta__[command]
-
-
-    def accessLevel(self, command: discord.app_commands.Command) -> accessLevel._AccessLevelBase:
-        return self.commandMeta(command).accessLevel
-
     
     @property
     def usersDB(self):

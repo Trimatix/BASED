@@ -24,24 +24,30 @@ def get_nested_command(bot: client.BasedClient, name: str, guild: Optional[Guild
 
 
 def formatSignatureParams(command: app_commands.Command) -> str:
-    return " ".join(f'**<{param.display_name}>**' if param.required else \
-                    f'*[{param.display_name}]*' for param in command._params.values())
-
-
-def paramDescription(param: CommandParameter) -> str:
-    return param.description if param.description != '…' else ''
-
-
-def paramDescribable(param: CommandParameter) -> bool:
-    return any((paramDescription(param), param.channel_types, param.min_value is not None, param.max_value is not None))
+        return " ".join(f'**<{param.display_name}>**' if param.required else \
+                        f'*[{param.display_name}]*' for param in command._params.values())
 
 
 def formatChannelType(c: ChannelType) -> str:
-    return str(c).replace("_", " ")
+        return str(c).replace("_", " ")
 
 
-def formatParamRequirements(param: CommandParameter) -> str:
-    base = f"**{param.display_name}**: {paramDescription(param)}"
+def formatSignature(command: app_commands.Command) -> str:
+        params = formatSignatureParams(command)
+        return f"**{command.qualified_name}**{f' {params}' if params else ''}"
+
+
+def paramDescription(param: CommandParameter, meta: basedCommand.BasedCommandMeta) -> str:
+    return meta.formattedParamDescs.get(param.name, '') \
+            or (param.description if param.description != '…' else '')
+
+
+def paramDescribable(param: CommandParameter, meta: basedCommand.BasedCommandMeta) -> bool:
+    return any((paramDescription(param, meta), param.channel_types, param.min_value is not None, param.max_value is not None))
+
+
+def formatParamRequirements(param: CommandParameter, meta: basedCommand.BasedCommandMeta) -> str:
+    base = f"**{param.display_name}**: {paramDescription(param, meta)}"
     rest = ", ".join(i for i in
     (
             "/".join(formatChannelType(t) for t in param.channel_types) + " channel" if param.channel_types else '',
@@ -51,23 +57,18 @@ def formatParamRequirements(param: CommandParameter) -> str:
     return f"{base} *{rest}*" if rest else base
 
 
-def formatDescriptionParams(command: app_commands.Command) -> str:
-    return "\n".join(formatParamRequirements(param) for param in command._params.values() if paramDescribable(param))
+def formatDescriptionParams(command: app_commands.Command, meta: basedCommand.BasedCommandMeta) -> str:
+    return "\n".join(formatParamRequirements(param, meta) for param in command._params.values() if paramDescribable(param, meta))
 
 
-def formatSignature(command: app_commands.Command) -> str:
-    params = formatSignatureParams(command)
-    return f"**{command.qualified_name}**{f' {params}' if params else ''}"
-
-
-def commandDescription(command: app_commands.Command) -> str:
-    return command.description or \
+def commandDescription(command: app_commands.Command, meta: basedCommand.BasedCommandMeta) -> str:
+    return meta.formattedDesc or command.description or \
         (command.callback.__doc__ if isinstance(command, app_commands.Command) else command.__doc__)
 
 
-def commandDescriptionAndParameters(command: app_commands.Command) -> str:
-    params = formatDescriptionParams(command)
-    return commandDescription(command) + ("\n" if params else "") + params
+def commandDescriptionAndParameters(command: app_commands.Command, meta: basedCommand.BasedCommandMeta) -> str:
+    params = formatDescriptionParams(command, meta)
+    return commandDescription(command, meta) + (f"\n\n{params}" if params else "")
 
 
 class HelpCog(basedCommand.BasedCog):
@@ -91,11 +92,12 @@ class HelpCog(basedCommand.BasedCog):
         if command is None:
             count = 1
             
-            e = Embed(title=f"{self.bot.accessLevel(self.cmd_help).name.title()} Commands")
+            e = Embed(title=f"{basedCommand.accessLevel(self.cmd_help).name.title()} Commands")
             for c in self.getCommands(interaction):
                 if count == 5:
                     break
-                e.add_field(name=formatSignature(c), value=commandDescription(c), inline=False)
+                meta = basedCommand.commandMeta(command)
+                e.add_field(name=formatSignature(c, meta), value=commandDescription(c, meta), inline=False)
                 count += 1
             await interaction.response.send_message(embed=e)
             return
@@ -105,7 +107,8 @@ class HelpCog(basedCommand.BasedCog):
             await interaction.response.send_message(f'Could not find a command named {command}', ephemeral=True)
             return
 
-        embed = Embed(title=formatSignature(cmd), description=commandDescriptionAndParameters(cmd))
+        meta = basedCommand.commandMeta(cmd)
+        embed = Embed(title=formatSignature(cmd), description=commandDescriptionAndParameters(cmd, meta))
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
