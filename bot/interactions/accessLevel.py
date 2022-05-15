@@ -31,6 +31,12 @@ def accessLevelNamed(name: str) -> Type[_AccessLevelBase]:
     return _accessLevels[name]
 
 
+def accessLevelWithIntLevel(level: int) -> Type[_AccessLevelBase]:
+    if level < 0 or level >= len(cfg.userAccessLevels):
+        raise ValueError(f"Invalid access level int level: {level}. Must be between 0 and {len(cfg.userAccessLevels) - 1}")
+    return accessLevelNamed(cfg.userAccessLevels[level])
+
+
 def defaultAccessLevel() -> Type[_AccessLevelBase]:
     return _defaultAccessLevel
 
@@ -98,4 +104,11 @@ class UserAccessLevel(AccessLevel):
     @classmethod
     def userHasAccess(cls, interaction: Interaction) -> bool:
         return True
+
+
+@accessLevel("mod")
+class ModeratorAccessLevel(AccessLevel):
+    @classmethod
+    def userHasAccess(cls, interaction: Interaction) -> bool:
+        return ServerAdministratorAccessLevel.userHasAccess(interaction)
         

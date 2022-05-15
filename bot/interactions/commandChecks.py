@@ -23,11 +23,18 @@ async def inferUserPermissions(interaction: Interaction) -> Type[accessLevel._Ac
     return accessLevel.defaultAccessLevel()
 
 
+def accessLevelSufficient(current: accessLevel._AccessLevelBase, required: accessLevel._AccessLevelBase) -> bool:
+    return current._intLevel() >= required._intLevel()
+
+
+async def userHasAccess(interaction: Interaction, level: accessLevel._AccessLevelBase) -> bool:
+    return accessLevelSufficient(await inferUserPermissions(interaction), level)
+
+
 def requireAccess(level: Union[Type[accessLevel._AccessLevelBase], str]):
     if isinstance(level, str):
         level = accessLevel.accessLevelNamed(level)
-    intLevel = level._intLevel()
     async def inner(interaction: Interaction):
-        return (await inferUserPermissions(interaction))._intLevel() >= intLevel
+        return await userHasAccess(interaction, level)
 
     return inner

@@ -1,6 +1,6 @@
 import asyncio
 import signal
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple, Union, overload
 import aiohttp
 import discord # type: ignore[import]
 from discord.ext.commands import Bot as ClientBaseClass # type: ignore[import]
@@ -12,7 +12,7 @@ from . import lib
 from .cfg import cfg
 from . import logging
 from .scheduling import timedTaskHeap
-from .interactions import basedCommand, accessLevel
+from .interactions import basedCommand, accessLevel, basedComponent, basedApp
 
 
 class ShutDownState:
@@ -122,7 +122,8 @@ class BasedClient(ClientBaseClass):
         self.logger = logger if logger is not None else logging.Logger()
         self.httpClient = httpClient
 
-        self.__basedCommandMeta__: Dict[discord.app_commands.Command, "basedCommand.BasedCommandMeta"] = {}
+        self.basedCommands: Dict[discord.app_commands.Command, "basedCommand.BasedCommandMeta"] = {}
+        self.staticComponentCallbacks: Dict[Tuple[str, str], basedApp.CallBackType] = {}
 
 
     async def setup_hook(self):
@@ -256,6 +257,24 @@ class BasedClient(ClientBaseClass):
         if event_name == "ready" and not self.loggedIn:
             asyncio.create_task(self._asyncInit(True, *args, **kwargs))
             return
+        elif event_name == "interaction":
+            interaction: discord.Interaction = args[0]
+            if interaction.type == discord.InteractionType.component and basedComponent.customIdIsStaticComponent(interaction.data["custom_id"]):
+                meta = basedComponent.staticComponentMeta(interaction.data["custom_id"])
+                if self.hasStaticComponent(meta):
+                    component = self.getStaticComponentCallback(meta)
+                    if basedApp.isCogApp(component):
+                        cogName = basedApp.getCogAppCogName(component)
+                        cog = self.get_cog(cogName)
+                        if cog is None:
+                            raise ValueError(f"unable to find cog '{cogName}' for static component: {component}")
+                        if hasattr(component, "__self__") and isinstance(component.__self__, type):
+                            args = (cog.__class__,) + args
+                        else:
+                            args = (cog,) + args
+                    args = args + (meta.args,)
+                    asyncio.create_task(component(*args, **kwargs))
+                    return
         return super().dispatch(event_name, *args, **kwargs)
 
     
@@ -279,3 +298,31 @@ class BasedClient(ClientBaseClass):
         self.loggedIn = True
         if dispatchReady:
             self.dispatch("ready", *args, **kwargs)
+
+
+    @overload
+    def getStaticComponentCallback(self, category: str, subCategory: str = None) -> "basedApp.CallBackType": ...
+
+    @overload
+    def getStaticComponentCallback(self, meta: Union[basedComponent.StaticComponentMeta, basedComponent.StaticComponentCallbackMeta]) -> "basedApp.CallBackType": ...
+
+    def getStaticComponentCallback(self, val: Union[str, basedComponent.StaticComponentMeta, basedComponent.StaticComponentCallbackMeta], subCategory: str = None) -> "basedApp.CallBackType":
+        if isinstance(val, (basedComponent.StaticComponentMeta, basedComponent.StaticComponentCallbackMeta)):
+            key = basedComponent.staticComponentKey(val.category, val.subCategory)
+        else:
+            key = basedComponent.staticComponentKey(val, subCategory)
+        return self.staticComponentCallbacks[key]
+
+
+    @overload
+    def hasStaticComponent(self, category: str, subCategory: str = None) -> bool: ...
+
+    @overload
+    def hasStaticComponent(self, meta: Union[basedComponent.StaticComponentMeta, basedComponent.StaticComponentCallbackMeta]) -> bool: ...
+
+    def hasStaticComponent(self, val: Union[str, basedComponent.StaticComponentMeta, basedComponent.StaticComponentCallbackMeta], subCategory: str = None) -> bool:
+        if isinstance(val, (basedComponent.StaticComponentMeta, basedComponent.StaticComponentCallbackMeta)):
+            key = basedComponent.staticComponentKey(val.category, val.subCategory)
+        else:
+            key = basedComponent.staticComponentKey(val, subCategory)
+        return key in self.staticComponentCallbacks

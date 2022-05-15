@@ -4,10 +4,10 @@ from discord.ext import commands
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from time import perf_counter
-from ..interactions import basedCommand
+from ..interactions import basedCommand, basedApp
 
 
-class AdminMiscCog(basedCommand.BasedCog):
+class AdminMiscCog(basedApp.BasedCog):
     def __init__(self, bot: client.BasedClient, *args, **kwargs):
         self.bot = bot
         super().__init__(*args, **kwargs)

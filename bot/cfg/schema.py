@@ -1,5 +1,4 @@
 from carica.models import SerializableDataClass, SerializableTimedelta, SerializablePath # type: ignore[import]
-from carica import ISerializable # type: ignore[import]
 from dataclasses import dataclass
 import os
 from typing import Dict, List, Set, Tuple, Union, Any, cast
