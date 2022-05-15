@@ -3,7 +3,7 @@
 from __future__ import annotations
 from typing import Dict, List, Optional, Tuple, Type, Union, cast
 from .. import client
-from discord import AppCommandType, CategoryChannel, Embed, InteractionType, VoiceChannel, app_commands, Interaction, Object, ChannelType, Guild
+from discord import AppCommandType, CategoryChannel, Colour, Embed, InteractionType, VoiceChannel, app_commands, Interaction, Object, ChannelType, Guild
 from discord.ext import commands
 from discord.app_commands.transformers import CommandParameter, Range
 from discord.utils import MISSING
@@ -117,7 +117,7 @@ class HelpCog(basedApp.BasedCog):
             return
 
         meta = basedCommand.commandMeta(cmd)
-        embed = Embed(title=formatSignature(cmd), description=commandDescriptionAndParameters(cmd, meta))
+        embed = Embed(title=formatSignature(cmd), description=commandDescriptionAndParameters(cmd, meta), colour=Colour.blue())
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -180,7 +180,7 @@ class HelpCog(basedApp.BasedCog):
             await self.showHelpPage(interaction, showAll, helpSectionNames[helpSectionNames.index(category) + 1], 1, commandAccessLevel, helpSections=helpSections)
             return
             
-        e = Embed(title=f"{commandAccessLevel.name.title()} Commands")
+        e = Embed(title=f"{commandAccessLevel.name.title()} Commands", colour=Colour.blue())
         
         if showAll and len(helpSections) > 1:
             e.description = " // ".join(f"__{section.title()}__" if section == category else section.title() for section in helpSectionNames)
