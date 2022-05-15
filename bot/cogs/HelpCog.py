@@ -177,16 +177,22 @@ class HelpCog(basedApp.BasedCog):
         
         offset = cfg.maxCommandsPerHelpPage * (pageNum - 1)
         possibleCommands = self.bot.commandsInSectionForAccessLevel(category, commandAccessLevel)
+        userAccessLevel = await commandChecks.inferUserPermissions(interaction)
+        userNotMinAccessLevel = userAccessLevel is not accessLevel.defaultAccessLevel()
+
         if showAll and offset > len(possibleCommands):
             await self.showHelpPage(interaction, showAll, helpSectionNames[helpSectionNames.index(category) + 1], 1, commandAccessLevel, helpSections=helpSections)
             return
             
         e = Embed(title=f"{commandAccessLevel.name.title()} Commands", colour=Colour.blue())
-        
+        e.description = cfg.helpIntro
+        if userNotMinAccessLevel:
+            e.description += f"\n{cfg.defaultEmojis.spiral.sendable}: Change access level"
+
         if showAll and len(helpSections) > 1:
-            e.description = " // ".join(f"__{section.title()}__" if section == category else section.title() for section in helpSectionNames)
+            e.description += "\n\n" + " / ".join(f"__{section.title()}__" if section == category else section.title() for section in helpSectionNames)
         else:
-            e.description = f"__{category.title()}__"
+            e.description += f"\n\n__{category.title()}__"
 
         last = min(len(possibleCommands), offset + cfg.maxCommandsPerHelpPage)
         notLastInSection = last != len(possibleCommands)
@@ -195,14 +201,14 @@ class HelpCog(basedApp.BasedCog):
         if notLastInSection:
             e.set_footer(text=f"Page {pageNum}")
 
-        for c in possibleCommands[offset:last]:
-            meta = basedCommand.commandMeta(c)
-            e.add_field(name=formatSignature(c), value=commandDescription(c, meta), inline=False)
+        if not possibleCommands:
+            e.description += "\n\n<no commands>"
+        else:
+            for c in possibleCommands[offset:last]:
+                meta = basedCommand.commandMeta(c)
+                e.add_field(name=formatSignature(c), value=commandDescription(c, meta), inline=False)
 
         notFirstPage = offset != 0 or (showAll and category != helpSectionNames[0])
-
-        userAccessLevel = await commandChecks.inferUserPermissions(interaction)
-        userNotMinAccessLevel = userAccessLevel is not accessLevel.defaultAccessLevel()
         if notFirstPage or notLastPage or userNotMinAccessLevel:
             view = View()
             previousPageButton = Button(emoji=cfg.defaultEmojis.previous.sendable, disabled=True)

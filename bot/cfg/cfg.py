@@ -55,7 +55,7 @@ basicAccessLevels = BasicAccessLevelNames(
 userAccessLevels = [basicAccessLevels.user, "mod", basicAccessLevels.serverAdmin, basicAccessLevels.developer]
 
 # Message to print alongside cmd_help menus
-helpIntro = "Here are my commands!"
+helpIntro = "Give a command name in `/help` for more detail."
 
 # Name of the help section for un-categorized commands
 defaultHelpSection = "Miscellaneous"
