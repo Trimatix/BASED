@@ -127,6 +127,30 @@ class BasedClient(ClientBaseClass):
 
         self.helpSections: Dict[str, List[discord.app_commands.Command]] = {}
 
+        self.add_listener(self.on_interaction)
+
+
+    async def on_interaction(self, interaction: discord.Interaction):
+        if interaction.type != discord.InteractionType.component or not basedComponent.customIdIsStaticComponent(interaction.data["custom_id"]):
+            return
+        meta = basedComponent.staticComponentMeta(interaction.data["custom_id"])
+        if not self.hasStaticComponent(meta):
+            return
+
+        args = (interaction, meta.args)
+        component = self.getStaticComponentCallback(meta)
+        if basedApp.isCogApp(component):
+            cogName = basedApp.getCogAppCogName(component)
+            cog = self.get_cog(cogName)
+            if cog is None:
+                raise ValueError(f"unable to find cog '{cogName}' for static component: {component}")
+            if hasattr(component, "__self__") and isinstance(component.__self__, type):
+                args = (cog.__class__,) + args
+            else:
+                args = (cog,) + args
+
+        await component(*args)
+
 
     def addBasedCommand(self, command: discord.app_commands.Command):
         """Register a based command's metadata with the bot.
@@ -363,26 +387,8 @@ class BasedClient(ClientBaseClass):
     def dispatch(self, event_name, *args, **kwargs):
         if event_name == "ready" and not self.loggedIn:
             asyncio.create_task(self._asyncInit(True, *args, **kwargs))
-            return
-        elif event_name == "interaction":
-            interaction: discord.Interaction = args[0]
-            if interaction.type == discord.InteractionType.component and basedComponent.customIdIsStaticComponent(interaction.data["custom_id"]):
-                meta = basedComponent.staticComponentMeta(interaction.data["custom_id"])
-                if self.hasStaticComponent(meta):
-                    component = self.getStaticComponentCallback(meta)
-                    if basedApp.isCogApp(component):
-                        cogName = basedApp.getCogAppCogName(component)
-                        cog = self.get_cog(cogName)
-                        if cog is None:
-                            raise ValueError(f"unable to find cog '{cogName}' for static component: {component}")
-                        if hasattr(component, "__self__") and isinstance(component.__self__, type):
-                            args = (cog.__class__,) + args
-                        else:
-                            args = (cog,) + args
-                    args = args + (meta.args,)
-                    asyncio.create_task(component(*args, **kwargs))
-                    return
-        return super().dispatch(event_name, *args, **kwargs)
+        else:
+            return super().dispatch(event_name, *args, **kwargs)
 
     
     async def _asyncInit(self, dispatchReady: bool = True, *args, **kwargs):
