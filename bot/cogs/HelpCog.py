@@ -8,6 +8,7 @@ from discord.ext import commands
 from discord.app_commands.transformers import CommandParameter, Range
 from discord.utils import MISSING
 from discord.ui import View, Button
+from discord import HTTPException
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand, accessLevel, commandChecks, basedApp, basedComponent
@@ -229,7 +230,13 @@ class HelpCog(basedApp.BasedCog):
             view = MISSING
         
         if interaction.type == InteractionType.component:
-            await interaction.response.edit_message(embed=e, view=view)
+            if interaction.response._responded:
+                await interaction.followup.edit_message(embed=e, view=view)
+            else:
+                try:
+                    await interaction.response.edit_message(embed=e, view=view)
+                except HTTPException:
+                    pass
         else:
             await interaction.response.send_message(embed=e, view=view, ephemeral=True)
 
