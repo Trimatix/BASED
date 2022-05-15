@@ -302,7 +302,7 @@ def loadExtensionCallback(extensionName: str):
 
 
 
-@basedCommand.command(accessLevel=cfg.basicAccessLevels.developer)
+@basedCommand.basedCommand(accessLevel=cfg.basicAccessLevels.developer)
 @app_commands.command(name="reload-extension",
                         description="Unload and re-load a cog or other extension.")
 @app_commands.guilds(*cfg.developmentGuilds)
@@ -326,7 +326,7 @@ async def dev_cmd_reload_extension(interaction: Interaction, extension_name: str
 botState.client.tree.add_command(dev_cmd_reload_extension, guilds=cfg.developmentGuilds)
 
 
-@basedCommand.command(accessLevel=cfg.basicAccessLevels.developer)
+@basedCommand.basedCommand(accessLevel=cfg.basicAccessLevels.developer)
 @app_commands.command(name="unload-extension",
                         description="Unload a cog or other extension.")
 @app_commands.guilds(*cfg.developmentGuilds)
@@ -342,7 +342,7 @@ async def dev_cmd_unload_extension(interaction: Interaction, extension_name: str
 botState.client.tree.add_command(dev_cmd_unload_extension, guilds=cfg.developmentGuilds)
 
 
-@basedCommand.command(accessLevel=cfg.basicAccessLevels.developer,
+@basedCommand.basedCommand(accessLevel=cfg.basicAccessLevels.developer,
                         formattedDesc="Sync app commands with guilds. Give no args to sync global commands, or give exactly one of `spec` or `guilds`",
                         formattedParamDescs=dict(spec="`here` to sync this guild, `copy to here` to copy global commands to this guild and sync"))
 @app_commands.command(name="sync",

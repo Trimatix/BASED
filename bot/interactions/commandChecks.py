@@ -24,6 +24,15 @@ async def inferUserPermissions(interaction: Interaction) -> Type[accessLevel._Ac
 
 
 def accessLevelSufficient(current: accessLevel._AccessLevelBase, required: accessLevel._AccessLevelBase) -> bool:
+    """Decide whether an access level is at least as high in the heirarchy as another
+
+    :param current: The 'owned' access level
+    :type current: accessLevel._AccessLevelBase
+    :param required: The access level acting as a comparison point
+    :type required: accessLevel._AccessLevelBase
+    :return: `True` if `current` is at least as high in the access level heirarchy as `required`, `False` otherwise
+    :rtype: bool
+    """
     return current._intLevel() >= required._intLevel()
 
 
@@ -32,6 +41,13 @@ async def userHasAccess(interaction: Interaction, level: accessLevel._AccessLeve
 
 
 def requireAccess(level: Union[Type[accessLevel._AccessLevelBase], str]):
+    """A command check that requires at least an access level of `level` to use the command.
+
+    :param level: The access level to required
+    :type level: Union[Type[accessLevel._AccessLevelBase], str]
+    :return: The command check callback
+    :rtype: Callable[[Interaction], bool]
+    """
     if isinstance(level, str):
         level = accessLevel.accessLevelNamed(level)
     async def inner(interaction: Interaction):

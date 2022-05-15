@@ -100,7 +100,7 @@ class HelpCog(basedApp.BasedCog):
         return foundCommands
 
 
-    @basedCommand.command(accessLevel=basicAccessLevels.user)
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.user)
     @app_commands.command(name="help",
                             description="Look up help for a particular command, or view all available commands.")
     @app_commands.guilds(*cfg.developmentGuilds)

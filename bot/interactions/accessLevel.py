@@ -12,10 +12,25 @@ _MISSING = _flag()
 
 
 class _AccessLevelBase(ABC):
+    """Base class for an access level.
+    Access levels all have a `name` field, a `userHasAccess` method or coroutine, which decides
+    whether the user who triggered an interaction has access to the access level, and an `_intLevel` method,
+    which identifies the access level by an integer, representing the access level's position in the
+    access level heirarchy as defined in `cfg.userAccessLevels`.
+
+    :var name: The name of the access level
+    :type name: str
+    """
     name: str = _MISSING
     
     @classmethod
     def _intLevel(cls):
+        """Identify the access level by an integer, representing the access level's position in the
+        access level heirarchy as defined in `cfg.userAccessLevels`
+
+        :return: An integer representing the access level's position in the access level heirarchy
+        :rtype: int
+        """
         return cfg.userAccessLevels.index(cls.name)
 
 
@@ -28,16 +43,36 @@ _defaultAccessLevel: Type[_AccessLevelBase] = _ImportPlaceholder
 
 
 def accessLevelNamed(name: str) -> Type[_AccessLevelBase]:
+    """Look up the access level with the given name
+
+    :param name: The name of the access level to find
+    :type name: str
+    :return: An access level with the given name
+    :rtype: Type[_AccessLevelBase]
+    """
     return _accessLevels[name]
 
 
 def accessLevelWithIntLevel(level: int) -> Type[_AccessLevelBase]:
+    """Find the access level whose `_intLevel()` is `level`
+
+    :param level: The level of access to look up, according to the access level heirarchy in `cfg.userAccessLevels`
+    :type level: int
+    :raises ValueError: unknown level - out of range
+    :return: An access level positioned at `_intLevel` `level` in te access level heirarchy
+    :rtype: Type[_AccessLevelBase]
+    """
     if level < 0 or level >= len(cfg.userAccessLevels):
         raise ValueError(f"Invalid access level int level: {level}. Must be between 0 and {len(cfg.userAccessLevels) - 1}")
     return accessLevelNamed(cfg.userAccessLevels[level])
 
 
 def defaultAccessLevel() -> Type[_AccessLevelBase]:
+    """Get the default access level assigned to users
+
+    :return: The default access level
+    :rtype: Type[_AccessLevelBase]
+    """
     return _defaultAccessLevel
 
 

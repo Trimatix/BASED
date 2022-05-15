@@ -1,19 +1,25 @@
-import asyncio
 from inspect import iscoroutinefunction
-from discord import ButtonStyle, Embed, Client, app_commands, Component
-from discord.errors import HTTPException, NotFound
+from discord import ButtonStyle, Embed, Component
 from discord import Message, Interaction
 from discord.ui import View, Button
-from discord.utils import MISSING
 
-from typing import Awaitable, Dict, Iterable, List, Union, MutableSet, Callable, Coroutine
+from typing import Awaitable, List, TypeVar, Union, Callable
 
-from .. import botState, lib
+from .. import lib
 from ..cfg import cfg
 from . import basedApp
 
 
 class StaticComponentMeta:
+    """Data class carrying metadata about a static component.
+
+    :var category: The category of the static component
+    :type category: str
+    :var subCategory: The sub-category of the static component
+    :type subCategory: Optional[str]
+    :var args: Arguments for this instance of the static component, to be passed to the callback
+    :type args: Optional[str]
+    """
     def __init__(self, category: str, subCategory: str = None, args: str = None) -> None:
         self.category = category
         self.subCategory = subCategory or None
@@ -21,17 +27,38 @@ class StaticComponentMeta:
 
 
 class StaticComponentCallbackMeta:
+    """Data class carrying metadata about the callback coroutine for a static component.
+
+    :var category: The category of the static component
+    :type category: str
+    :var subCategory: The sub-category of the static component
+    :type subCategory: Optional[str]
+    """
     def __init__(self, category: str, subCategory: str = None) -> None:
         self.category = category
         self.subCategory = subCategory or None
 
 
 def validateParam(paramName: str, val: str):
+    """Validate a segment of a static component custom_id
+
+    :param paramName: The name of the custom_id segment
+    :type paramName: str
+    :param val: The value to validate
+    :type val: str
+    :raises ValueError: If `val` is not a valid value for a static component custom_id segment
+    """
     if cfg.staticComponentCustomIdSeparator in val:
         raise ValueError(f"Invalid {paramName} '{val}' - cannot contain reserved character '{cfg.staticComponentCustomIdSeparator}'")
 
 
 def validateCustomId(customId: str):
+    """Validate a static component custom_id
+
+    :param customId: The custom_id to validate
+    :type customId: str
+    :raises ValueError: If `customId` is not a valid custom_id
+    """
     if len(customId) > 100:
         raise ValueError(f"Resulting custom_id is too long. The combined length of category, subCategory and args must be less than {100 - len(cfg.staticComponentCustomIdPrefix) - 2 * len(cfg.staticComponentCustomIdSeparator)} characters")
 
@@ -41,6 +68,33 @@ def staticComponentCallback(
     category: str = "",
     subCategory: str = ""
 ):
+    """Decorator marking a coroutine as a static component callback.
+    The callback for static components identifying this callback by category/subcategory will be preserved across bot restarts
+
+    Example usage:
+    ```
+    class MyCog(BasedCog):
+        @staticComponentCallback(category="myCallback")
+        async def myCallback(interaction: Interaction, args: str):
+            await interaction.response.send_message(f"This static callback received args: {args}")
+
+        @app_commands.command(name="send-static-menu")
+        async def sendStaticMenu(interaction: Interaction):
+            staticButton = Button(label="send callback")
+            staticButton = staticComponent(staticButton, category="myCallback", args="hello")
+            view.add_item(staticButton)
+            await interaction.response.send_message(view=view)
+    ```
+    If the `send-static-menu` app command is sent, then a message will be sent in return with a button to trigger `myCallback`.
+    Clicking this button will send another message with the content "hello".
+    If the bot is restarted, then the button will still work.
+    This works by attaching a known `custom_id` to the button, containing the static component category/sub-category and args.
+
+    :var category: The category of the static component
+    :type category: str
+    :var subCategory: The sub-category of the static component
+    :type subCategory: Optional[str]
+    """
     def decorator(func, category=category, subCategory=subCategory):
         if not iscoroutinefunction(func):
             raise TypeError("Decorator can only be applied to coroutines")
@@ -59,12 +113,32 @@ def staticComponentCallback(
 
 
 def staticComponentCallbackMeta(callback: "basedApp.CallBackType") -> StaticComponentCallbackMeta:
+    """Get the static component metadata attached to a static component callback
+    I.e the category/sub-category
+
+    :param callback: The callback
+    :type callback: basedApp.CallBackType
+    :raises TypeError: If `callback` is not registered as a static component callback
+    :return: The static component metadata attached to `callback`
+    :rtype: StaticComponentCallbackMeta
+    """
     if basedApp.appType(callback) != basedApp.BasedAppType.StaticComponent:
         raise TypeError("The callback is not a static component callback")
     return StaticComponentCallbackMeta(*callback.__static_component_meta__)
 
 
 def staticComponentCustomId(category: str, subCategory: str = "", args: str = "") -> str:
+    """Construct a `custom_id` to represent an instance of a static component
+
+    :param category: The category of the static component callback
+    :type category: str
+    :param subCategory: The sub-category of the static component callback
+    :type subCategory: str, optional
+    :param args: Arguments for this instance of the static component to pass to the callback (default "")
+    :type args: str, optional
+    :return: A `custom_id` that, when attached to an interacted-with component (e.g a button), will call the identified static component callback
+    :rtype: str
+    """
     validateParam("category", category)
     validateParam("subCategory", subCategory)
     validateParam("args", args)
@@ -75,7 +149,21 @@ def staticComponentCustomId(category: str, subCategory: str = "", args: str = ""
     return customId
 
 
-def staticComponent(component: Component, category: str, subCategory: str = "", args: str = "") -> Component:
+inComponent = TypeVar("inComponent", bound=Component)
+
+
+def staticComponent(component: inComponent, category: str, subCategory: str = "", args: str = "") -> inComponent:
+    """Instruct a discord Component to call a static component callback, by assigning it a `custom_id`.
+
+    :param category: The category of the static component callback
+    :type category: str
+    :param subCategory: The sub-category of the static component callback
+    :type subCategory: str, optional
+    :param args: Arguments for this instance of the static component to pass to the callback (default "")
+    :type args: str, optional
+    :return: `component`
+    :rtype: str
+    """
     if not hasattr(component, "custom_id"):
         raise ValueError(f"component type {type(component).__name__} cannot be static. Must have a custom_id")
     component.custom_id = staticComponentCustomId(category, subCategory, args)
@@ -83,16 +171,41 @@ def staticComponent(component: Component, category: str, subCategory: str = "", 
 
 
 def staticComponentKey(category: str, subCategory: str = "") -> str:
+    """Construct a key under which a static component callback should be registered on the client
+    The key should uniquely identify a static component callback
+
+    :var category: The category of the static component
+    :type category: str
+    :var subCategory: The sub-category of the static component
+    :type subCategory: Optional[str]
+    :return: A key which uniquely identifies a static component callback
+    :rtype: str
+    """
     key = cfg.staticComponentCustomIdPrefix + category + cfg.staticComponentCustomIdSeparator + (subCategory or "")
     validateCustomId(key)
     return key
 
 
 def customIdIsStaticComponent(customId: str) -> bool:
+    """Decide whether a component `custom_id` could represent a static component
+
+    :param customId: The `custom_id`
+    :type customId: str
+    :return: `True` if `customid` might represent a static component, `False` if it definitely does not
+    :rtype: bool
+    """
     return customId.startswith(cfg.staticComponentCustomIdPrefix)
 
 
 def staticComponentMeta(customId: str) -> StaticComponentMeta:
+    """Unpack a static component `custom_id` into metadata: category, subcategory and args
+
+    :param customId: The `custom_id` to unpack
+    :type customId: str
+    :raises ValueError: If `customId` does not represent a static component
+    :return: metadata about the instance of the static component
+    :rtype: StaticComponentMeta
+    """
     if not customIdIsStaticComponent(customId):
         raise ValueError("customId does not represent a static component")
     rest = customId[len(cfg.staticComponentCustomIdPrefix):]
@@ -101,11 +214,28 @@ def staticComponentMeta(customId: str) -> StaticComponentMeta:
 
 
 async def maybeDefer(interaction: Interaction, ephemeral: bool = False, thinking: bool = False):
+    """Defer an interaction response, unless it has already been responded to.
+
+    :param interaction: The interaction
+    :type interaction: Interaction
+    :param ephemeral: Whether the deferral message should be ephemeral, defaults to False
+    :type ephemeral: bool, optional
+    :param thinking: Whether the deferral message should show the 'thinking' message, defaults to False
+    :type thinking: bool, optional
+    """
     if not interaction.response._responded:
         await interaction.response.defer(ephemeral=ephemeral, thinking=thinking)
 
 
 async def editWithFallback(interaction: Interaction, msg: Message, *args, **kwargs):
+    """If the interaction has been responded to, edit `msg`. Otherwise, edit the original message of the interaction.
+    `*args` and `*kwargs` are passed to the message edit method.
+
+    :param interaction: The interaction
+    :type interaction: Interaction
+    :param msg: A message to fallback onto editing, if `interaction` has been reseponded to
+    :type msg: Message
+    """
     if interaction.response._responded:
         await msg.edit(*args, **kwargs)
     else:
@@ -113,12 +243,27 @@ async def editWithFallback(interaction: Interaction, msg: Message, *args, **kwar
 
 
 class Menu:
+    """Represents a menu page, with an embed and view.
+
+    :var embed: The embed content of the menu
+    :type embed: Embed
+    :var view: The interactable content of the menu
+    :type view: View
+    """
     def __init__(self, view: View, embed: Embed):
         self.view = view
         self.embed = embed
 
 
 def callbackWithChecks(callback: Union[Callable[[Interaction], bool], Callable[[Interaction], Awaitable[bool]]], *checks: Union[Callable[[Interaction], bool], Callable[[Interaction], Awaitable[bool]]]) -> Callable[[Interaction], Awaitable]:
+    """Construct a callback that performs all of the checks in `checks` and, if they were all successful, calls `callback`.
+    All of `callback` and `checks` may be synchronous or asynchronous.
+
+    :param callback: The callback to call if all checks pass
+    :type callback: Union[Callable[[Interaction], bool], Callable[[Interaction], Awaitable[bool]]]
+    :return: A callback that, when triggered, will perform all checks and then call `callback` if the checks pass
+    :rtype: Callable[[Interaction], Awaitable]
+    """
     async def callback(interaction: Interaction):
         for check in checks:
             result = check(interaction)
@@ -135,6 +280,8 @@ def callbackWithChecks(callback: Union[Callable[[Interaction], bool], Callable[[
 
 
 class PagedMultiButtonMenu:
+    """UNDER CONSTRUCTION
+    """
     def __init__(self, pages: List[Menu], currentPageEmbed: Embed = None, currentPageNum: int = None, controlsCheck: Callable[[Interaction], bool] = None):
         self.pages = pages
 
