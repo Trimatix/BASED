@@ -57,6 +57,9 @@ userAccessLevels = [basicAccessLevels.user, "mod", basicAccessLevels.serverAdmin
 # Message to print alongside cmd_help menus
 helpIntro = "Here are my commands!"
 
+# Name of the help section for un-categorized commands
+defaultHelpSection = "Miscellaneous"
+
 # Maximum number of commands each cmd_help menu may contain
 maxCommandsPerHelpPage = 5
 

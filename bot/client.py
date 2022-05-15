@@ -1,6 +1,6 @@
 import asyncio
 import signal
-from typing import Optional, Dict, Tuple, Union, overload
+from typing import List, Optional, Dict, Tuple, Union, overload
 import aiohttp
 import discord # type: ignore[import]
 from discord.ext.commands import Bot as ClientBaseClass # type: ignore[import]
@@ -124,6 +124,113 @@ class BasedClient(ClientBaseClass):
 
         self.basedCommands: Dict[discord.app_commands.Command, "basedCommand.BasedCommandMeta"] = {}
         self.staticComponentCallbacks: Dict[Tuple[str, str], basedApp.CallBackType] = {}
+
+        self.helpSections: Dict[str, List[discord.app_commands.Command]] = {}
+
+
+    def addBasedCommand(self, command: discord.app_commands.Command):
+        """Register a based command's metadata with the bot.
+        This does not register for command calling. Use the default discord.py behaviour for this.
+
+        :param command: The command to register
+        :type command: discord.app_commands.Command
+        :raises KeyError: If the command is already registered
+        :raises ValueError: If the command has not been made into a BASED command with the `basedCommand` decorator
+        """
+        if basedApp.appType(command.callback) != basedApp.BasedAppType.AppCommand:
+            raise ValueError(f"command {command.qualified_name} is not a BASED command")
+        if command in self.basedCommands:
+            raise KeyError(f"Command {command.qualified_name} is already registered")
+        meta = basedCommand.commandMeta(command)
+        self.basedCommands[command] = meta
+        if meta.helpSection not in self.helpSections:
+            self.helpSections[meta.helpSection] = [command]
+        else:
+            self.helpSections[meta.helpSection].append(command)
+
+
+    def addStaticComponent(self, callback: "basedApp.CallBackType"):
+        """Register a static component callback's metadata with the bot.
+        This enables static component behaviour as described by the `staticComponentCallback` decorator.
+
+        :param callback: The static component to register
+        :type command: basedApp.CallBackType
+        :raises KeyError: If the component is already registered
+        :raises ValueError: If the callback has not been made into a static component callback with the `staticComponentCallback` decorator
+        """
+        if basedApp.appType(callback) != basedApp.BasedAppType.StaticComponent:
+            raise ValueError(f"callback {callback.__name__} is not a static component callback")
+        if callback in self.staticComponentCallbacks:
+            raise KeyError(f"Static component callback {callback.__name__} is already registered")
+
+        meta = basedComponent.staticComponentCallbackMeta(callback)
+        key = basedComponent.staticComponentKey(meta.category, meta.subCategory)
+        self.staticComponentCallbacks[key] = callback
+
+
+    def removeBasedCommand(self, command: discord.app_commands.Command):
+        """Un-register a based command's metadata from the bot.
+        This does not un-register for command calling. Use the default discord.py behaviour for this.
+
+        :param command: The command to un-register
+        :type command: discord.app_commands.Command
+        :raises KeyError: If the command is not registered
+        :raises ValueError: If the command has not been made into a BASED command with the `basedCommand` decorator
+        """
+        if basedApp.appType(command.callback) != basedApp.BasedAppType.AppCommand:
+            raise ValueError(f"command {command.qualified_name} is not a BASED command")
+        if command not in self.basedCommands:
+            raise KeyError(f"Command {command.qualified_name} is not registered")
+        meta = basedCommand.commandMeta(command)
+        del self.basedCommands[command]
+        if meta.helpSection in self.helpSections:
+            self.helpSections[meta.helpSection].remove(command)
+            if len(self.helpSections[meta.helpSection]) == 0:
+                del self.helpSections[meta.helpSection]
+
+
+    def removeStaticComponent(self, callback: "basedApp.CallBackType"):
+        """Un-egister a static component callback's metadata with the bot.
+        This disables static component behaviour as described by the `staticComponentCallback` decorator.
+
+        :param callback: The static component to un-register
+        :type command: basedApp.CallBackType
+        :raises KeyError: If the component is not registered
+        :raises ValueError: If the callback has not been made into a static component callback with the `staticComponentCallback` decorator
+        """
+        if basedApp.appType(callback) != basedApp.BasedAppType.StaticComponent:
+            raise ValueError(f"callback {callback.__name__} is not a static component callback")
+        if callback not in self.staticComponentCallbacks:
+            raise KeyError(f"Static component callback {callback.__name__} is not registered")
+
+        meta = basedComponent.staticComponentCallbackMeta(callback)
+        key = basedComponent.staticComponentKey(meta.category, meta.subCategory)
+        del self.staticComponentCallbacks[key]
+
+
+    def commandsInSectionForAccessLevel(self, section: str, level: accessLevel._AccessLevelBase) -> List[discord.app_commands.Command]:
+        """Get the commands in help section `section` that require access level `level`
+
+        :param section: The help section for commands to look up
+        :type section: str
+        :param level: The access level that commands should require
+        :type level: accessLevel._AccessLevelBase
+        :return: A list of commands in help section `section` requiring access level `level`
+        :rtype: List[discord.app_commands.Command]
+        """
+        return [c for c in self.helpSections[section] if basedCommand.accessLevel(c) is level and basedCommand.commandMeta(c).showInHelp]
+
+
+    def helpSectionsForAccessLevel(self, level: accessLevel._AccessLevelBase) -> Dict[str, List[discord.app_commands.Command]]:
+        """Get the commands for a particular access level, organized by help section
+
+        :param level: The access level of commands to look up
+        :type level: accessLevel._AccessLevelBase
+        :return: The commands that require `level`, organized by help section
+        :rtype: Dict[str, List[discord.app_commands.Command]]
+        """
+        result = {section: self.commandsInSectionForAccessLevel(section, level) for section in self.helpSections}
+        return {s: c for s, c in result.items() if c}
 
 
     async def setup_hook(self):

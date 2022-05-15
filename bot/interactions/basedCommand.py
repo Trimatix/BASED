@@ -1,9 +1,10 @@
 from discord import app_commands
 from discord.utils import MISSING
-from typing import Dict, Type, Union
+from typing import Dict, Optional, Type, Union
 from .accessLevel import _AccessLevelBase, AccessLevel, accessLevelNamed, defaultAccessLevel
 from .commandChecks import requireAccess
 from .basedApp import basedApp, BasedAppType
+from ..cfg import cfg
 
 
 class BasedCommandMeta:
@@ -20,10 +21,10 @@ class BasedCommandMeta:
     :var formattedParamDescs: Descriptions for each parameter of the command with more allowed length and markdown formatting, to be used in help commands
     :type formattedParamDescs: Optional[Dict[str, str]]
     """
-    def __init__(self, accessLevel: _AccessLevelBase = MISSING, showInHelp: bool = True, helpSection: str = None, formattedDesc: str = None, formattedParamDescs : Dict[str, str] = None):
+    def __init__(self, accessLevel: _AccessLevelBase = MISSING, showInHelp: bool = True, helpSection: Optional[str] = None, formattedDesc: Optional[str] = None, formattedParamDescs : Optional[Dict[str, str]] = None):
         self._accessLevel = accessLevel
         self.showInHelp = showInHelp
-        self.helpSection = helpSection
+        self._helpSection = helpSection
         self.formattedDesc = formattedDesc
         self.formattedParamDescs = formattedParamDescs
 
@@ -36,6 +37,16 @@ class BasedCommandMeta:
         :rtype: _AccessLevelBase
         """
         return self._accessLevel if self._accessLevel is not MISSING else defaultAccessLevel()
+
+
+    @property
+    def helpSection(self):
+        """The help section in which to list this command
+
+        :return: The help section in which to list this command
+        :rtype: str
+        """
+        return self._helpSection or cfg.defaultHelpSection
 
 
 def basedCommand(

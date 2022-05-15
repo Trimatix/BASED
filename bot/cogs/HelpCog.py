@@ -1,9 +1,9 @@
 """https://gist.github.com/Rapptz/0ad5914e42aeaa1cecea334f6508b8d5"""
 
 from __future__ import annotations
-from typing import List, Optional, Tuple, Type, Union, cast
+from typing import Dict, List, Optional, Tuple, Type, Union, cast
 from .. import client
-from discord import AppCommandType, CategoryChannel, Embed, VoiceChannel, app_commands, Interaction, Object, ChannelType, Guild
+from discord import AppCommandType, CategoryChannel, Embed, InteractionType, VoiceChannel, app_commands, Interaction, Object, ChannelType, Guild
 from discord.ext import commands
 from discord.app_commands.transformers import CommandParameter, Range
 from discord.utils import MISSING
@@ -73,13 +73,13 @@ def commandDescriptionAndParameters(command: app_commands.Command, meta: basedCo
     return commandDescription(command, meta) + (f"\n\n{params}" if params else "")
 
 
-def packHelpPageArgs(category: str = None, pageNum: int = None, accessLevelNum: int = None) -> str:
-    return "#".join((category or "", str(pageNum) if pageNum is not None else "", str(accessLevelNum) if accessLevelNum is not None else ""))
+def packHelpPageArgs(showAll: bool, category: str = None, pageNum: int = None, accessLevelNum: int = None) -> str:
+    return "#".join((category or "", str(pageNum) if pageNum is not None else "", str(accessLevelNum) if accessLevelNum is not None else "", "1" if showAll else ""))
 
 
-def unpackHelpPageArgs(args: str) -> Tuple[Optional[str], Optional[int], Optional[int]]:
-    category, pageNum, accessLevelNum = args.split("#")
-    return (category or None, int(pageNum) if pageNum else None, int(accessLevelNum) if accessLevelNum else None)
+def unpackHelpPageArgs(args: str) -> Tuple[Optional[str], Optional[int], Optional[int], bool]:
+    category, pageNum, accessLevelNum, showAll = args.split("#")
+    return (category or None, int(pageNum) if pageNum else None, int(accessLevelNum) if accessLevelNum else None, bool(showAll))
 
 
 class HelpCog(basedApp.BasedCog):
@@ -88,25 +88,27 @@ class HelpCog(basedApp.BasedCog):
         super().__init__(*args, **kwargs)
 
 
-    def _commandsForAccessLevel(self, level: Type[accessLevel._AccessLevelBase] = MISSING, guild: Optional[Object] = None, type=AppCommandType.chat_input):
+    def _commandsForAccessLevel(self, level: Type[accessLevel._AccessLevelBase] = MISSING, guild: Optional[Object] = None, type=AppCommandType.chat_input, exactLevel=True):
         return list(self.bot.tree.walk_commands(guild=guild, type=type)) if level is None else \
-            [c for c in self.bot.tree.walk_commands(guild=guild, type=type) if basedCommand.accessLevel(c) is level]
+            [c for c in self.bot.tree.walk_commands(guild=guild, type=type) if ((basedCommand.accessLevel(c) is level) if exactLevel else (commandChecks.accessLevelSufficient(level, basedCommand.accessLevel(c))))]
 
 
-    def getCommands(self, interaction: Interaction, level: Optional[Type[basedCommand.AccessLevel]] = None) -> List[Union[app_commands.Command, app_commands.AppCommandGroup]]:
-        foundCommands = self._commandsForAccessLevel(level)
+    def getCommands(self, interaction: Interaction, level: Optional[Type[basedCommand.AccessLevel]] = None, exactLevel=True) -> List[Union[app_commands.Command, app_commands.AppCommandGroup]]:
+        foundCommands = self._commandsForAccessLevel(level, exactLevel=exactLevel)
         if interaction.guild is not None:
-            foundCommands.extend(self._commandsForAccessLevel(level, guild=interaction.guild))
+            foundCommands.extend(self._commandsForAccessLevel(level, guild=interaction.guild, exactLevel=exactLevel))
         return foundCommands
 
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user)
+    @app_commands.describe(help_section="Only view commands in a particular help section",
+                            command="Only view help for a single command")
     @app_commands.command(name="help",
-                            description="Look up help for a particular command, or view all available commands.")
+                            description="Look up help for a particular command or section, or view all available commands.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def cmd_help(self, interaction: Interaction, command: Optional[str] = None):
+    async def cmd_help(self, interaction: Interaction, command: Optional[str] = None, help_section: Optional[str] = None):
         if command is None:
-            await self.showHelpPage(interaction, packHelpPageArgs())
+            await self.showHelpPage(interaction, True, category=help_section)
             return
 
         cmd = get_nested_command(self.bot, command, guild=interaction.guild)
@@ -124,7 +126,7 @@ class HelpCog(basedApp.BasedCog):
     async def help_autocomplete(self,
         interaction: Interaction, current: str
     ) -> List[app_commands.Choice[str]]:
-        commandsForScope = self.getCommands(interaction, await commandChecks.inferUserPermissions(interaction))
+        commandsForScope = self.getCommands(interaction, await commandChecks.inferUserPermissions(interaction), exactLevel=False)
 
         choices: List[app_commands.Choice[str]] = []
         for c in commandsForScope:
@@ -137,26 +139,66 @@ class HelpCog(basedApp.BasedCog):
         return choices[:25]
 
 
+    @cmd_help.autocomplete('help_section')
+    async def helpSection_autocomplete(self,
+        interaction: Interaction, current: str
+    ) -> List[app_commands.Choice[str]]:
+        return [app_commands.Choice(name=c, value=c) for c in self.bot.helpSections if current in c][:25]
+
+
     @basedComponent.staticComponentCallback(category="help")
-    async def showHelpPage(self, interaction: Interaction, args: str):
-        category, page, accessLevelNum = unpackHelpPageArgs(args)
+    async def showHelpPageStatic(self, interaction: Interaction, args: str):
+        category, page, accessLevelNum, showAll = unpackHelpPageArgs(args)
         pageNum = int(page) if page is not None else 1
         commandAccessLevel = accessLevel.defaultAccessLevel() if accessLevelNum is None else accessLevel.accessLevelWithIntLevel(accessLevelNum)
+        await self.showHelpPage(interaction, showAll, category=category, pageNum=pageNum, commandAccessLevel=commandAccessLevel)
 
+    
+    async def showHelpPage(self, interaction: Interaction, showAll: bool, category: Optional[str] = None, pageNum: Optional[int] = None, commandAccessLevel: Optional[Type[accessLevel._AccessLevelBase]] = None, helpSections: Optional[Dict[str, List[app_commands.Command]]] = None):
+        commandAccessLevel = accessLevel.defaultAccessLevel() if commandAccessLevel is None else commandAccessLevel
+        
+        helpSections = helpSections if helpSections is not None else self.bot.helpSectionsForAccessLevel(commandAccessLevel)
+        if not helpSections:
+            helpSections = {cfg.defaultHelpSection: []}
+        helpSectionNames = list(helpSections.keys())
+
+        if category is None:
+            await self.showHelpPage(interaction, True, helpSectionNames[0], 1, commandAccessLevel, helpSections=helpSections)
+            return
+        if showAll and pageNum == 0:
+            await self.showHelpPage(interaction, showAll, helpSectionNames[helpSectionNames.index(category) - 1], 1, commandAccessLevel, helpSections=helpSections)
+            return
+
+        if showAll and category not in helpSections:
+            category = helpSectionNames[0]
+
+        pageNum = pageNum or 1
+        
         offset = cfg.maxCommandsPerHelpPage * (pageNum - 1)
+        possibleCommands = self.bot.commandsInSectionForAccessLevel(category, commandAccessLevel)
+        if showAll and offset > len(possibleCommands):
+            await self.showHelpPage(interaction, showAll, helpSectionNames[helpSectionNames.index(category) + 1], 1, commandAccessLevel, helpSections=helpSections)
+            return
             
         e = Embed(title=f"{commandAccessLevel.name.title()} Commands")
-        e.set_footer(text=f"Page {pageNum}")
+        
+        if showAll and len(helpSections) > 1:
+            e.description = " // ".join(f"__{section.title()}__" if section == category else section.title() for section in helpSectionNames)
+        else:
+            e.description = f"__{category.title()}__"
 
-        possibleCommands = self.getCommands(interaction, level=commandAccessLevel)
         last = min(len(possibleCommands), offset + cfg.maxCommandsPerHelpPage)
+        notLastInSection = last != len(possibleCommands)
+        notLastPage = notLastInSection or (showAll and category != helpSectionNames[-1])
+
+        if notLastInSection:
+            e.set_footer(text=f"Page {pageNum}")
 
         for c in possibleCommands[offset:last]:
             meta = basedCommand.commandMeta(c)
             e.add_field(name=formatSignature(c), value=commandDescription(c, meta), inline=False)
 
-        notFirstPage = offset != 0
-        notLastPage = last != len(possibleCommands)
+        notFirstPage = offset != 0 or (showAll and category != helpSectionNames[0])
 
         userAccessLevel = await commandChecks.inferUserPermissions(interaction)
         userNotMinAccessLevel = userAccessLevel is not accessLevel.defaultAccessLevel()
@@ -172,63 +214,25 @@ class HelpCog(basedApp.BasedCog):
                     nextAccessLevel = commandAccessLevel._intLevel() + 1
 
                 switchAccessLevelButton = Button(emoji=cfg.defaultEmojis.spiral.sendable)
-                switchAccessLevelButton = basedComponent.staticComponent(switchAccessLevelButton, "help", args=packHelpPageArgs(accessLevelNum=nextAccessLevel))
+                switchAccessLevelButton = basedComponent.staticComponent(switchAccessLevelButton, "help", args=packHelpPageArgs(showAll, accessLevelNum=nextAccessLevel, category=category))
                 view.add_item(switchAccessLevelButton)
 
             if notFirstPage:
-                previousPageButton = basedComponent.staticComponent(previousPageButton, "help", args=packHelpPageArgs(pageNum=pageNum-1, accessLevelNum=commandAccessLevel._intLevel(), category=category))
+                previousPageButton = basedComponent.staticComponent(previousPageButton, "help", args=packHelpPageArgs(showAll, pageNum=pageNum-1, accessLevelNum=commandAccessLevel._intLevel(), category=category))
                 previousPageButton.disabled = False
             if notLastPage:
-                nextPageButton = basedComponent.staticComponent(nextPageButton, "help", args=packHelpPageArgs(pageNum=pageNum+1, accessLevelNum=commandAccessLevel._intLevel(), category=category))
+                nextPageButton = basedComponent.staticComponent(nextPageButton, "help", args=packHelpPageArgs(showAll, pageNum=pageNum+1, accessLevelNum=commandAccessLevel._intLevel(), category=category))
                 nextPageButton.disabled = False
 
             view.add_item(previousPageButton).add_item(nextPageButton)
         else:
             view = MISSING
-            
-        await interaction.response.send_message(embed=e, view=view, ephemeral=True)
-
-    
-    @app_commands.command(name="dummy1")
-    @app_commands.guilds(*cfg.developmentGuilds)
-    async def cmd_dummy1(self, interaction: Interaction): pass
-
-    @app_commands.command(name="dummy2")
-    @app_commands.guilds(*cfg.developmentGuilds)
-    async def cmd_dummy2(self, interaction: Interaction): pass
-
-    @app_commands.command(name="dummy3")
-    @app_commands.guilds(*cfg.developmentGuilds)
-    async def cmd_dummy3(self, interaction: Interaction): pass
-
-    @app_commands.command(name="dummy4")
-    @app_commands.guilds(*cfg.developmentGuilds)
-    async def cmd_dummy4(self, interaction: Interaction): pass
-
-    @app_commands.command(name="dummy5")
-    @app_commands.guilds(*cfg.developmentGuilds)
-    async def cmd_dummy5(self, interaction: Interaction): pass
-
-    @app_commands.command(name="dummy6")
-    @app_commands.guilds(*cfg.developmentGuilds)
-    async def cmd_dummy6(self, interaction: Interaction): pass
-
-    @app_commands.command(name="dummy7")
-    @app_commands.guilds(*cfg.developmentGuilds)
-    async def cmd_dummy7(self, interaction: Interaction): pass
-
-    @app_commands.command(name="dummy8")
-    @app_commands.guilds(*cfg.developmentGuilds)
-    async def cmd_dummy8(self, interaction: Interaction): pass
-
-    @app_commands.command(name="dummy9")
-    @app_commands.guilds(*cfg.developmentGuilds)
-    async def cmd_dummy9(self, interaction: Interaction): pass
-
-    @app_commands.command(name="dummy10")
-    @app_commands.guilds(*cfg.developmentGuilds)
-    async def cmd_dummy10(self, interaction: Interaction): pass
         
+        if interaction.type == InteractionType.component:
+            await interaction.response.edit_message(embed=e, view=view)
+        else:
+            await interaction.response.send_message(embed=e, view=view, ephemeral=True)
+
 
 async def setup(bot: client.BasedClient):
     bot.remove_command("help")

@@ -135,6 +135,7 @@ class BasedCog(Cog):
             if appType(command.callback) == BasedAppType.AppCommand:
                 self.basedCommands[command] = basedCommand.commandMeta(command)
                 setCogApp(command.callback, type(self))
+                bot.addBasedCommand(command)
 
 
         for method in type(self).__dict__.values():
@@ -143,9 +144,7 @@ class BasedCog(Cog):
                 key = basedComponent.staticComponentKey(meta.category, meta.subCategory)
                 self.staticComponentCallbacks[key] = method
                 setCogApp(method, type(self))
-
-        bot.basedCommands.update(self.basedCommands)
-        bot.staticComponentCallbacks.update(self.staticComponentCallbacks)
+                bot.addStaticComponent(method)
 
         return super()._inject(bot=bot, override=override, guild=guild, guilds=guilds)
 
