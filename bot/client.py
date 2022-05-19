@@ -1,11 +1,16 @@
 import asyncio
+from inspect import iscoroutinefunction
 import signal
-from typing import List, Optional, Dict, Tuple, Union, overload
+from typing import List, Optional, Dict, Tuple, Type, Union, overload
 import aiohttp
 import discord # type: ignore[import]
+from discord import app_commands
 from discord.ext.commands import Bot as ClientBaseClass # type: ignore[import]
 from discord.ext import tasks # type: ignore[import]
+from discord.utils import MISSING # type: ignore[import]
 from datetime import datetime, timedelta
+
+from .interactions import commandChecks
 from .databases import userDB, guildDB, reactionMenuDB
 import os
 from . import lib
@@ -191,6 +196,91 @@ class BasedClient(ClientBaseClass):
             raise KeyError(f"Static component callback {callback.__name__} is already registered")
 
         self.staticComponentCallbacks[key] = callback
+
+
+    def basedCommand(self,
+        *,
+        accessLevel: Union[Type[accessLevel.AccessLevel], str] = MISSING,
+        showInHelp: bool = True,
+        helpSection: str = None,
+        formattedDesc: str = None,
+        formattedParamDescs : Dict[str, str] = None
+    ):
+        """Decorator that marks a discord app command as a BASED command.
+
+        :param accessLevel: The access level required to use the command. A check will be added for this.
+        :type accessLevel: Union[Type[AccessLevel], str], optional
+        :param showInHelp: Whether or not to show the command in help listings, defaults to True
+        :type showInHelp: bool, optional
+        :param helpSection: The section of the help command in which to list this command, defaults to None
+        :type helpSection: str, optional
+        :param formattedDesc: A description of the command with more allowed length and markdown formatting, to be used in help commands, defaults to None
+        :type formattedDesc: str, optional
+        :param formattedParamDescs: Descriptions for each parameter of the command with more allowed length and markdown formatting, to be used in help commands, defaults to None
+        :type formattedParamDescs: Dict[str, str], optional
+        """
+        def decorator(func, accessLevel=accessLevel, showInHelp=showInHelp, helpSection=helpSection, formattedDesc=formattedDesc, formattedParamDescs=formattedParamDescs):
+            if not isinstance(func, app_commands.Command):
+                raise TypeError("decorator can only be applied to app commands")
+
+            if isinstance(accessLevel, str):
+                accessLevel = accessLevel.accessLevelNamed(accessLevel)
+
+            basedApp(func.callback, basedApp.BasedAppType.AppCommand)
+            setattr(func.callback, "__based_command_meta__", basedCommand.BasedCommandMeta(accessLevel, showInHelp, helpSection, formattedDesc, formattedParamDescs))
+            self.addBasedCommand(func)
+
+            if accessLevel is not MISSING:
+                func.add_check(commandChecks.requireAccess(accessLevel))
+
+            return func
+
+        return decorator
+
+    
+    def staticComponentCallback(self, *, category: str = "", subCategory: str = ""):
+        """Decorator marking a coroutine as a static component callback.
+        The callback for static components identifying this callback by category/subcategory will be preserved across bot restarts
+
+        Example usage:
+        ```
+        @bot.staticComponentCallback(category="myCallback")
+        async def myCallback(interaction: Interaction, args: str):
+            await interaction.response.send_message(f"This static callback received args: {args}")
+
+        @bot.app_commands.command(name="send-static-menu")
+        async def sendStaticMenu(interaction: Interaction):
+            staticButton = Button(label="send callback")
+            staticButton = staticComponent(staticButton, category="myCallback", args="hello")
+            view.add_item(staticButton)
+            await interaction.response.send_message(view=view)
+        ```
+        If the `send-static-menu` app command is sent, then a message will be sent in return with a button to trigger `myCallback`.
+        Clicking this button will send another message with the content "hello".
+        If the bot is restarted, then the button will still work.
+        This works by attaching a known `custom_id` to the button, containing the static component category/sub-category and args.
+
+        :var category: The category of the static component
+        :type category: str
+        :var subCategory: The sub-category of the static component
+        :type subCategory: Optional[str]
+        """
+        def decorator(func, category=category, subCategory=subCategory):
+            if not iscoroutinefunction(func):
+                raise TypeError("Decorator can only be applied to coroutines")
+            if not category:
+                raise ValueError("Missing required argument: category")
+
+            basedComponent.validateParam("category", category)
+            basedComponent.validateParam("subCategory", subCategory)
+            
+            basedApp.basedApp(func, basedApp.BasedAppType.StaticComponent)
+            setattr(func, "__static_component_meta__", (category, subCategory))
+            self.addStaticComponent(func)
+
+            return func
+
+        return decorator
 
 
     def removeBasedCommand(self, command: discord.app_commands.Command):
