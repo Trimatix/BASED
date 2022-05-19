@@ -41,7 +41,7 @@ async def cmd_source(message: discord.Message, args: str, isDM: bool):
                                          footerTxt="Bot Source",
                                          footerIcon="https://i.imgur.com/7SMgF0t.png")
     srcEmbed.add_field(name="Uptime",
-                       value=lib.timeUtil.td_format_noYM(datetime.utcnow() - botState.client.launchTime))
+                       value=lib.timeUtil.td_format_noYM(discord.utils.utcnow() - botState.client.launchTime))
     srcEmbed.add_field(name="Author",
                        value="Trimatix#2244")
     srcEmbed.add_field(name="API",

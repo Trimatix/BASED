@@ -8,7 +8,7 @@ from ..cfg import cfg
 
 
 async def menuJumpToPage(data: dict):
-    await botState.reactionMenusDB[data["menuID"]].jumpToPage(data["pageNum"])
+    await botState.client.reactionMenusDB[data["menuID"]].jumpToPage(data["pageNum"])
 
 
 class PagedReactionMenu(reactionMenu.ReactionMenu):

@@ -30,7 +30,7 @@ async def admin_cmd_set_prefix(message: discord.Message, args: str, isDM: bool):
     :param str args: the command prefix to use
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    callingBGuild = botState.guildsDB.getGuild(message.guild.id)
+    callingBGuild = botState.client.guildsDB.getGuild(message.guild.id)
 
     if not args:
         await message.channel.send("Please provide the command prefix you would like to set. E.g: `" +

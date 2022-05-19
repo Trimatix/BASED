@@ -1,5 +1,6 @@
 from ..lib.emojis import UninitializedBasedEmoji
-from .schema import EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, SerializablePath
+from ..lib.discordUtil import SerializableDiscordObject
+from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, SerializablePath
 
 # All emojis used by the bot
 defaultEmojis = EmojisConfig(
@@ -43,12 +44,21 @@ paths = PathsConfig(
     logsFolder = SerializablePath("saveData", "logs")
 )
 
+basicAccessLevels = BasicAccessLevelNames(
+    user = "user",
+    serverAdmin = "admin",
+    developer = "developer"
+)
+
 # Names of user access levels to be used in help menus.
 # Also determines the number of access levels available, e.g when registering commands
-userAccessLevels = ["user", "mod", "admin", "dev"]
+userAccessLevels = [basicAccessLevels.user, "mod", basicAccessLevels.serverAdmin, basicAccessLevels.developer]
 
 # Message to print alongside cmd_help menus
-helpIntro = "Here are my commands!"
+helpIntro = "Give a command name in `/help` for more detail."
+
+# Name of the help section for un-categorized commands
+defaultHelpSection = "Miscellaneous"
 
 # Maximum number of commands each cmd_help menu may contain
 maxCommandsPerHelpPage = 5
@@ -58,15 +68,20 @@ includedCommandModules = ("usr_misc",
                           "admn_misc",
                           "dev_misc")
 
+def cogPath(cogName: str, basePackage: str = "bot.cogs") -> str:
+    return ".".join((basePackage, cogName))
+
+includedCogs = (
+    cogPath("BASEDVersionCog"),
+    cogPath("AdminMiscCog"),
+    cogPath("HelpCog")
+)
+
 # Text to edit into expired menu messages
 expiredMenuMsg = "😴 This role menu has now expired."
 
-# Use "fixed" to check for task expiry every timedTaskLatenessThresholdSeconds (polling-based scheduler)
-# Use "dynamic" to check for task expiry exactly at the time of task expiry (interrupts-based scheduler)
-timedTaskCheckingType = "dynamic"
-# Number of seconds by with the expiry of a timedtask may acceptably be late.
-# Regardless of timedTaskCheckingType, this is used for the termination signal checking period.
-timedTaskLatenessThresholdSeconds = 10
+# The termination signal checking period.
+shutdownCheckPeriodSeconds = 10
 
 # Whether or not to check for updates to BASED
 BASED_checkForUpdates = True
@@ -77,8 +92,27 @@ defaultCommandPrefix = "."
 # discord user IDs of developers - will be granted developer command permissions
 developers = [188618589102669826]
 
+# IDs of 'development' servers, where commands will be synced to immediately, and dev commands will be enabled.
+developmentGuilds = [SerializableDiscordObject(1)]
+
 # Exactly one of botToken or botToken_envVarName must be given.
 # botToken contains a string of your bot token
 # botToken_envVarName contains the name of an environment variable to get your bot token from
 botToken = ""
 botToken_envVarName = ""
+
+# The number of times to retry API calls when HTTP exceptions are thrown
+httpErrRetries = 3
+
+# The number of seconds to wait between API call retries upon HTTP exception catching
+httpErrRetryDelaySeconds = 1
+
+staticComponentCustomIdSeparator = "|"
+
+staticComponentCustomIdPrefix = staticComponentCustomIdSeparator
+
+
+def validateConfig():
+    for basicAccessLevel in basicAccessLevels._fieldItems().values():
+        if basicAccessLevel not in userAccessLevels:
+            raise ValueError(f"basic access level '{basicAccessLevel}' is missing from userAccessLevels")

@@ -6,6 +6,8 @@ import carica # type: ignore[import]
 if len(sys.argv) > 1:
     carica.loadCfg(cfg, sys.argv[1])
 
+cfg.validateConfig()
+
 # load and run bot
 from bot import bot
 status = bot.run()

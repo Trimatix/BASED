@@ -3,7 +3,7 @@ if TYPE_CHECKING:
     from .databases import userDB, guildDB, reactionMenuDB
     from .scheduling import timedTask, timedTaskHeap
     from . import logging
-    from discord import Client # type: ignore[import]
+    from .client import BasedClient
 
 class ShutDownState:
     restart = 0
@@ -11,7 +11,7 @@ class ShutDownState:
     update = 2
 
 
-client = cast("Client", None)
+client = cast("BasedClient", None)
 shutdown = ShutDownState.restart
 
 usersDB = cast("userDB.UserDB", None)

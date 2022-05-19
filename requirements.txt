@@ -1,5 +1,4 @@
-discord.py
-emoji
-toml
+git+https://github.com/Rapptz/discord.py
+emoji==1.7.0
 carica
 aiohttp[speedups]
