@@ -123,8 +123,10 @@ class BasedCog(Cog):
     :var basedCommands: All static component callbacks defined within the cog
     :type basedCommands: Dict[Tuple[str, str], CallBackType]
     """
-    basedCommands: Dict[app_commands.Command, "basedCommand.BasedCommandMeta"] = {}
-    staticComponentCallbacks: Dict[Tuple[str, str], CallBackType] = {}
+    def __init__(self, *args, **kwargs):
+        self.basedCommands: Dict[app_commands.Command, "basedCommand.BasedCommandMeta"] = {}
+        self.staticComponentCallbacks: Dict[Tuple[str, str], CallBackType] = {}
+        return super().__init__(*args, **kwargs)
 
     def _inject(self, bot: "client.BasedClient", override: bool, guild, guilds) -> Coroutine:
         """Registers all BASED apps in the cog with the provided client, and then passes cog injection responsibility up
@@ -154,9 +156,9 @@ class BasedCog(Cog):
         to the discord Cog base class
         """
         for command in self.basedCommands:
-            bot.basedCommands.pop(command, None)
+            bot.removeBasedCommand(command)
 
         for key in self.staticComponentCallbacks:
-            bot.staticComponentCallbacks.pop(key, None)
+            bot.removeStaticComponentByKey(key)
 
         return super()._eject(bot, guild_ids)

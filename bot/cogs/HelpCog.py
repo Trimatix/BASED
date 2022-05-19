@@ -41,7 +41,7 @@ def formatSignature(command: app_commands.Command) -> str:
 
 
 def paramDescription(param: CommandParameter, meta: basedCommand.BasedCommandMeta) -> str:
-    return meta.formattedParamDescs.get(param.name, '') \
+    return meta.formattedParamDescs.get(param.name, '') if meta.formattedParamDescs is not None else '' \
             or (param.description if param.description != '…' else '')
 
 
@@ -109,12 +109,15 @@ class HelpCog(basedApp.BasedCog):
     @app_commands.guilds(*cfg.developmentGuilds)
     async def cmd_help(self, interaction: Interaction, command: Optional[str] = None, help_section: Optional[str] = None):
         if command is None:
-            await self.showHelpPage(interaction, True, category=help_section)
+            if help_section is None:
+                await self.showHelpPageAllSections(interaction, accessLevel.defaultAccessLevel())
+            else:
+                await self.showHelpPageSingleSection(interaction, accessLevel.defaultAccessLevel(), help_section)
             return
 
         cmd = get_nested_command(self.bot, command, guild=interaction.guild)
-        if cmd is None:
-            await interaction.response.send_message(f'Could not find a command named {command}', ephemeral=True)
+        if cmd is None or not await commandChecks.userHasAccess(interaction, basedCommand.accessLevel(cmd)):
+            await interaction.response.send_message(f'{cfg.defaultEmojis.cancel.sendable} Unknown command: `{command}`.', ephemeral=True)
             return
 
         meta = basedCommand.commandMeta(cmd)
@@ -152,78 +155,163 @@ class HelpCog(basedApp.BasedCog):
         category, page, accessLevelNum, showAll = unpackHelpPageArgs(args)
         pageNum = int(page) if page is not None else 1
         commandAccessLevel = accessLevel.defaultAccessLevel() if accessLevelNum is None else accessLevel.accessLevelWithIntLevel(accessLevelNum)
-        await self.showHelpPage(interaction, showAll, category=category, pageNum=pageNum, commandAccessLevel=commandAccessLevel)
+        if showAll:
+            await self.showHelpPageAllSections(interaction, commandAccessLevel, category=category, pageNum=pageNum)
+        else:
+            await self.showHelpPageSingleSection(interaction, commandAccessLevel, category, pageNum=pageNum)
 
-    
-    async def showHelpPage(self, interaction: Interaction, showAll: bool, category: Optional[str] = None, pageNum: Optional[int] = None, commandAccessLevel: Optional[Type[accessLevel._AccessLevelBase]] = None, helpSections: Optional[Dict[str, List[app_commands.Command]]] = None):
-        commandAccessLevel = accessLevel.defaultAccessLevel() if commandAccessLevel is None else commandAccessLevel
-        
+
+    async def showHelpPageAllSections(self, interaction: Interaction, commandAccessLevel: Type[accessLevel._AccessLevelBase], category: Optional[str] = None, pageNum: Optional[int] = None, helpSections: Optional[Dict[str, List[app_commands.Command]]] = None):
+        # This method calls itself sometimes. The helpSections argument acts as a cache, so we don't keep having to look up potential commands.
         helpSections = helpSections if helpSections is not None else self.bot.helpSectionsForAccessLevel(commandAccessLevel)
+        
+        # If no commands are available in the current section for the access level, show an empty list
         if not helpSections:
             helpSections = {cfg.defaultHelpSection: []}
         helpSectionNames = list(helpSections.keys())
 
         if category is None:
-            await self.showHelpPage(interaction, True, helpSectionNames[0], 1, commandAccessLevel, helpSections=helpSections)
-            return
-        if showAll and pageNum == 0:
-            await self.showHelpPage(interaction, showAll, helpSectionNames[helpSectionNames.index(category) - 1], 1, commandAccessLevel, helpSections=helpSections)
+            await self.showHelpPageAllSections(interaction, category=helpSectionNames[0], pageNum=1, commandAccessLevel=commandAccessLevel, helpSections=helpSections)
             return
 
-        if showAll and category not in helpSections:
+        # This will happen if the user clicks the 'back' button when on the first page of a help section, to go back to the last help section
+        if pageNum == 0:
+            await self.showHelpPageAllSections(interaction, category=helpSectionNames[helpSectionNames.index(category) - 1], pageNum=1, commandAccessLevel=commandAccessLevel, helpSections=helpSections)
+            return
+
+        # This will happen if the user is browsing a particular help section and then changes access level to a level that does not have commands in the section
+        if category not in helpSections:
             category = helpSectionNames[0]
 
         pageNum = pageNum or 1
-        
+            
         offset = cfg.maxCommandsPerHelpPage * (pageNum - 1)
         possibleCommands = self.bot.commandsInSectionForAccessLevel(category, commandAccessLevel)
-        userAccessLevel = await commandChecks.inferUserPermissions(interaction)
-        userNotMinAccessLevel = userAccessLevel is not accessLevel.defaultAccessLevel()
 
-        if showAll and offset > len(possibleCommands):
-            await self.showHelpPage(interaction, showAll, helpSectionNames[helpSectionNames.index(category) + 1], 1, commandAccessLevel, helpSections=helpSections)
+        # This will happen if the user clicks the 'next' button when on the last page of a help section, to go to the next help section
+        if offset > len(possibleCommands):
+            nextSection = helpSectionNames[helpSectionNames.index(category) + 1]
+            await self.showHelpPageAllSections(interaction, category=nextSection, pageNum=1, commandAccessLevel=commandAccessLevel, helpSections=helpSections)
             return
-            
-        e = Embed(title=f"{commandAccessLevel.name.title()} Commands", colour=Colour.blue())
-        e.description = cfg.helpIntro
-        if userNotMinAccessLevel:
+
+        defaultAccessLevel = accessLevel.defaultAccessLevel()
+        userAccessLevel = await commandChecks.inferUserPermissions(interaction)
+
+        # Find all access levels the user can switch to
+        if userAccessLevel is defaultAccessLevel:
+            switchableAccessLevels = []
+        else:
+            switchableAccessLevels = [accessLevel.accessLevelWithIntLevel(l) for l in range(defaultAccessLevel._intLevel(), userAccessLevel._intLevel() + 1)]
+
+        e = Embed(description=cfg.helpIntro)
+
+        if switchableAccessLevels:
             e.description += f"\n{cfg.defaultEmojis.spiral.sendable}: Change access level"
 
-        if showAll and len(helpSections) > 1:
+        if len(helpSections) > 1:
             e.description += "\n\n" + " / ".join(f"__{section.title()}__" if section == category else section.title() for section in helpSectionNames)
         else:
             e.description += f"\n\n__{category.title()}__"
-
+        
+        notFirstPage = offset != 0 or category != helpSectionNames[0]
         last = min(len(possibleCommands), offset + cfg.maxCommandsPerHelpPage)
         notLastInSection = last != len(possibleCommands)
-        notLastPage = notLastInSection or (showAll and category != helpSectionNames[-1])
+        notLastPage = notLastInSection or category != helpSectionNames[-1]
+
+        await self.fillAndSendHelpPage(interaction, True, e, category, pageNum, commandAccessLevel, notLastInSection, possibleCommands, offset, last, notFirstPage, notLastPage, switchableAccessLevels, userAccessLevel)
+
+    
+    async def showHelpPageSingleSection(self, interaction: Interaction, commandAccessLevel: Type[accessLevel._AccessLevelBase], category: str, pageNum: Optional[int] = None):
+        if category not in self.bot.helpSections:
+            pageNum = 1
+            offset = 0
+            possibleCommands = []
+            switchableAccessLevels = []
+        else:
+            defaultAccessLevel = accessLevel.defaultAccessLevel()
+            userAccessLevel = await commandChecks.inferUserPermissions(interaction)
+
+            pageNum = pageNum or 1
+            offset = cfg.maxCommandsPerHelpPage * (pageNum - 1)
+            possibleCommands = self.bot.commandsInSectionForAccessLevel(category, commandAccessLevel)
+            switchableAccessLevels = []
+            
+            # Find all access levels the user can switch to and still have commands available in the section
+            if userAccessLevel is not defaultAccessLevel:
+                noCommands = not possibleCommands
+                for l in range(defaultAccessLevel._intLevel(), userAccessLevel._intLevel() + (userAccessLevel is not commandAccessLevel)):
+                    if l == commandAccessLevel._intLevel():
+                        continue
+                    level = accessLevel.accessLevelWithIntLevel(l)
+                    # This will happen if a help section is requested that only contains commands at an access level higher than the default
+                    # Pick the lowest access level that the user has access to and also contains commands in this section
+                    if noCommands:
+                        currentCommands = self.bot.commandsInSectionForAccessLevel(category, level)
+                        if currentCommands:
+                            possibleCommands = currentCommands
+                            commandAccessLevel = level
+                            noCommands = False
+                    # Once we're sure we've got an access level with some commands, we can do a more efficient lookup
+                    # that exits checking a given level as soon as a single matching command is found
+                    elif any(basedCommand.accessLevel(c) is level for c in self.bot.helpSections[category]):
+                        switchableAccessLevels.append(level)
+
+        e = Embed(description=cfg.helpIntro)
+        if switchableAccessLevels:
+            e.description += f"\n{cfg.defaultEmojis.spiral.sendable}: Change access level"
+        e.description += f"\n\n__{category.title()}__"
+
+        notFirstPage = offset != 0
+        last = min(len(possibleCommands), offset + cfg.maxCommandsPerHelpPage)
+        notLastInSection = last != len(possibleCommands)
+        notLastPage = notLastInSection
+
+        await self.fillAndSendHelpPage(interaction, False, e, category, pageNum, commandAccessLevel, notLastInSection, possibleCommands, offset, last, notFirstPage, notLastPage, switchableAccessLevels, userAccessLevel)
+
+
+    async def fillAndSendHelpPage(self, interaction: Interaction, showAll: bool, embed: Embed, category: str, pageNum: int, commandAccessLevel: Type[accessLevel._AccessLevelBase], notLastInSection: bool, possibleCommands: List[app_commands.Command], offset: int, last: int, notFirstPage: bool, notLastPage: bool, switchableAccessLevels: List[Type[accessLevel._AccessLevelBase]], userAccessLevel: Type[accessLevel._AccessLevelBase]):
+        embed.title = f"{commandAccessLevel.name.title()} Commands"
+        embed.colour = Colour.blue()
 
         if notLastInSection:
-            e.set_footer(text=f"Page {pageNum}")
+            embed.set_footer(text=f"Page {pageNum}")
 
+        # Fill the embed fields with the found commands
         if not possibleCommands:
-            e.description += "\n\n<no commands>"
+            embed.description += "\n\n<no commands>"
         else:
             for c in possibleCommands[offset:last]:
                 meta = basedCommand.commandMeta(c)
-                e.add_field(name=formatSignature(c), value=commandDescription(c, meta), inline=False)
+                embed.add_field(name=formatSignature(c), value=commandDescription(c, meta), inline=False)
 
-        notFirstPage = offset != 0 or (showAll and category != helpSectionNames[0])
-        if notFirstPage or notLastPage or userNotMinAccessLevel:
+        # If we need to add any buttons
+        if notFirstPage or notLastPage or switchableAccessLevels:
             view = View()
             previousPageButton = Button(emoji=cfg.defaultEmojis.previous.sendable, disabled=True)
             nextPageButton = Button(emoji=cfg.defaultEmojis.next.sendable, disabled=True)
 
-            if userNotMinAccessLevel:
-                if commandAccessLevel is userAccessLevel:
-                    nextAccessLevel = 0
+            # Circle access level switch around from bottom to top
+            if switchableAccessLevels:
+                if len(switchableAccessLevels) == 1:
+                    nextAccessLevel = switchableAccessLevels[0]
                 else:
-                    nextAccessLevel = commandAccessLevel._intLevel() + 1
+                    nextAccessLevel = None
+                    minAccessLevel = switchableAccessLevels[0]
+                    for c in switchableAccessLevels[1:]:
+                        if c._intLevel() > commandAccessLevel._intLevel():
+                            nextAccessLevel = c
+                            break
+                        if c._intLevel() < minAccessLevel._intLevel():
+                            minAccessLevel = c
+                    
+                    if nextAccessLevel is None:
+                        nextAccessLevel = minAccessLevel
 
                 switchAccessLevelButton = Button(emoji=cfg.defaultEmojis.spiral.sendable)
-                switchAccessLevelButton = basedComponent.staticComponent(switchAccessLevelButton, "help", args=packHelpPageArgs(showAll, accessLevelNum=nextAccessLevel, category=category))
+                switchAccessLevelButton = basedComponent.staticComponent(switchAccessLevelButton, "help", args=packHelpPageArgs(showAll, accessLevelNum=nextAccessLevel._intLevel(), category=category))
                 view.add_item(switchAccessLevelButton)
 
+            # Add 'back' and 'next' buttons
             if notFirstPage:
                 previousPageButton = basedComponent.staticComponent(previousPageButton, "help", args=packHelpPageArgs(showAll, pageNum=pageNum-1, accessLevelNum=commandAccessLevel._intLevel(), category=category))
                 previousPageButton.disabled = False
@@ -237,14 +325,15 @@ class HelpCog(basedApp.BasedCog):
         
         if interaction.type == InteractionType.component:
             if interaction.response._responded:
-                await interaction.followup.edit_message(embed=e, view=view)
+                await interaction.followup.edit_message(embed=embed, view=view)
             else:
+                # TODO: I'm not sure why I keep getting 'interaction already acknowledged' here. The interaction should be new for each button press?
                 try:
-                    await interaction.response.edit_message(embed=e, view=view)
+                    await interaction.response.edit_message(embed=embed, view=view)
                 except HTTPException:
                     pass
         else:
-            await interaction.response.send_message(embed=e, view=view, ephemeral=True)
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 
 async def setup(bot: client.BasedClient):

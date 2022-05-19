@@ -76,6 +76,15 @@ def defaultAccessLevel() -> Type[_AccessLevelBase]:
     return _defaultAccessLevel
 
 
+def maxAccessLevel() -> Type[_AccessLevelBase]:
+    """Get the highest access level in the heirarchy
+
+    :return: The heirarchically-highest access level
+    :rtype: Type[_AccessLevelBase]
+    """
+    return accessLevelNamed[cfg.userAccessLevels[-1]]
+
+
 def accessLevel(name: str = None, default: bool = False):
     """Register an Access Level class for use by a `BasedClient`.
 

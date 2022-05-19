@@ -123,7 +123,7 @@ class BasedClient(ClientBaseClass):
         self.httpClient = httpClient
 
         self.basedCommands: Dict[discord.app_commands.Command, "basedCommand.BasedCommandMeta"] = {}
-        self.staticComponentCallbacks: Dict[Tuple[str, str], basedApp.CallBackType] = {}
+        self.staticComponentCallbacks: Dict[str, "basedApp.CallBackType"] = {}
 
         self.helpSections: Dict[str, List[discord.app_commands.Command]] = {}
 
@@ -184,11 +184,12 @@ class BasedClient(ClientBaseClass):
         """
         if basedApp.appType(callback) != basedApp.BasedAppType.StaticComponent:
             raise ValueError(f"callback {callback.__name__} is not a static component callback")
-        if callback in self.staticComponentCallbacks:
-            raise KeyError(f"Static component callback {callback.__name__} is already registered")
-
+        
         meta = basedComponent.staticComponentCallbackMeta(callback)
         key = basedComponent.staticComponentKey(meta.category, meta.subCategory)
+        if key in self.staticComponentCallbacks:
+            raise KeyError(f"Static component callback {callback.__name__} is already registered")
+
         self.staticComponentCallbacks[key] = callback
 
 
@@ -214,7 +215,7 @@ class BasedClient(ClientBaseClass):
 
 
     def removeStaticComponent(self, callback: "basedApp.CallBackType"):
-        """Un-egister a static component callback's metadata with the bot.
+        """Un-register a static component callback's metadata with the bot.
         This disables static component behaviour as described by the `staticComponentCallback` decorator.
 
         :param callback: The static component to un-register
@@ -224,11 +225,23 @@ class BasedClient(ClientBaseClass):
         """
         if basedApp.appType(callback) != basedApp.BasedAppType.StaticComponent:
             raise ValueError(f"callback {callback.__name__} is not a static component callback")
-        if callback not in self.staticComponentCallbacks:
-            raise KeyError(f"Static component callback {callback.__name__} is not registered")
-
+        
         meta = basedComponent.staticComponentCallbackMeta(callback)
         key = basedComponent.staticComponentKey(meta.category, meta.subCategory)
+        self.removeStaticComponentByKey(key)
+    
+    
+    def removeStaticComponentByKey(self, key: str):
+        """Un-register a static component callback's metadata with the bot.
+        This disables static component behaviour as described by the `staticComponentCallback` decorator.
+
+        :param key: The identifier for the static component
+        :type key: str
+        :raises KeyError: If the component is not registered
+        """
+        if key not in self.staticComponentCallbacks:
+            raise KeyError(f"Static component callback key {key} is not registered")
+        
         del self.staticComponentCallbacks[key]
 
 
