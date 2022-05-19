@@ -65,8 +65,11 @@ def formatDescriptionParams(command: app_commands.Command, meta: basedCommand.Ba
 
 
 def commandDescription(command: app_commands.Command, meta: basedCommand.BasedCommandMeta) -> str:
-    return meta.formattedDesc or command.description or \
+    if not meta.formattedDesc:
+        d = command.description or \
         (command.callback.__doc__ if isinstance(command, app_commands.Command) else command.__doc__)
+        return d if d != "…" else "(description missing)"
+    return meta.formattedDesc 
 
 
 def commandDescriptionAndParameters(command: app_commands.Command, meta: basedCommand.BasedCommandMeta) -> str:
