@@ -10,14 +10,14 @@ from discord.ext import tasks # type: ignore[import]
 from discord.utils import MISSING # type: ignore[import]
 from datetime import datetime, timedelta
 
-from .interactions import commandChecks
+from .interactions import accessLevels, commandChecks
 from .databases import userDB, guildDB, reactionMenuDB
 import os
 from . import lib
 from .cfg import cfg
 from . import logging
 from .scheduling import timedTaskHeap
-from .interactions import basedCommand, accessLevel, basedComponent, basedApp
+from .interactions import basedCommand, basedComponent, basedApp
 
 
 class ShutDownState:
@@ -200,7 +200,7 @@ class BasedClient(ClientBaseClass):
 
     def basedCommand(self,
         *,
-        accessLevel: Union[Type[accessLevel.AccessLevel], str] = MISSING,
+        accessLevel: Union[Type[accessLevels.AccessLevel], str] = MISSING,
         showInHelp: bool = True,
         helpSection: str = None,
         formattedDesc: str = None,
@@ -224,7 +224,7 @@ class BasedClient(ClientBaseClass):
                 raise TypeError("decorator can only be applied to app commands")
 
             if isinstance(accessLevel, str):
-                accessLevel = accessLevel.accessLevelNamed(accessLevel)
+                accessLevel = accessLevels.accessLevelNamed(accessLevel)
 
             basedApp(func.callback, basedApp.BasedAppType.AppCommand)
             setattr(func.callback, "__based_command_meta__", basedCommand.BasedCommandMeta(accessLevel, showInHelp, helpSection, formattedDesc, formattedParamDescs))
@@ -335,24 +335,24 @@ class BasedClient(ClientBaseClass):
         del self.staticComponentCallbacks[key]
 
 
-    def commandsInSectionForAccessLevel(self, section: str, level: accessLevel._AccessLevelBase) -> List[discord.app_commands.Command]:
+    def commandsInSectionForAccessLevel(self, section: str, level: accessLevels._AccessLevelBase) -> List[discord.app_commands.Command]:
         """Get the commands in help section `section` that require access level `level`
 
         :param section: The help section for commands to look up
         :type section: str
         :param level: The access level that commands should require
-        :type level: accessLevel._AccessLevelBase
+        :type level: accessLevels._AccessLevelBase
         :return: A list of commands in help section `section` requiring access level `level`
         :rtype: List[discord.app_commands.Command]
         """
         return [c for c in self.helpSections[section] if basedCommand.accessLevel(c) is level and basedCommand.commandMeta(c).showInHelp]
 
 
-    def helpSectionsForAccessLevel(self, level: accessLevel._AccessLevelBase) -> Dict[str, List[discord.app_commands.Command]]:
+    def helpSectionsForAccessLevel(self, level: accessLevels._AccessLevelBase) -> Dict[str, List[discord.app_commands.Command]]:
         """Get the commands for a particular access level, organized by help section
 
         :param level: The access level of commands to look up
-        :type level: accessLevel._AccessLevelBase
+        :type level: accessLevels._AccessLevelBase
         :return: The commands that require `level`, organized by help section
         :rtype: Dict[str, List[discord.app_commands.Command]]
         """

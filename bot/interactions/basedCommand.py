@@ -1,7 +1,7 @@
 from discord import app_commands
 from discord.utils import MISSING
 from typing import Dict, Optional, Type, Union
-from .accessLevel import _AccessLevelBase, AccessLevel, accessLevelNamed, defaultAccessLevel
+from .accessLevels import _AccessLevelBase, AccessLevel, accessLevelNamed, defaultAccessLevel
 from .commandChecks import requireAccess
 from .basedApp import basedApp, BasedAppType
 from ..cfg import cfg

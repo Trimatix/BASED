@@ -11,7 +11,7 @@ from discord.ui import View, Button
 from discord import HTTPException
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand, accessLevel, commandChecks, basedApp, basedComponent
+from ..interactions import accessLevels, basedCommand, commandChecks, basedApp, basedComponent
 
 
 def get_nested_command(bot: client.BasedClient, name: str, guild: Optional[Guild]) -> Optional[Union[app_commands.Command, app_commands.Group]]:
@@ -89,7 +89,7 @@ class HelpCog(basedApp.BasedCog):
         super().__init__(*args, **kwargs)
 
 
-    def _commandsForAccessLevel(self, level: Type[accessLevel._AccessLevelBase] = MISSING, guild: Optional[Object] = None, type=AppCommandType.chat_input, exactLevel=True):
+    def _commandsForAccessLevel(self, level: Type[accessLevels._AccessLevelBase] = MISSING, guild: Optional[Object] = None, type=AppCommandType.chat_input, exactLevel=True):
         return list(self.bot.tree.walk_commands(guild=guild, type=type)) if level is None else \
             [c for c in self.bot.tree.walk_commands(guild=guild, type=type) if ((basedCommand.accessLevel(c) is level) if exactLevel else (commandChecks.accessLevelSufficient(level, basedCommand.accessLevel(c))))]
 
@@ -110,9 +110,9 @@ class HelpCog(basedApp.BasedCog):
     async def cmd_help(self, interaction: Interaction, command: Optional[str] = None, help_section: Optional[str] = None):
         if command is None:
             if help_section is None:
-                await self.showHelpPageAllSections(interaction, accessLevel.defaultAccessLevel())
+                await self.showHelpPageAllSections(interaction, accessLevels.defaultAccessLevel())
             else:
-                await self.showHelpPageSingleSection(interaction, accessLevel.defaultAccessLevel(), help_section)
+                await self.showHelpPageSingleSection(interaction, accessLevels.defaultAccessLevel(), help_section)
             return
 
         cmd = get_nested_command(self.bot, command, guild=interaction.guild)
@@ -154,14 +154,14 @@ class HelpCog(basedApp.BasedCog):
     async def showHelpPageStatic(self, interaction: Interaction, args: str):
         category, page, accessLevelNum, showAll = unpackHelpPageArgs(args)
         pageNum = int(page) if page is not None else 1
-        commandAccessLevel = accessLevel.defaultAccessLevel() if accessLevelNum is None else accessLevel.accessLevelWithIntLevel(accessLevelNum)
+        commandAccessLevel = accessLevels.defaultAccessLevel() if accessLevelNum is None else accessLevels.accessLevelWithIntLevel(accessLevelNum)
         if showAll:
             await self.showHelpPageAllSections(interaction, commandAccessLevel, category=category, pageNum=pageNum)
         else:
             await self.showHelpPageSingleSection(interaction, commandAccessLevel, category, pageNum=pageNum)
 
 
-    async def showHelpPageAllSections(self, interaction: Interaction, commandAccessLevel: Type[accessLevel._AccessLevelBase], category: Optional[str] = None, pageNum: Optional[int] = None, helpSections: Optional[Dict[str, List[app_commands.Command]]] = None):
+    async def showHelpPageAllSections(self, interaction: Interaction, commandAccessLevel: Type[accessLevels._AccessLevelBase], category: Optional[str] = None, pageNum: Optional[int] = None, helpSections: Optional[Dict[str, List[app_commands.Command]]] = None):
         # This method calls itself sometimes. The helpSections argument acts as a cache, so we don't keep having to look up potential commands.
         helpSections = helpSections if helpSections is not None else self.bot.helpSectionsForAccessLevel(commandAccessLevel)
         
@@ -194,14 +194,14 @@ class HelpCog(basedApp.BasedCog):
             await self.showHelpPageAllSections(interaction, category=nextSection, pageNum=1, commandAccessLevel=commandAccessLevel, helpSections=helpSections)
             return
 
-        defaultAccessLevel = accessLevel.defaultAccessLevel()
+        defaultAccessLevel = accessLevels.defaultAccessLevel()
         userAccessLevel = await commandChecks.inferUserPermissions(interaction)
 
         # Find all access levels the user can switch to
         if userAccessLevel is defaultAccessLevel:
             switchableAccessLevels = []
         else:
-            switchableAccessLevels = [accessLevel.accessLevelWithIntLevel(l) for l in range(defaultAccessLevel._intLevel(), userAccessLevel._intLevel() + 1)]
+            switchableAccessLevels = [accessLevels.accessLevelWithIntLevel(l) for l in range(defaultAccessLevel._intLevel(), userAccessLevel._intLevel() + 1)]
 
         e = Embed(description=cfg.helpIntro)
 
@@ -221,14 +221,14 @@ class HelpCog(basedApp.BasedCog):
         await self.fillAndSendHelpPage(interaction, True, e, category, pageNum, commandAccessLevel, notLastInSection, possibleCommands, offset, last, notFirstPage, notLastPage, switchableAccessLevels, userAccessLevel)
 
     
-    async def showHelpPageSingleSection(self, interaction: Interaction, commandAccessLevel: Type[accessLevel._AccessLevelBase], category: str, pageNum: Optional[int] = None):
+    async def showHelpPageSingleSection(self, interaction: Interaction, commandAccessLevel: Type[accessLevels._AccessLevelBase], category: str, pageNum: Optional[int] = None):
         if category not in self.bot.helpSections:
             pageNum = 1
             offset = 0
             possibleCommands = []
             switchableAccessLevels = []
         else:
-            defaultAccessLevel = accessLevel.defaultAccessLevel()
+            defaultAccessLevel = accessLevels.defaultAccessLevel()
             userAccessLevel = await commandChecks.inferUserPermissions(interaction)
 
             pageNum = pageNum or 1
@@ -242,7 +242,7 @@ class HelpCog(basedApp.BasedCog):
                 for l in range(defaultAccessLevel._intLevel(), userAccessLevel._intLevel() + (userAccessLevel is not commandAccessLevel)):
                     if l == commandAccessLevel._intLevel():
                         continue
-                    level = accessLevel.accessLevelWithIntLevel(l)
+                    level = accessLevels.accessLevelWithIntLevel(l)
                     # This will happen if a help section is requested that only contains commands at an access level higher than the default
                     # Pick the lowest access level that the user has access to and also contains commands in this section
                     if noCommands:
@@ -269,7 +269,7 @@ class HelpCog(basedApp.BasedCog):
         await self.fillAndSendHelpPage(interaction, False, e, category, pageNum, commandAccessLevel, notLastInSection, possibleCommands, offset, last, notFirstPage, notLastPage, switchableAccessLevels, userAccessLevel)
 
 
-    async def fillAndSendHelpPage(self, interaction: Interaction, showAll: bool, embed: Embed, category: str, pageNum: int, commandAccessLevel: Type[accessLevel._AccessLevelBase], notLastInSection: bool, possibleCommands: List[app_commands.Command], offset: int, last: int, notFirstPage: bool, notLastPage: bool, switchableAccessLevels: List[Type[accessLevel._AccessLevelBase]], userAccessLevel: Type[accessLevel._AccessLevelBase]):
+    async def fillAndSendHelpPage(self, interaction: Interaction, showAll: bool, embed: Embed, category: str, pageNum: int, commandAccessLevel: Type[accessLevels._AccessLevelBase], notLastInSection: bool, possibleCommands: List[app_commands.Command], offset: int, last: int, notFirstPage: bool, notLastPage: bool, switchableAccessLevels: List[Type[accessLevels._AccessLevelBase]], userAccessLevel: Type[accessLevels._AccessLevelBase]):
         embed.title = f"{commandAccessLevel.name.title()} Commands"
         embed.colour = Colour.blue()
 
