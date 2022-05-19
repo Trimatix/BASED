@@ -30,6 +30,13 @@ def td_format_noYM(td_object: timedelta) -> str:
 
 
 def td_secondsMinutesHours(td: timedelta):
+    """Computes the number of hours minutes and minutes for the given timedelta.
+
+    :param td: The timedelta to collapse
+    :type td: timedelta
+    :return: The number of hours, minutes and seconds in a tuple
+    :rtype: List[Tuple[str, int]]
+    """
     seconds = int(td.total_seconds())
     periods = [
         ('hours', 60 * 60),

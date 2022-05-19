@@ -4,7 +4,9 @@ from typing import Dict, Optional, Type, Union
 from .accessLevels import _AccessLevelBase, AccessLevel, accessLevelNamed, defaultAccessLevel
 from .commandChecks import requireAccess
 from .basedApp import basedApp, BasedAppType
+from . import basedComponent
 from ..cfg import cfg
+from .. import lib
 
 
 class BasedCommandMeta:
@@ -49,6 +51,27 @@ class BasedCommandMeta:
         return self._helpSection or cfg.defaultHelpSection
 
 
+def validateHelpSection(helpSection: str):
+    """
+    A help command static component consists of:
+    - |help||
+    - section
+      #
+    - page number (2 chars)
+      #
+    - access level (2 chars)
+      #
+    - show all sections (1 char)
+    """
+    #max customId len    prefix                     help   customId separators                           # page access showAll
+    maxLength = 100 - len(cfg.defaultCommandPrefix) - 4 - len(cfg.staticComponentCustomIdSeparator) * 2 - 3 - 2 - 2 - 1
+    if len(helpSection) > maxLength:
+        raise ValueError(f"Help section too long, must be less than {maxLength} characters")
+    if "#" in helpSection:
+        raise ValueError(f"Invalid helpSection '{helpSection}' - cannot contain reserved character '#'")
+    basedComponent.validateParam("helpSection", helpSection)
+
+
 def basedCommand(
     *,
     accessLevel: Union[Type[AccessLevel], str] = MISSING,
@@ -76,6 +99,9 @@ def basedCommand(
 
         if isinstance(accessLevel, str):
             accessLevel = accessLevelNamed(accessLevel)
+
+        if helpSection is not None:
+            validateHelpSection(helpSection)
 
         basedApp(func.callback, BasedAppType.AppCommand)
         setattr(func.callback, "__based_command_meta__", BasedCommandMeta(accessLevel, showInHelp, helpSection, formattedDesc, formattedParamDescs))

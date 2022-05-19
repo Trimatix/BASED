@@ -171,11 +171,13 @@ class BasedClient(ClientBaseClass):
         if command in self.basedCommands:
             raise KeyError(f"Command {command.qualified_name} is already registered")
         meta = basedCommand.commandMeta(command)
-        self.basedCommands[command] = meta
         if meta.helpSection not in self.helpSections:
             self.helpSections[meta.helpSection] = [command]
+        elif len(self.helpSections) == 99:
+            raise ValueError("Maximum help sections exceeded. Only 99 help sections are supported.")
         else:
             self.helpSections[meta.helpSection].append(command)
+        self.basedCommands[command] = meta
 
 
     def addStaticComponent(self, callback: "basedApp.CallBackType"):
@@ -225,6 +227,9 @@ class BasedClient(ClientBaseClass):
 
             if isinstance(accessLevel, str):
                 accessLevel = accessLevels.accessLevelNamed(accessLevel)
+
+            if helpSection is not None:
+                basedCommand.validateHelpSection(helpSection)
 
             basedApp.basedApp(func.callback, basedApp.BasedAppType.AppCommand)
             setattr(func.callback, "__based_command_meta__", basedCommand.BasedCommandMeta(accessLevel, showInHelp, helpSection, formattedDesc, formattedParamDescs))
