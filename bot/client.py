@@ -226,7 +226,7 @@ class BasedClient(ClientBaseClass):
             if isinstance(accessLevel, str):
                 accessLevel = accessLevels.accessLevelNamed(accessLevel)
 
-            basedApp(func.callback, basedApp.BasedAppType.AppCommand)
+            basedApp.basedApp(func.callback, basedApp.BasedAppType.AppCommand)
             setattr(func.callback, "__based_command_meta__", basedCommand.BasedCommandMeta(accessLevel, showInHelp, helpSection, formattedDesc, formattedParamDescs))
             self.addBasedCommand(func)
 
