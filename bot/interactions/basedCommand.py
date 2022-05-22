@@ -63,8 +63,8 @@ def validateHelpSection(helpSection: str):
       #
     - show all sections (1 char)
     """
-    #max customId len    prefix                     help   customId separators                           # page access showAll
-    maxLength = 100 - len(cfg.defaultCommandPrefix) - 4 - len(cfg.staticComponentCustomIdSeparator) * 2 - 3 - 2 - 2 - 1
+    #max customId len    prefix                     help   customId separators                                          # page access showAll
+    maxLength = 100 - len(cfg.defaultCommandPrefix) - 4 - len(basedComponent.STATIC_COMPONENT_CUSTOM_ID_SEPARATOR) * 2 - 3 - 2 - 2 - 1
     if len(helpSection) > maxLength:
         raise ValueError(f"Help section too long, must be less than {maxLength} characters")
     if "#" in helpSection:

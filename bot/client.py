@@ -128,7 +128,7 @@ class BasedClient(ClientBaseClass):
         self.httpClient = httpClient
 
         self.basedCommands: Dict[discord.app_commands.Command, "basedCommand.BasedCommandMeta"] = {}
-        self.staticComponentCallbacks: Dict[str, "basedApp.CallBackType"] = {}
+        self.staticComponentCallbacks: Dict["basedComponent.StaticComponents", "basedComponent.StaticComponentCallbackMeta"] = {}
 
         self.helpSections: Dict[str, List[discord.app_commands.Command]] = {}
 
@@ -138,23 +138,24 @@ class BasedClient(ClientBaseClass):
     async def on_interaction(self, interaction: discord.Interaction):
         if interaction.type != discord.InteractionType.component or not basedComponent.customIdIsStaticComponent(interaction.data["custom_id"]):
             return
-        meta = basedComponent.staticComponentMeta(interaction.data["custom_id"])
-        if not self.hasStaticComponent(meta):
-            return
 
-        args = (interaction, meta.args)
-        component = self.getStaticComponentCallback(meta)
-        if basedApp.isCogApp(component):
-            cogName = basedApp.getCogAppCogName(component)
+        componentMeta = basedComponent.staticComponentMeta(interaction.data["custom_id"])
+        if not self.hasStaticComponent(componentMeta.ID):
+            return
+        
+        callbackMeta = self.getStaticComponentCallbackMeta(componentMeta.ID)
+
+        # Pass the owning object (e.g self/cls) to the callback if it needs one
+        if basedApp.isCogApp(callbackMeta.callback):
+            cogName = basedApp.getCogAppCogName(callbackMeta.callback)
             cog = self.get_cog(cogName)
             if cog is None:
-                raise ValueError(f"unable to find cog '{cogName}' for static component: {component}")
-            if hasattr(component, "__self__") and isinstance(component.__self__, type):
-                args = (cog.__class__,) + args
-            else:
-                args = (cog,) + args
-
-        await component(*args)
+                raise ValueError(f"unable to find cog '{cogName}' for static component: {callbackMeta.callback.__qualname__}")
+            await callbackMeta.callback(cog, interaction, componentMeta.args)
+        elif callbackMeta.hasSelf():
+            await callbackMeta.callback(callbackMeta.cbSelf, interaction, componentMeta.args)
+        else:
+            await callbackMeta.callback(interaction, componentMeta.args)
 
 
     def addBasedCommand(self, command: discord.app_commands.Command):
@@ -180,12 +181,12 @@ class BasedClient(ClientBaseClass):
         self.basedCommands[command] = meta
 
 
-    def addStaticComponent(self, callback: "basedApp.CallBackType"):
+    def addStaticComponent(self, callback: "basedComponent.StaticComponentCallbackType"):
         """Register a static component callback's metadata with the bot.
         This enables static component behaviour as described by the `staticComponentCallback` decorator.
 
         :param callback: The static component to register
-        :type command: basedApp.CallBackType
+        :type command: basedComponent.StaticComponentCallbackType
         :raises KeyError: If the component is already registered
         :raises ValueError: If the callback has not been made into a static component callback with the `staticComponentCallback` decorator
         """
@@ -193,11 +194,10 @@ class BasedClient(ClientBaseClass):
             raise ValueError(f"callback {callback.__name__} is not a static component callback")
         
         meta = basedComponent.staticComponentCallbackMeta(callback)
-        key = basedComponent.staticComponentKey(meta.category, meta.subCategory)
-        if key in self.staticComponentCallbacks:
+        if meta.ID in self.staticComponentCallbacks:
             raise KeyError(f"Static component callback {callback.__name__} is already registered")
 
-        self.staticComponentCallbacks[key] = callback
+        self.staticComponentCallbacks[meta.ID] = meta
 
 
     def basedCommand(self,
@@ -242,45 +242,39 @@ class BasedClient(ClientBaseClass):
 
         return decorator
 
-    
-    def staticComponentCallback(self, *, category: str = "", subCategory: str = ""):
+
+    def staticComponentCallback(self, ID: basedComponent.StaticComponents):
         """Decorator marking a coroutine as a static component callback.
-        The callback for static components identifying this callback by category/subcategory will be preserved across bot restarts
+        The callback for static components identifying this callback by ID will be preserved across bot restarts
 
         Example usage:
         ```
-        @bot.staticComponentCallback(category="myCallback")
+        @bot.staticComponentCallback(StaticComponents.myCallback)
         async def myCallback(interaction: Interaction, args: str):
             await interaction.response.send_message(f"This static callback received args: {args}")
 
         @bot.app_commands.command(name="send-static-menu")
         async def sendStaticMenu(interaction: Interaction):
             staticButton = Button(label="send callback")
-            staticButton = staticComponent(staticButton, category="myCallback", args="hello")
+            staticButton = StaticComponents.myCallback(staticButton, args="hello")
             view.add_item(staticButton)
             await interaction.response.send_message(view=view)
         ```
         If the `send-static-menu` app command is sent, then a message will be sent in return with a button to trigger `myCallback`.
         Clicking this button will send another message with the content "hello".
         If the bot is restarted, then the button will still work.
-        This works by attaching a known `custom_id` to the button, containing the static component category/sub-category and args.
+        This works by attaching a known `custom_id` to the button, containing the static component ID and args.
 
-        :var category: The category of the static component
-        :type category: str
-        :var subCategory: The sub-category of the static component
-        :type subCategory: Optional[str]
+        :var ID: The ID of the static component in the `StaticComponents` enum
+        :type ID: StaticComponents
         """
-        def decorator(func, category=category, subCategory=subCategory):
+        def decorator(func, ID=ID):
             if not iscoroutinefunction(func):
                 raise TypeError("Decorator can only be applied to coroutines")
-            if not category:
-                raise ValueError("Missing required argument: category")
 
-            basedComponent.validateParam("category", category)
-            basedComponent.validateParam("subCategory", subCategory)
-            
+            cbSelf = basedComponent.validateStaticComponentCallbackSelf(func)
             basedApp.basedApp(func, basedApp.BasedAppType.StaticComponent)
-            setattr(func, "__static_component_meta__", (category, subCategory))
+            setattr(func, "__static_component_meta__", basedComponent.StaticComponentCallbackMeta(func, ID, cbSelf))
             self.addStaticComponent(func)
 
             return func
@@ -309,35 +303,42 @@ class BasedClient(ClientBaseClass):
                 del self.helpSections[meta.helpSection]
 
 
-    def removeStaticComponent(self, callback: "basedApp.CallBackType"):
+    @overload
+    def removeStaticComponent(self, callback: "basedComponent.StaticComponentCallbackType"):
         """Un-register a static component callback's metadata with the bot.
         This disables static component behaviour as described by the `staticComponentCallback` decorator.
 
         :param callback: The static component to un-register
-        :type command: basedApp.CallBackType
+        :type command: basedComponent.StaticComponentCallbackType
         :raises KeyError: If the component is not registered
         :raises ValueError: If the callback has not been made into a static component callback with the `staticComponentCallback` decorator
         """
-        if basedApp.appType(callback) != basedApp.BasedAppType.StaticComponent:
-            raise ValueError(f"callback {callback.__name__} is not a static component callback")
-        
-        meta = basedComponent.staticComponentCallbackMeta(callback)
-        key = basedComponent.staticComponentKey(meta.category, meta.subCategory)
-        self.removeStaticComponentByKey(key)
-    
-    
-    def removeStaticComponentByKey(self, key: str):
+
+    @overload
+    def removeStaticComponent(self, ID: "basedComponent.StaticComponents"):
         """Un-register a static component callback's metadata with the bot.
         This disables static component behaviour as described by the `staticComponentCallback` decorator.
 
-        :param key: The identifier for the static component
-        :type key: str
+        :param ID: The ID of the component in the `StaticComponents` enum
+        :type ID: basedComponent.StaticComponents
         :raises KeyError: If the component is not registered
+        :raises ValueError: If the callback has not been made into a static component callback with the `staticComponentCallback` decorator
         """
-        if key not in self.staticComponentCallbacks:
-            raise KeyError(f"Static component callback key {key} is not registered")
+
+    def removeStaticComponent(self, val: Union["basedComponent.StaticComponentCallbackType", "basedComponent.StaticComponents"]):
+        if not isinstance(val, basedComponent.StaticComponents):
+            if basedApp.appType(val) != basedApp.BasedAppType.StaticComponent:
+                raise ValueError(f"callback {val.__name__} is not a static component callback")
         
-        del self.staticComponentCallbacks[key]
+            meta = basedComponent.staticComponentCallbackMeta(val)
+            ID = meta.ID
+        else:
+            ID = val
+
+        if ID not in self.staticComponentCallbacks:
+            raise KeyError(f"Static component callback {ID.name} is not registered")
+        
+        del self.staticComponentCallbacks[ID]
 
 
     def commandsInSectionForAccessLevel(self, section: str, level: accessLevels._AccessLevelBase) -> List[discord.app_commands.Command]:
@@ -521,29 +522,35 @@ class BasedClient(ClientBaseClass):
             self.dispatch("ready", *args, **kwargs)
 
 
-    @overload
-    def getStaticComponentCallback(self, category: str, subCategory: str = None) -> "basedApp.CallBackType": ...
+    def getStaticComponentCallbackMeta(self, ID: basedComponent.StaticComponents) -> "basedComponent.StaticComponentCallbackMeta":
+        """Look up a registered static component callback by ID
 
-    @overload
-    def getStaticComponentCallback(self, meta: Union[basedComponent.StaticComponentMeta, basedComponent.StaticComponentCallbackMeta]) -> "basedApp.CallBackType": ...
-
-    def getStaticComponentCallback(self, val: Union[str, basedComponent.StaticComponentMeta, basedComponent.StaticComponentCallbackMeta], subCategory: str = None) -> "basedApp.CallBackType":
-        if isinstance(val, (basedComponent.StaticComponentMeta, basedComponent.StaticComponentCallbackMeta)):
-            key = basedComponent.staticComponentKey(val.category, val.subCategory)
-        else:
-            key = basedComponent.staticComponentKey(val, subCategory)
-        return self.staticComponentCallbacks[key]
+        :param ID: The ID of the component in the `StaticComponents` enum
+        :type ID: basedComponent.StaticComponents
+        :return: The metadata recorded about the callback that is registered with id `ID`
+        :rtype: basedComponent.StaticComponentCallbackMeta
+        """
+        return self.staticComponentCallbacks[ID]
 
 
-    @overload
-    def hasStaticComponent(self, category: str, subCategory: str = None) -> bool: ...
+    def getStaticComponentCallback(self, ID: basedComponent.StaticComponents) -> "basedComponent.StaticComponentCallbackType":
+        """Look up a registered static component callback by ID
 
-    @overload
-    def hasStaticComponent(self, meta: Union[basedComponent.StaticComponentMeta, basedComponent.StaticComponentCallbackMeta]) -> bool: ...
+        :param ID: The ID of the component in the `StaticComponents` enum
+        :type ID: basedComponent.StaticComponents
+        :return: The callback that is registered with id `ID`. This may or may not belong to a Cog
+        :rtype: basedComponent.StaticComponentCallbackType
+        """
+        return self.getStaticComponentMeta(ID).callback
 
-    def hasStaticComponent(self, val: Union[str, basedComponent.StaticComponentMeta, basedComponent.StaticComponentCallbackMeta], subCategory: str = None) -> bool:
-        if isinstance(val, (basedComponent.StaticComponentMeta, basedComponent.StaticComponentCallbackMeta)):
-            key = basedComponent.staticComponentKey(val.category, val.subCategory)
-        else:
-            key = basedComponent.staticComponentKey(val, subCategory)
-        return key in self.staticComponentCallbacks
+
+    def hasStaticComponent(self, ID: basedComponent.StaticComponents) -> bool:
+        """Decide whether the client has a static component callback registered, whether in a loaded Cog or not.
+        Does not consider unloaded Cogs
+
+        :param ID: The ID of the component in the `StaticComponents` enum
+        :type ID: basedComponent.StaticComponents
+        :return: `True` if a static component is registered with id `ID`, `False` otherwise
+        :rtype: bool
+        """
+        return ID in self.staticComponentCallbacks

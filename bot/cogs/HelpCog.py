@@ -153,7 +153,7 @@ class HelpCog(basedApp.BasedCog):
         return [app_commands.Choice(name=c, value=c) for c in self.bot.helpSections if current in c][:25]
 
 
-    @basedComponent.staticComponentCallback(category="help")
+    @basedApp.BasedCog.staticComponentCallback(basedComponent.StaticComponents.Help) #basedApp.BasedCog
     async def showHelpPageStatic(self, interaction: Interaction, args: str):
         category, page, accessLevelNum, showAll = unpackHelpPageArgs(args)
         pageNum = int(page) if page is not None else 1
@@ -311,15 +311,15 @@ class HelpCog(basedApp.BasedCog):
                         nextAccessLevel = minAccessLevel
 
                 switchAccessLevelButton = Button(emoji=cfg.defaultEmojis.spiral.sendable)
-                switchAccessLevelButton = basedComponent.staticComponent(switchAccessLevelButton, "help", args=packHelpPageArgs(showAll, accessLevelNum=nextAccessLevel._intLevel(), category=category))
+                switchAccessLevelButton = basedComponent.StaticComponents.Help(switchAccessLevelButton, args=packHelpPageArgs(showAll, accessLevelNum=nextAccessLevel._intLevel(), category=category))
                 view.add_item(switchAccessLevelButton)
 
             # Add 'back' and 'next' buttons
             if notFirstPage:
-                previousPageButton = basedComponent.staticComponent(previousPageButton, "help", args=packHelpPageArgs(showAll, pageNum=pageNum-1, accessLevelNum=commandAccessLevel._intLevel(), category=category))
+                previousPageButton = basedComponent.StaticComponents.Help(previousPageButton, args=packHelpPageArgs(showAll, pageNum=pageNum-1, accessLevelNum=commandAccessLevel._intLevel(), category=category))
                 previousPageButton.disabled = False
             if notLastPage:
-                nextPageButton = basedComponent.staticComponent(nextPageButton, "help", args=packHelpPageArgs(showAll, pageNum=pageNum+1, accessLevelNum=commandAccessLevel._intLevel(), category=category))
+                nextPageButton = basedComponent.StaticComponents.Help(nextPageButton, args=packHelpPageArgs(showAll, pageNum=pageNum+1, accessLevelNum=commandAccessLevel._intLevel(), category=category))
                 nextPageButton.disabled = False
 
             view.add_item(previousPageButton).add_item(nextPageButton)

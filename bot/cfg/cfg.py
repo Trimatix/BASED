@@ -107,10 +107,6 @@ httpErrRetries = 3
 # The number of seconds to wait between API call retries upon HTTP exception catching
 httpErrRetryDelaySeconds = 1
 
-staticComponentCustomIdSeparator = "|"
-
-staticComponentCustomIdPrefix = staticComponentCustomIdSeparator
-
 
 def validateConfig():
     for basicAccessLevel in basicAccessLevels._fieldItems().values():
