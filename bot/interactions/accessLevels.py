@@ -1,5 +1,8 @@
 from typing import Type
 from ..cfg import cfg
+from ..cogs import helpUtil
+from .. import lib
+from . import basedComponent
 from abc import ABC, abstractmethod
 from discord import Interaction, Member
 
@@ -108,8 +111,10 @@ def accessLevel(name: str = None, default: bool = False):
             raise ValueError(f"{accessLevel} does not have a name, or invalid name provided. Give a `str` either in your `accessLevel` decorator, in the `{accessLevel.__name__}.name` class attribute")
         if name in _accessLevels:
             raise KeyError(f"An access level is already registered with name {name}")
-        if len(_accessLevels) == 99:
-            raise ValueError("Maximum access levels exceeded. Only 99 access levels are supported.")
+        
+        maxAccessLevels = lib.ids.maxIndex(helpUtil.HELP_CUSTOMID_ACCESS_ID_MAX_LENGTH, exclusions=[basedComponent.STATIC_COMPONENT_CUSTOM_ID_SEPARATOR]) + 1
+        if len(_accessLevels) == maxAccessLevels:
+            raise ValueError(f"Maximum access levels exceeded. Only {maxAccessLevels} access levels are supported.")
         _accessLevels[name] = accessLevel
         if default:
             _defaultAccessLevel = accessLevel

@@ -192,7 +192,7 @@ class BasedCog(Cog):
 
 
     @classmethod
-    def staticComponentCallback(cls, ID: basedComponent.StaticComponents):
+    def staticComponentCallback(cls, ID: "basedComponent.StaticComponents"):
         """Decorator marking a coroutine as a static component callback.
         The callback for static components identifying this callback by ID will be preserved across bot restarts
 
@@ -218,7 +218,7 @@ class BasedCog(Cog):
         :var ID: The ID of the static component in the `StaticComponents` enum
         :type ID: StaticComponents
         """
-        def decorator(func: basedComponent.StaticComponentCallbackType, ID=ID):
+        def decorator(func: "basedComponent.StaticComponentCallbackType", ID=ID):
             if not iscoroutinefunction(func):
                 raise TypeError("Decorator can only be applied to coroutines")
 

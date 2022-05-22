@@ -14,6 +14,8 @@ from . import basedApp
 STATIC_COMPONENT_CUSTOM_ID_SEPARATOR = "|"
 STATIC_COMPONENT_CUSTOM_ID_PREFIX = STATIC_COMPONENT_CUSTOM_ID_SEPARATOR
 
+STATIC_COMPONENT_CALLBACK_ID_MAX_LENGTH = 2
+
 class StaticComponentCallbackType(Protocol):
     def __call__(self, interaction: Interaction, *args) -> Awaitable: ...
 
@@ -48,20 +50,25 @@ def validateCustomId(customId: str):
 class StaticComponentEnumMeta(EnumMeta):
     def __new__(metacls: type, clsName: str, bases: tuple[type, ...], classdict: _EnumDict, **kwds):
         enumMembers = {k: classdict[k] for k in classdict._member_names}
+        maxId = lib.ids.maxIndex(STATIC_COMPONENT_CALLBACK_ID_MAX_LENGTH, exclusions=[STATIC_COMPONENT_CUSTOM_ID_SEPARATOR])
         for name, value in enumMembers.items():
-            if not isinstance(value, str):
-                raise TypeError(f"Invalid static component ID for component named '{name}'. IDs must be str of exactly 2 characters")
-            elif len(value) != 2:
-                raise ValueError(f"Invalid static component ID for component named '{name}'. IDs must be str of exactly 2 characters")
-            validateParam(f"component ID for component named '{name}'", value)
+            if not isinstance(value, int):
+                raise TypeError(f"Invalid static component ID for component named '{name}'. IDs must be int and at most {maxId}")
+            if value > maxId:
+                raise TypeError(f"Invalid static component ID for component named '{name}'. IDs must be int and at most {maxId}")
+            enumMembers[name] = lib.ids.indexToID(value, pad=STATIC_COMPONENT_CALLBACK_ID_MAX_LENGTH, exclusions=[STATIC_COMPONENT_CUSTOM_ID_SEPARATOR])
+            validateParam(f"component ID for component named '{name}'", enumMembers[name])
+        classdict.update(enumMembers)
         return super().__new__(metacls, clsName, bases, classdict, **kwds)
 
 
-class StaticComponents(Enum, metaclass=StaticComponentEnumMeta):
-    Help = "00"
-
+class StaticComponentIDsEnum(Enum, metaclass=StaticComponentEnumMeta):
     def __call__(self, component: TComponent, args: str = None) -> TComponent:
         return setCallbackToStaticComponent(component, self, args=args)
+
+
+class StaticComponents(StaticComponentIDsEnum):
+    Help = 1
 
 
 class StaticComponentMeta:

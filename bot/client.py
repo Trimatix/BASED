@@ -202,7 +202,7 @@ class BasedClient(ClientBaseClass):
 
     def basedCommand(self,
         *,
-        accessLevel: Union[Type[accessLevels.AccessLevel], str] = MISSING,
+        accessLevel: Union[Type["accessLevels.AccessLevel"], str] = MISSING,
         showInHelp: bool = True,
         helpSection: str = None,
         formattedDesc: str = None,
@@ -243,7 +243,7 @@ class BasedClient(ClientBaseClass):
         return decorator
 
 
-    def staticComponentCallback(self, ID: basedComponent.StaticComponents):
+    def staticComponentCallback(self, ID: "basedComponent.StaticComponents"):
         """Decorator marking a coroutine as a static component callback.
         The callback for static components identifying this callback by ID will be preserved across bot restarts
 
@@ -341,7 +341,7 @@ class BasedClient(ClientBaseClass):
         del self.staticComponentCallbacks[ID]
 
 
-    def commandsInSectionForAccessLevel(self, section: str, level: accessLevels._AccessLevelBase) -> List[discord.app_commands.Command]:
+    def commandsInSectionForAccessLevel(self, section: str, level: "accessLevels._AccessLevelBase") -> List[discord.app_commands.Command]:
         """Get the commands in help section `section` that require access level `level`
 
         :param section: The help section for commands to look up
@@ -354,7 +354,7 @@ class BasedClient(ClientBaseClass):
         return [c for c in self.helpSections[section] if basedCommand.accessLevel(c) is level and basedCommand.commandMeta(c).showInHelp]
 
 
-    def helpSectionsForAccessLevel(self, level: accessLevels._AccessLevelBase) -> Dict[str, List[discord.app_commands.Command]]:
+    def helpSectionsForAccessLevel(self, level: "accessLevels._AccessLevelBase") -> Dict[str, List[discord.app_commands.Command]]:
         """Get the commands for a particular access level, organized by help section
 
         :param level: The access level of commands to look up
@@ -522,7 +522,7 @@ class BasedClient(ClientBaseClass):
             self.dispatch("ready", *args, **kwargs)
 
 
-    def getStaticComponentCallbackMeta(self, ID: basedComponent.StaticComponents) -> "basedComponent.StaticComponentCallbackMeta":
+    def getStaticComponentCallbackMeta(self, ID: "basedComponent.StaticComponents") -> "basedComponent.StaticComponentCallbackMeta":
         """Look up a registered static component callback by ID
 
         :param ID: The ID of the component in the `StaticComponents` enum
@@ -533,7 +533,7 @@ class BasedClient(ClientBaseClass):
         return self.staticComponentCallbacks[ID]
 
 
-    def getStaticComponentCallback(self, ID: basedComponent.StaticComponents) -> "basedComponent.StaticComponentCallbackType":
+    def getStaticComponentCallback(self, ID: "basedComponent.StaticComponents") -> "basedComponent.StaticComponentCallbackType":
         """Look up a registered static component callback by ID
 
         :param ID: The ID of the component in the `StaticComponents` enum
@@ -544,7 +544,7 @@ class BasedClient(ClientBaseClass):
         return self.getStaticComponentMeta(ID).callback
 
 
-    def hasStaticComponent(self, ID: basedComponent.StaticComponents) -> bool:
+    def hasStaticComponent(self, ID: "basedComponent.StaticComponents") -> bool:
         """Decide whether the client has a static component callback registered, whether in a loaded Cog or not.
         Does not consider unloaded Cogs
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from typing import Dict, List, Optional, Tuple, Type, Union, cast
-from .. import client
+from .. import client, lib
 from discord import AppCommandType, CategoryChannel, Colour, Embed, InteractionType, VoiceChannel, app_commands, Interaction, Object, ChannelType, Guild
 from discord.ext import commands
 from discord.app_commands.transformers import CommandParameter, Range
@@ -12,6 +12,7 @@ from discord import HTTPException
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import accessLevels, basedCommand, commandChecks, basedApp, basedComponent
+from .helpUtil import *
 
 
 def get_nested_command(bot: client.BasedClient, name: str, guild: Optional[Guild]) -> Optional[Union[app_commands.Command, app_commands.Group]]:
@@ -78,12 +79,22 @@ def commandDescriptionAndParameters(command: app_commands.Command, meta: basedCo
 
 
 def packHelpPageArgs(showAll: bool, category: str = None, pageNum: int = None, accessLevelNum: int = None) -> str:
-    return "#".join((category or "", str(pageNum) if pageNum is not None else "", str(accessLevelNum) if accessLevelNum is not None else "", "1" if showAll else ""))
+    return HELP_CUSTOMID_ARGS_SEPARATOR.join((
+        category or "",
+        str(lib.ids.indexToID(pageNum, pad=HELP_CUSTOMID_PAGE_ID_MAX_LENGTH, exclusions=HELP_CUSTOMID_ARGS_SEPARATOR)) if pageNum is not None else "",
+        str(lib.ids.indexToID(accessLevelNum, pad=HELP_CUSTOMID_ACCESS_ID_MAX_LENGTH, exclusions=HELP_CUSTOMID_ARGS_SEPARATOR)) if accessLevelNum is not None else "",
+        "1" if showAll else ""
+    ))
 
 
 def unpackHelpPageArgs(args: str) -> Tuple[Optional[str], Optional[int], Optional[int], bool]:
-    category, pageNum, accessLevelNum, showAll = args.split("#")
-    return (category or None, int(pageNum) if pageNum else None, int(accessLevelNum) if accessLevelNum else None, bool(showAll))
+    category, pageNum, accessLevelNum, showAll = args.split(HELP_CUSTOMID_ARGS_SEPARATOR)
+    return (
+        category or None,
+        lib.ids.idToIndex(pageNum, exclusions=HELP_CUSTOMID_ARGS_SEPARATOR) if pageNum else None,
+        lib.ids.idToIndex(accessLevelNum, exclusions=HELP_CUSTOMID_ARGS_SEPARATOR) if accessLevelNum else None,
+        bool(showAll)
+    )
 
 
 class HelpCog(basedApp.BasedCog):
@@ -319,7 +330,7 @@ class HelpCog(basedApp.BasedCog):
                 previousPageButton = basedComponent.StaticComponents.Help(previousPageButton, args=packHelpPageArgs(showAll, pageNum=pageNum-1, accessLevelNum=commandAccessLevel._intLevel(), category=category))
                 previousPageButton.disabled = False
             if notLastPage:
-                nextPageButton = basedComponent.StaticComponents.Help(nextPageButton, args=packHelpPageArgs(showAll, pageNum=pageNum+1, accessLevelNum=commandAccessLevel._intLevel(), category=category))
+                nextPageButton = basedComponent.StaticComponents.Help(nextPageButton, args=packHelpPageArgs(showAll, pageNum=min(HELP_MAX_PAGE, pageNum+1), accessLevelNum=commandAccessLevel._intLevel(), category=category))
                 nextPageButton.disabled = False
 
             view.add_item(previousPageButton).add_item(nextPageButton)

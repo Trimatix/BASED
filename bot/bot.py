@@ -24,13 +24,9 @@ import aiohttp
 
 # BASED Imports
 
-from . import lib, botState, logging
-from .databases import guildDB, reactionMenuDB, userDB
-from .scheduling.timedTask import TimedTask
-from .scheduling.timedTaskHeap import TimedTaskHeap
-from .scheduling import timedTaskHeap
+from . import lib, botState
 from .client import BasedClient
-from .interactions import basedComponent
+
 
 def setHelpEmbedThumbnails():
     """Loads the bot application's profile picture into all help menu embeds as the embed thumbnail.

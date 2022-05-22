@@ -6,7 +6,7 @@ from .commandChecks import requireAccess
 from .basedApp import basedApp, BasedAppType
 from . import basedComponent
 from ..cfg import cfg
-from .. import lib
+from ..cogs.helpUtil import *
 
 
 class BasedCommandMeta:
@@ -52,19 +52,25 @@ class BasedCommandMeta:
 
 
 def validateHelpSection(helpSection: str):
-    """
+    """Make sure a help section is short enough to fit within a customId.
+    The max length of a customId is 100 chars.
     A help command static component consists of:
-    - |help||
-    - section
-      #
-    - page number (2 chars)
-      #
-    - access level (2 chars)
-      #
-    - show all sections (1 char)
+    - static component prefix
+    - help component ID (2 chars)
+    - separator
+    - page (2 chars)
+    - separator
+    - access (2 chars)
+    - separator
+    - showAll (1 chars)
     """
-    #max customId len    prefix                     help   customId separators                                          # page access showAll
-    maxLength = 100 - len(cfg.defaultCommandPrefix) - 4 - len(basedComponent.STATIC_COMPONENT_CUSTOM_ID_SEPARATOR) * 2 - 3 - 2 - 2 - 1
+    maxLength = 100 \
+                - len(basedComponent.STATIC_COMPONENT_CUSTOM_ID_PREFIX) \
+                - basedComponent.STATIC_COMPONENT_CALLBACK_ID_MAX_LENGTH \
+                - len(basedComponent.STATIC_COMPONENT_CUSTOM_ID_SEPARATOR) * 3 \
+                - HELP_CUSTOMID_PAGE_ID_MAX_LENGTH \
+                - HELP_CUSTOMID_ACCESS_ID_MAX_LENGTH \
+                - 1
     if len(helpSection) > maxLength:
         raise ValueError(f"Help section too long, must be less than {maxLength} characters")
     if "#" in helpSection:
