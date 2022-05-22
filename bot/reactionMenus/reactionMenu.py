@@ -472,7 +472,7 @@ class ReactionMenu(ISerializable):
         if self.timeout is None:
             await expiryFunctions.deleteReactionMenu(self.msg.id)
         else:
-            await self.timeout.forceExpire()
+            self.timeout.forceExpire()
 
 
     def serialize(self, **kwargs) -> dict:

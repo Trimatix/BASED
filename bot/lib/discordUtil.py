@@ -337,6 +337,35 @@ def extractFuncName(f: Union[Awaitable, Callable]) -> Tuple[str, str]:
         return "main", name
 
 
+def logException(task: asyncio.Task, exception: Exception, logCategory: str = None, className: str = None,
+                    funcName: str = None, noPrintEvent: bool = False, noPrint: bool = False):
+    """Convenience method to log an exception that occurred on `task`, using `botState.client.logger`.
+    This method is intended to be called by `logExceptionsOnTask`. 
+    All parameters other than `task` and `exception` are optional. If not given, they will be inferred from `task`.
+
+    :param logCategory: The category to log into (Default None)
+    :type logCategory: Optional[str]
+    :param className: Override for the class name to log exceptions as. When excluded, this is inferred (Default None)
+    :type className: Optional[str]
+    :param funcName: Override for the function name to log exceptions as. When excluded, this is inferred (Default None)
+    :type funcName: Optional[str]
+    :param noPrintEvent: Give True to skip printing the event string (will still be logged to file) (Default False)
+    :type noPrintEvent: Optional[bool]
+    :param noPrint: Give True to skip printing the exception entirely (will still be logged to file) (Default False)
+    :type noPrint: Optional[bool]
+    """
+    if logCategory is None:
+        logCategory = "misc"
+
+    if className is None or funcName is None:
+        extractedClass, extractedFunc = extractFuncName(task.get_coro())
+        className = extractedClass if className is None else className
+        funcName = extractedFunc if funcName is None else funcName
+
+    botState.client.logger.log(className, funcName, str(exception), category=logCategory, exception=exception,
+                                noPrint=noPrint, noPrintEvent=noPrintEvent)
+
+
 def logExceptionsOnTask(task: asyncio.Task, logCategory: str = None, className: str = None, funcName: str = None,
                         noPrintEvent: bool = False, noPrint: bool = False):
     """See if any exceptions occurred in `task`. If they did, then log them using `botState.client.logger`.
@@ -356,16 +385,8 @@ def logExceptionsOnTask(task: asyncio.Task, logCategory: str = None, className: 
     :type noPrint: Optional[bool]
     """
     if e := cast(Optional[Exception], task.exception()):
-        if logCategory is None:
-            logCategory = "misc"
-
-        if className is None or funcName is None:
-            extractedClass, extractedFunc = extractFuncName(task.get_coro())
-            className = extractedClass if className is None else className
-            funcName = extractedFunc if funcName is None else funcName
-
-        botState.client.logger.log(className, funcName, str(e), category=logCategory, exception=e, noPrint=noPrint,
-                            noPrintEvent=noPrintEvent)
+        logException(task, e, logCategory=logCategory, className=className, funcName=funcName,
+                        noPrintEvent=noPrintEvent, noPrint=noPrint)
 
 
 class BasicScheduler:

@@ -1,15 +1,16 @@
 # Typing imports
 from __future__ import annotations
+from asyncio import Task
+import asyncio
 
 from datetime import datetime, timedelta
 import inspect
 import discord
 from typing import Any, Callable, Awaitable, Union
-from .. import botState
+from .. import botState, lib
 
 
-TTCallbackType = Union[Callable[[], Any], Callable[[], Awaitable[Any]],
-                        Callable[[Any], Any], Callable[[Any], Awaitable[Any]]]
+TTCallbackType = Union[Callable[[Any], Awaitable[Any]], Callable[[], Awaitable[Any]]]
 
 
 class TimedTask:
@@ -24,7 +25,7 @@ class TimedTask:
     :vartype expiryTime: datetime.datetime
     :var expiryDelta: The timedelta to add to issueTime, to find the expiryTime.
     :vartype expiryDelta: datetime.timedelta
-    :var expiryFunction: The function to call once expiryTime has been reached/surpassed.
+    :var expiryFunction: The coroutine to call once expiryTime has been reached/surpassed. MUST be a coroutine.
     :vartype expiryFunction: TTCallbackType
     :var hasExpiryFunction: Whether or not the task has an expiry function to call
     :vartype hasExpiryFunction: bool
@@ -37,8 +38,6 @@ class TimedTask:
     :var gravestone: marked as True when the TimedTask will no longer execute and can be removed from any TimedTask heap.
                         I.e, it is expired (whether manually or through timeout) and does not auto-reschedule
     :vartype gravestone: bool
-    :var asyncExpiryFunction: whether or not the expiryFunction is a coroutine and needs to be awaited
-    :vartype asyncExpiryFunction: bool
     :var rescheduleOnExpiryFuncFailure: Whether or not expiry exception throws should trigger the task to auto reschedule.
                                         Useful for delaying a task to retry later once a problem will be fixed
     :vartype rescheduleOnExpiryFuncFailure: bool
@@ -51,7 +50,7 @@ class TimedTask:
         :param datetime.datetime issueTime: The datetime when this task was created. (Default now)
         :param datetime.datetime expiryTime: The datetime when this task should expire. (Default None)
         :param datetime.timedelta expiryDelta: The timedelta to add to issueTime, to find the expiryTime. (Default None)
-        :param TTCallbackType expiryFunction: The function to call once expiryTime has been reached/surpassed. (Default None)
+        :param TTCallbackType expiryFunction: The coroutine to call once expiryTime has been reached/surpassed. MUST be a coroutine. (Default None)
         :param expiryFunctionArgs: The data to pass to the expiryFunction. There is no type requirement,
                                     but a dictionary is recommended as a close representation of KWArgs. (Default {})
         :param bool autoReschedule: Whether or not this task should automatically reschedule itself by the
@@ -83,9 +82,6 @@ class TimedTask:
         # can be removed from any TimedTask heap. I.e, it is expired (whether manually or through timeout)
         # and does not auto-reschedule.
         self.gravestone = False
-
-        # Track whether or not the expiryFunction is a coroutine and needs to be awaited
-        self.asyncExpiryFunction = inspect.iscoroutinefunction(expiryFunction)
 
 
     def __lt__(self, other: TimedTask) -> bool:
@@ -146,41 +142,34 @@ class TimedTask:
         return self.gravestone
 
 
-    async def callExpiryFunction(self):
+    async def doTaskWithRescheduling(self, coro: Task):
+        await coro
+        if e := coro.exception():
+            if self.rescheduleOnExpiryFuncFailure:
+                botState.client.logger.log(type(self).__name__, "callExpiryFunction",
+                                    f"Exception occured in callExpiryFunction {self.expiryFunction}, rescheduling: {self}.",
+                                    exception=e, noPrint=True)
+                self.reschedule()
+            else:
+                lib.discordUtil.logException(coro, e)
+                raise e
+
+
+    def callExpiryFunction(self):
         """Call the task's expiryFunction, if one is specified.
         Handles passing of arguments to the expiryFunction, if specified.
         If an exception occurs in the expiry function and rescheduleOnExpiryFuncFailure is True,
         the exception is IGNORED and the timedtask rescheduled.
         :return: the results of the expiryFunction
         """
-        try:
-            # Await async expiry Functions
-            if self.asyncExpiryFunction:
-                # Pass args to expiry function if specified
-                if self.hasExpiryFunctionArgs:
-                    return await self.expiryFunction(self.expiryFunctionArgs)
-                else:
-                    return await self.expiryFunction()
-            # Do not await sync expiry functions
-            else:
-                # Pass args to expiry function if specified
-                if self.hasExpiryFunctionArgs:
-                    return self.expiryFunction(self.expiryFunctionArgs)
-                else:
-                    return self.expiryFunction()
-        except Exception as e:
-            # If the task is marked to reschedule on expiry func failure, reschedule the task
-            if self.rescheduleOnExpiryFuncFailure:
-                botState.client.logger.log(type(self).__name__, "callExpiryFunction",
-                                    f"Exception occured in callExpiryFunction {self.expiryFunction}, rescheduling: {self}.",
-                                    exception=e, noPrint=True)
-                await self.reschedule()
-            # Otherwise, pass up the exception
-            else:
-                raise e
+        # Pass args to expiry function if specified
+        if self.hasExpiryFunctionArgs:
+            asyncio.create_task(self.doTaskWithRescheduling(self.expiryFunction(self.expiryFunctionArgs)))
+        else:
+            asyncio.create_task(self.doTaskWithRescheduling(self.expiryFunction()))
 
 
-    async def doExpiryCheck(self, callExpiryFunc: bool = True) -> bool:
+    def doExpiryCheck(self, callExpiryFunc: bool = True) -> bool:
         """Function to be called regularly, that handles the expiry of this task.
         Handles calling of the task's expiry function if specified, and rescheduling of the task if specified.
         :param bool callExpiryFunc: Whether or not to call this task's expiryFunction if it is expired. Default: True
@@ -191,13 +180,13 @@ class TimedTask:
         # If the task has expired, call expiry function and reschedule if specified
         if expired:
             if callExpiryFunc and self.hasExpiryFunction:
-                await self.callExpiryFunction()
+                self.callExpiryFunction()
             if self.autoReschedule:
-                await self.reschedule()
+                self.reschedule()
         return expired
 
 
-    async def reschedule(self, expiryTime: datetime = None, expiryDelta: timedelta = None):
+    def reschedule(self, expiryTime: datetime = None, expiryDelta: timedelta = None):
         """Reschedule this task, with the timedelta given/calculated on the task's creation,
         or to a given expiryTime/Delta. Rescheduling will update the task's issueTime to now.
         TODO: A firstIssueTime may be useful in the future to represent creation time.
@@ -221,7 +210,7 @@ class TimedTask:
         self.gravestone = False
 
 
-    async def forceExpire(self, callExpiryFunc: bool = True):
+    def forceExpire(self, callExpiryFunc: bool = True):
         """Force the expiry of this task.
         Handles calling of this task's expiryFunction, and rescheduling if specified. Set's the task's expiryTime to now.
         :param bool callExpiryFunction: Whether or not to call the task's expiryFunction if the task expires. Default: True
@@ -231,12 +220,12 @@ class TimedTask:
         self.expiryTime = discord.utils.utcnow()
         # Call expiryFunction and reschedule if specified
         if callExpiryFunc and self.hasExpiryFunction:
-            expiryFuncResults = await self.callExpiryFunction()
+            expiryFuncResults = self.callExpiryFunction()
         else:
             expiryFuncResults = None
 
         if self.autoReschedule:
-            await self.reschedule()
+            self.reschedule()
         # Mark for removal if not rescheduled
         else:
             self.gravestone = True
@@ -245,8 +234,7 @@ class TimedTask:
             return expiryFuncResults
 
 
-DelayGeneratorType = Union[Callable[[], timedelta], Callable[[], Awaitable[timedelta]],
-                        Callable[[Any], timedelta], Callable[[Any], Awaitable[timedelta]]]
+DelayGeneratorType = Union[Callable[[], timedelta], Callable[[Any], timedelta]]
 
 
 class DynamicRescheduleTask(TimedTask):
@@ -278,7 +266,7 @@ class DynamicRescheduleTask(TimedTask):
                         rescheduleOnExpiryFuncFailure : bool = False):
         """
         :param DelayGeneratorType delayTimeGenerator: Reference (not call!) to the function which generates the expiryDelta.
-                                            Must return a timedelta.
+                                                        Must return a timedelta, and must be synchronous (not a coroutine)
         :param timedelta initialDelta: expiryDelta to use for the initial task scheduling. If delayTimeDenerator
                                         is a coroutine, this is a required argument. 
         :param delayTimeGeneratorArgs: The data to pass to the delayTimeGenerator. There is no type requirement, but a
@@ -308,37 +296,26 @@ class DynamicRescheduleTask(TimedTask):
         self.delayTimeGeneratorArgs = delayTimeGeneratorArgs if self.hasDelayTimeGeneratorArgs else {}
         
 
-    async def callDelayTimeGenerator(self) -> timedelta:
+    def callDelayTimeGenerator(self) -> timedelta:
         """Generate the next expiryTime using the delayTimeGenerator.
         :return: The results of delayTimeGenerator. Should be a timedelta.
         :rtype: datetime.timedelta
         """
-        # await asynchronous delayTimeGenerators
-        if self.asyncDelayTimeGenerator:
-            # Pass args to delayTimeGenerator if specified
-            if self.hasDelayTimeGeneratorArgs:
-                # Number of arguments is already checked for in specification of hasDelayTimeGeneratorArgs
-                return await self.delayTimeGenerator(self.delayTimeGeneratorArgs) # type: ignore
-            else:
-                # Number of arguments is already checked for in specification of hasDelayTimeGeneratorArgs
-                return await self.delayTimeGenerator() # type: ignore
-        # do not await synchronous delayTimeGenerators
+        # Pass args to delayTimeGenerator if specified
+        if self.hasDelayTimeGeneratorArgs:
+            # Number of arguments is already checked for in specification of hasDelayTimeGeneratorArgs
+            return self.delayTimeGenerator(self.delayTimeGeneratorArgs) # type: ignore
         else:
-            # Pass args to delayTimeGenerator if specified
-            if self.hasDelayTimeGeneratorArgs:
-                # Number of arguments is already checked for in specification of hasDelayTimeGeneratorArgs
-                return self.delayTimeGenerator(self.delayTimeGeneratorArgs) # type: ignore
-            else:
-                # Number of arguments is already checked for in specification of hasDelayTimeGeneratorArgs
-                return self.delayTimeGenerator() # type: ignore
+            # Number of arguments is already checked for in specification of hasDelayTimeGeneratorArgs
+            return self.delayTimeGenerator() # type: ignore
 
 
-    async def reschedule(self):
+    def reschedule(self):
         """Override. Start a new scheduling period for this task using the timedelta produced by delayTimeGenerator.
         """
         # Update the task's issueTime to now
         self.issueTime = discord.utils.utcnow()
         # Create the new expiryTime from now + delayTimeGenerator result
-        self.expiryTime = self.issueTime + await self.callDelayTimeGenerator()
+        self.expiryTime = self.issueTime + self.callDelayTimeGenerator()
         # reset the gravestone to False, in case the task had been expired and marked for removal
         self.gravestone = False
