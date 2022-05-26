@@ -123,6 +123,7 @@ class BasedClient(ClientBaseClass):
 
         self.taskScheduler = taskScheduler
         self._schedulerLoaded = taskScheduler is not None
+        self.shutDownState = ShutDownState.restart
         
         self.logger = logger if logger is not None else logging.Logger()
         self.httpClient = httpClient

@@ -589,3 +589,13 @@ class SerializableDiscordObject(ISerializable, discord.Object):
     @classmethod
     def deserialize(cls, data: int, **kwargs) -> SerializableDiscordObject:
         return SerializableDiscordObject(data)
+
+
+EMPTY_IMAGE = "https://cdn.discordapp.com/attachments/700683544103747594/979495873190969424/empty.png"
+ZWSP = "​"
+
+
+def embedEmpty(embed: Embed) -> bool:
+    return not any((embed.fields, embed.title, embed.author.name if embed.author else None,
+                    embed.author.icon_url if embed.author else None, embed.description,
+                    embed.footer.text if embed.footer else None, embed.footer.icon_url if embed.footer else None))  

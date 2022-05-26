@@ -64,8 +64,7 @@ defaultHelpSection = "Miscellaneous"
 maxCommandsPerHelpPage = 5
 
 # List of module names from the commands package to import
-includedCommandModules = ("admn_misc",
-                          "dev_misc")
+includedCommandModules = ("admn_misc",)
 
 def cogPath(cogName: str, basePackage: str = "bot.cogs") -> str:
     return ".".join((basePackage, cogName))
@@ -73,7 +72,8 @@ def cogPath(cogName: str, basePackage: str = "bot.cogs") -> str:
 includedCogs = (
     cogPath("BASEDVersionCog"),
     cogPath("AdminMiscCog"),
-    cogPath("HelpCog")
+    cogPath("HelpCog"),
+    cogPath("DevMiscCog")
 )
 
 # Text to edit into expired menu messages
