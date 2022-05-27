@@ -64,7 +64,7 @@ defaultHelpSection = "Miscellaneous"
 maxCommandsPerHelpPage = 5
 
 # List of module names from the commands package to import
-includedCommandModules = ("admn_misc",)
+includedCommandModules = ("usr_misc",)
 
 def cogPath(cogName: str, basePackage: str = "bot.cogs") -> str:
     return ".".join((basePackage, cogName))
