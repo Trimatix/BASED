@@ -11,11 +11,11 @@ from ..interactions import basedCommand, basedApp
 
 
 class EmbedTextParams(Modal):
-    titleTxt = TextInput(label="Title", required=False)
-    authorName = TextInput(label="Author name", required=False)
-    desc = TextInput(label="Description", required=False, style=TextStyle.paragraph)
-    footerText = TextInput(label="Footer text", required=False)
-    colour = TextInput(label="Colour (hex or RANDOM)", required=False)
+    authorName = TextInput(label="Author name", required=False, max_length=256)
+    titleTxt = TextInput(label="Title", required=False, max_length=256)
+    desc = TextInput(label="Description", required=False, style=TextStyle.paragraph, max_length=4000)
+    footerText = TextInput(label="Footer text", required=False, max_length=2048)
+    colour = TextInput(label="Colour (hex or RANDOM)", required=False, max_length=8)
     
     def __init__(self, *, title: str = MISSING, timeout: Optional[float] = None, custom_id: str = MISSING,
                     currentEmbed: Embed = None):
@@ -32,10 +32,10 @@ class EmbedTextParams(Modal):
 
 
 class EmbedImageParams(Modal):
-    authorIcon = TextInput(label="Author icon", required=False)
-    thumb = TextInput(label="Thumbnail", required=False)
-    img = TextInput(label="Image", required=False)
-    footerIcon = TextInput(label="Footer icon", required=False)
+    authorIcon = TextInput(label="Author icon", required=False, max_length=4000)
+    thumb = TextInput(label="Thumbnail", required=False, max_length=4000)
+    img = TextInput(label="Image", required=False, max_length=4000)
+    footerIcon = TextInput(label="Footer icon", required=False, max_length=4000)
     
     def __init__(self, *, title: str = MISSING, timeout: Optional[float] = None, custom_id: str = MISSING,
                     currentEmbed: Embed = None):
@@ -63,15 +63,14 @@ async def sayConfirm(originalInteraction: Interaction, content: str, embed: Opti
     view = View()
 
     async def send(interaction: Interaction):
-        await interaction.response.edit_message("sent!", view=None)
+        await interaction.response.edit_message(content="sent!", view=None)
         if lib.discordUtil.embedEmpty(embed):
             embed.description = ZWSP
         await interaction.channel.send(content=content, embed=embed)
         view.stop()
 
     async def cancel(interaction: Interaction):
-        await interaction.response.defer(thinking=False)
-        await interaction.edit_original_message(view=None)
+        await interaction.response.edit_message(view=None)
         view.stop()
 
     async def addField(interaction: Interaction):
@@ -110,7 +109,7 @@ async def sayConfirm(originalInteraction: Interaction, content: str, embed: Opti
             if emptyEmbed:
                 embed.description = None
 
-        fieldSelector = Select(options=[SelectOption(label=f"{i + 1}. {field.name}", value=str(i)) for i, field in enumerate(embed.fields)], max_values=25)
+        fieldSelector = Select(options=[SelectOption(label=f"{i + 1}. {field.name}", value=str(i)) for i, field in enumerate(embed.fields)], max_values=min(len(embed.fields), 25))
         fieldSelector.callback = stopSelectorView
         view.add_item(fieldSelector)
 
@@ -202,35 +201,36 @@ async def sayConfirm(originalInteraction: Interaction, content: str, embed: Opti
         if emptyEmbed:
             embed.description = None
 
-    confirmButton = Button(style=ButtonStyle.green, label="send")
+    confirmButton = Button(style=ButtonStyle.green, label="send", row=0 if embed is None else 1)
     confirmButton.callback = send
-    cancelButton = Button(style=ButtonStyle.red, label="cancel")
+    cancelButton = Button(style=ButtonStyle.red, label="cancel", row=0 if embed is None else 1)
     cancelButton.callback = cancel
     view.add_item(cancelButton).add_item(confirmButton)
     if embed is not None:
-        addFieldButton = Button(style=ButtonStyle.blurple, label="add embed field")
-        addFieldButton.callback = addField
-        view.add_item(addFieldButton)
-
-        removeFieldButton = Button(style=ButtonStyle.blurple, label="remove embed field")
-        removeFieldButton.callback = removeField
-        view.add_item(removeFieldButton)
-
-        editEmbedTextButton = Button(style=ButtonStyle.blurple, label="edit embed text")
+        editEmbedTextButton = Button(style=ButtonStyle.blurple, label="edit embed text", row=0)
         editEmbedTextButton.callback = editEmbedText
         view.add_item(editEmbedTextButton)
 
-        editEmbedImagesButton = Button(style=ButtonStyle.blurple, label="edit embed images")
+        editEmbedImagesButton = Button(style=ButtonStyle.blurple, label="edit embed images", row=0)
         editEmbedImagesButton.callback = editEmbedImages
         view.add_item(editEmbedImagesButton)
 
-    if lib.discordUtil.embedEmpty(embed):
-        emptyEmbed = True
-        embed.description = ZWSP
-    else:
-        emptyEmbed = False
+        addFieldButton = Button(style=ButtonStyle.blurple, label="add embed field", row=0)
+        addFieldButton.callback = addField
+        view.add_item(addFieldButton)
+
+        removeFieldButton = Button(style=ButtonStyle.blurple, label="remove embed field", row=0)
+        removeFieldButton.callback = removeField
+        view.add_item(removeFieldButton)
+
+    if embed is not None:
+        if lib.discordUtil.embedEmpty(embed):
+            emptyEmbed = True
+            embed.description = ZWSP
+        else:
+            emptyEmbed = False
     await originalInteraction.followup.send(content=content, embed=embed, ephemeral=True, view=view)
-    if emptyEmbed:
+    if embed is not None and emptyEmbed:
         embed.description = None
 
 
@@ -304,6 +304,13 @@ class DevMiscCog(basedApp.BasedCog):
                 embed.description = modal.desc.value
             if modal.footerText.value:
                 embed.set_footer(text=modal.footerText.value, icon_url=None)
+            if modal.colour.value:
+                if modal.colour.value.lower() == "random":
+                    embed.colour = Colour.random()
+                else:
+                    embed.colour = Colour(int(modal.colour.value, base=16))
+        else:
+            embed.colour = None
 
         await sayConfirm(interaction, content, embed)
 
