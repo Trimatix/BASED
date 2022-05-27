@@ -110,7 +110,7 @@ async def sayConfirm(originalInteraction: Interaction, content: str, embed: Opti
             if emptyEmbed:
                 embed.description = None
 
-        fieldSelector = Select(options=[SelectOption(label=f"{i + 1}. {field.name}", value=str(i)) for i, field in enumerate(embed.fields)])
+        fieldSelector = Select(options=[SelectOption(label=f"{i + 1}. {field.name}", value=str(i)) for i, field in enumerate(embed.fields)], max_values=25)
         fieldSelector.callback = stopSelectorView
         view.add_item(fieldSelector)
 
