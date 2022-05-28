@@ -52,7 +52,7 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
                                         expiryFunctionArgs=menuMsg.id)
             botState.client.taskScheduler.scheduleTask(helpTT)
             indexEmbed = lib.discordUtil.makeEmbed(titleTxt=cfg.userAccessLevels[userAccessLevel] + " Commands",
-                                                    desc="Select " + cfg.defaultEmojis.next.sendable + " to go to page one.",
+                                                    desc="Select " + cfg.defaultEmojis.next + " to go to page one.",
                                                     thumb=botState.client.user.display_avatar.url,
                                                     footerTxt="This menu will expire in " +
                                                                 lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
@@ -61,7 +61,7 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
             for sectionNum in range(len(botCommands.helpSectionEmbeds[userAccessLevel])):
                 sectionsStr += "\n" + str(sectionNum + 1) + ") " + \
                     list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title()
-                # sectionsStr += "\n" + cfg.defaultEmojis.menuOptions[sectionNum + 1].sendable + " : " +
+                # sectionsStr += "\n" + cfg.defaultEmojis.menuOptions[sectionNum + 1] + " : " +
                 #                 list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title()
                 # pages[indexEmbed][cfg.defaultEmojis.menuOptions[sectionNum + 1]] =
                 #                 ReactionMenu.NonSaveableReactionMenuOption(list(

@@ -198,7 +198,7 @@ async def on_message(message: discord.Message):
 
         # Command not found, send an error message.
         if not commandFound:
-            await message.channel.send(f"{cfg.defaultEmojis.error.sendable} Unknown command. " \
+            await message.channel.send(f"{cfg.defaultEmojis.error} Unknown command. " \
                                         + f"Type `{commandPrefix}help` for a list of commands.")
 
 

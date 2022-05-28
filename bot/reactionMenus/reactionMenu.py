@@ -434,7 +434,7 @@ class ReactionMenu(ISerializable):
             menuEmbed.set_author(name=self.authorName, icon_url=self.icon)
 
         for option in self.options:
-            menuEmbed.add_field(name=option.sendable + " : " + self.options[option].name, value="‎", inline=False)
+            menuEmbed.add_field(name=option + " : " + self.options[option].name, value="‎", inline=False)
 
         return menuEmbed
 

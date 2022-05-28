@@ -131,7 +131,7 @@ class HelpCog(basedApp.BasedCog):
 
         cmd = get_nested_command(self.bot, command, guild=interaction.guild)
         if cmd is None or not await commandChecks.userHasAccess(interaction, basedCommand.accessLevel(cmd)):
-            await interaction.response.send_message(f'{cfg.defaultEmojis.cancel.sendable} Unknown command: `{command}`.', ephemeral=True)
+            await interaction.response.send_message(f'{cfg.defaultEmojis.cancel} Unknown command: `{command}`.', ephemeral=True)
             return
 
         meta = basedCommand.commandMeta(cmd)
@@ -220,7 +220,7 @@ class HelpCog(basedApp.BasedCog):
         e = Embed(description=cfg.helpIntro)
 
         if switchableAccessLevels:
-            e.description += f"\n{cfg.defaultEmojis.spiral.sendable}: Change access level"
+            e.description += f"\n{cfg.defaultEmojis.spiral}: Change access level"
 
         if len(helpSections) > 1:
             e.description += "\n\n" + " / ".join(f"__{section.title()}__" if section == category else section.title() for section in helpSectionNames)
@@ -272,7 +272,7 @@ class HelpCog(basedApp.BasedCog):
 
         e = Embed(description=cfg.helpIntro)
         if switchableAccessLevels:
-            e.description += f"\n{cfg.defaultEmojis.spiral.sendable}: Change access level"
+            e.description += f"\n{cfg.defaultEmojis.spiral}: Change access level"
         e.description += f"\n\n__{category.title()}__"
 
         notFirstPage = offset != 0
