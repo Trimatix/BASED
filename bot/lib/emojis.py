@@ -7,7 +7,7 @@ from carica import ISerializable, PrimativeType, SerializableType # type: ignore
 from carica.typeChecking import objectIsShallowSerializable # type: ignore[import]
 from abc import ABC, abstractmethod
 
-from typing import Union, TYPE_CHECKING, cast
+from typing import TypeVar, Union, TYPE_CHECKING, cast
 if TYPE_CHECKING:
     from discord import PartialEmoji, Emoji # type: ignore[import]
 
@@ -52,6 +52,9 @@ def strIsCustomEmoji(s: str) -> bool:
             return False
         return stringTyping.isInt(s[second + 1:-1])
     return False
+
+
+T = TypeVar("T")
 
 
 class IBasedEmoji(ISerializable, ABC):
@@ -140,6 +143,36 @@ class IBasedEmoji(ISerializable, ABC):
         :rtype: str
         """
         raise NotImplementedError(f"Cannot invoke the abstract implementation {type(self)}.sendable")
+
+
+    def __add__(self, o: T) -> Union[T, str]:
+        """Add the sendable of this emoji to a string or other emoji
+
+        :param o: The object to concatenate this emoji's sendable with
+        :type o: Union[IBasedEmoji, str]
+        :raises TypeError: If `o` is neither `IBasedEmoji` nor `str`
+        :return: `self.sendable + o` if `o` is `str`, otherwise `self.sendable + o.sendable`
+        :rtype: Union[T, str]
+        """
+        raise NotImplementedError(f"Cannot invoke the abstract implementation {type(self)}.__add__")
+
+
+    def __radd__(self, o: T) -> Union[T, str]:
+        """Add the sendable of this emoji to a string or other emoji
+
+        :param o: The object to concatenate this emoji's sendable with
+        :type o: Union[IBasedEmoji, str]
+        :raises TypeError: If `o` is neither `IBasedEmoji` nor `str`
+        :return: `o + self.sendable` if `o` is `str`, otherwise `o.sendable + self.sendable`
+        :rtype: Union[T, str]
+        """
+        raise NotImplementedError(f"Cannot invoke the abstract implementation {type(self)}.__radd__")
+
+
+    def __iadd__(self, o):
+        """Invalid operation. Cannot extend the contents of a BasedEmoji.
+        """
+        raise ValueError(f"Cannot extend the contents of a {type(self).__name__}")
 
 
 class BasedEmoji(IBasedEmoji):
@@ -379,6 +412,44 @@ class BasedEmoji(IBasedEmoji):
         """
         return self._sendable
 
+
+    def __add__(self, o: T) -> Union[T, str]:
+        """Add the sendable of this emoji to a string or other emoji
+
+        :param o: The object to concatenate this emoji's sendable with
+        :type o: Union[IBasedEmoji, str]
+        :raises TypeError: If `o` is neither `IBasedEmoji` nor `str`
+        :return: `self.sendable + o` if `o` is `str`, otherwise `self.sendable + o.sendable`
+        :rtype: Union[T, str]
+        """
+        if isinstance(o, str):
+            return self.sendable + o
+        elif isinstance(o, BasedEmoji):
+            return self.sendable + o.sendable
+        raise TypeError(f"Cannot add {type(self).__name__} to {type(o).__name__}")
+
+
+    def __radd__(self, o: T) -> Union[T, str]:
+        """Add the sendable of this emoji to a string or other emoji
+
+        :param o: The object to concatenate this emoji's sendable with
+        :type o: Union[IBasedEmoji, str]
+        :raises TypeError: If `o` is neither `IBasedEmoji` nor `str`
+        :return: `o + self.sendable` if `o` is `str`, otherwise `o.sendable + self.sendable`
+        :rtype: Union[T, str]
+        """
+        if isinstance(o, str):
+            return o + self.sendable
+        elif isinstance(o, BasedEmoji):
+            return o.sendable + self.sendable
+        raise TypeError(f"Cannot add {type(o).__name__} to {type(self).__name__}")
+
+
+    def __iadd__(self, o):
+        """Invalid operation. Cannot extend the contents of a BasedEmoji.
+        """
+        raise ValueError(f"Cannot extend the contents of a {type(self).__name__}")
+    
 
 # 'static' object representing an empty/lack of emoji
 BasedEmoji.EMPTY = BasedEmoji(unicode=" ")
