@@ -109,11 +109,66 @@ async def sayConfirm(originalInteraction: Interaction, content: str, embed: Opti
             else:
                 emptyEmbed = False
             view.remove_item(fieldSelector)
+
+            for c in view.children:
+                if isinstance(c, Button):
+                    c.disabled = False
+                    
             await interaction.response.edit_message(embed=embed, view=view)
             if emptyEmbed:
                 embed.description = None
 
+        for c in view.children:
+            if isinstance(c, Button):
+                c.disabled = True
+
         fieldSelector = Select(options=[SelectOption(label=f"{i + 1}. {field.name}", value=str(i)) for i, field in enumerate(embed.fields)], max_values=min(len(embed.fields), 25))
+        fieldSelector.callback = stopSelectorView
+        view.add_item(fieldSelector)
+
+        await interaction.response.edit_message(view=view)
+
+    async def editField(interaction: Interaction):
+        if not embed.fields:
+            await interaction.response.send_message("The embed has no fields!", ephemeral=True)
+            return
+
+        fieldSelector = Select(options=[SelectOption(label=f"{i + 1}. {field.name}", value=str(i)) for i, field in enumerate(embed.fields)], max_values=1)
+
+        async def stopSelectorView(interaction: Interaction):
+            selectedFieldIndex = int(fieldSelector.values[0])
+            field = embed.fields[selectedFieldIndex]
+            
+            modal = EmbedFieldParams(title="Field Parameters")
+            if field.name != ZWSP:
+                modal.fieldName.default = field.name
+            if field.value != ZWSP:
+                modal.fieldValue.default = field.value
+            modal.fieldInline.default = "y" if field.inline else "n"
+
+            await interaction.response.send_modal(modal)
+            if await modal.wait(): view.stop()
+
+            for c in view.children:
+                if isinstance(c, Button):
+                    c.disabled = False
+
+            view.remove_item(fieldSelector)
+            
+            embed.set_field_at(selectedFieldIndex, name=modal.fieldName.value or ZWSP, value=modal.fieldValue.value or ZWSP, inline=modal.fieldInline.value.lower() == "y")
+            if lib.discordUtil.embedEmpty(embed):
+                emptyEmbed = True
+                embed.description = ZWSP
+            else:
+                emptyEmbed = False
+            await interaction.edit_original_message(embed=embed, view=view)
+            if emptyEmbed:
+                embed.description = None
+
+        for c in view.children:
+            if isinstance(c, Button):
+                c.disabled = True
+
         fieldSelector.callback = stopSelectorView
         view.add_item(fieldSelector)
 
@@ -205,9 +260,9 @@ async def sayConfirm(originalInteraction: Interaction, content: str, embed: Opti
         if emptyEmbed:
             embed.description = None
 
-    confirmButton = Button(style=ButtonStyle.green, label="send", row=0 if embed is None else 1)
+    confirmButton = Button(style=ButtonStyle.green, label="send", row=0 if embed is None else 2)
     confirmButton.callback = send
-    cancelButton = Button(style=ButtonStyle.red, label="cancel", row=0 if embed is None else 1)
+    cancelButton = Button(style=ButtonStyle.red, label="cancel", row=0 if embed is None else 2)
     cancelButton.callback = cancel
     view.add_item(cancelButton).add_item(confirmButton)
     if embed is not None:
@@ -219,13 +274,17 @@ async def sayConfirm(originalInteraction: Interaction, content: str, embed: Opti
         editEmbedImagesButton.callback = editEmbedImages
         view.add_item(editEmbedImagesButton)
 
-        addFieldButton = Button(style=ButtonStyle.blurple, label="add embed field", row=0)
+        addFieldButton = Button(style=ButtonStyle.blurple, label="add embed field", row=1)
         addFieldButton.callback = addField
         view.add_item(addFieldButton)
 
-        removeFieldButton = Button(style=ButtonStyle.blurple, label="remove embed field", row=0)
+        removeFieldButton = Button(style=ButtonStyle.blurple, label="remove embed field", row=1)
         removeFieldButton.callback = removeField
         view.add_item(removeFieldButton)
+
+        editFieldButton = Button(style=ButtonStyle.blurple, label="edit embed field", row=1)
+        editFieldButton.callback = editField
+        view.add_item(editFieldButton)
 
     if embed is not None:
         if lib.discordUtil.embedEmpty(embed):
