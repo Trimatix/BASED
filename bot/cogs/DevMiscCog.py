@@ -74,6 +74,10 @@ async def sayConfirm(originalInteraction: Interaction, content: str, embed: Opti
         view.stop()
 
     async def addField(interaction: Interaction):
+        if len(embed.fields) == 25:
+            await interaction.response.send_message(cfg.defaultEmojis.cancel + " Maximum number of fields reached. Please remove one, or edit an existing field.")
+            return
+
         modal = EmbedFieldParams(title="Field Parameters")
 
         await interaction.response.send_modal(modal)
@@ -285,6 +289,7 @@ class DevMiscCog(basedApp.BasedCog):
 
         if content is None and add_embed == False:
             await interaction.response.send_message("Cannot send a message without content or an embed!", ephemeral=True)
+            return
 
         content = content or ""
         embed = None
@@ -309,8 +314,8 @@ class DevMiscCog(basedApp.BasedCog):
                     embed.colour = Colour.random()
                 else:
                     embed.colour = Colour(int(modal.colour.value, base=16))
-        else:
-            embed.colour = None
+            else:
+                embed.colour = None
 
         await sayConfirm(interaction, content, embed)
 
