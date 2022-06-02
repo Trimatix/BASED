@@ -1,4 +1,5 @@
 from inspect import iscoroutinefunction
+import inspect
 from discord import ButtonStyle, Embed, Component
 from discord import Message, Interaction
 from discord.ui import View, Button
@@ -64,11 +65,17 @@ class StaticComponentEnumMeta(EnumMeta):
 
 class StaticComponentIDsEnum(Enum, metaclass=StaticComponentEnumMeta):
     def __call__(self, component: TComponent, args: str = None) -> TComponent:
-        return setCallbackToStaticComponent(component, self, args=args)
+        return setCallbackToStaticComponent(component, self, args=args or "")
 
 
 class StaticComponents(StaticComponentIDsEnum):
     Help = 1
+    Clear_View = 2
+    User_Embed_Add_Field = 3
+    User_Embed_Remove_Field = 4
+    User_Embed_Remove_Field_Select = 5
+    User_Embed_Edit_Field = 6
+    User_Embed_Edit_Field_Select = 7
 
 
 class StaticComponentMeta:
@@ -103,6 +110,16 @@ class StaticComponentCallbackMeta:
         self.callback = callback
         self.ID = ID
         self.cbSelf = cbSelf
+        cbArgs = inspect.signature(callback).parameters
+        requiredArgs = sum(1 for p in cbArgs.values() if p.default is inspect._empty)
+        totalArgs = len(cbArgs)
+        if requiredArgs > (2 if cbSelf is None else 3) or totalArgs < (1 if cbSelf is None else 2):
+            raise ValueError(f"callback {callback.__qualname__} cannot be static due to incorrect signature. "
+                            "Cog static components must take a self parameter, or cls for class methods. "
+                            "Static component callbacks must only require either (interaction: Interaction) or "
+                            "(interaction: Interaction, args: str), excluding self/cls. Any other parameters "
+                            "must be keyword arguments.")
+        self.takesArgs = totalArgs > (1 if cbSelf is None else 2)
 
     
     @property

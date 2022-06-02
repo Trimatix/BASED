@@ -5,9 +5,16 @@ import traceback
 from typing import Dict, Optional, Tuple
 from .lib.exceptions import formatExceptionTrace
 import discord
+from enum import Enum
 
 
 LOG_TIME_FORMAT = "(%d/%m/%H:%M)"
+class LogCategory(Enum):
+    usersDB = "usersDB"
+    guildsDB = "guildsDB"
+    reactionMenus = "reactionMenus"
+    misc = "misc"
+    staticComponents = "staticComponents"
 
 
 class Logger:
@@ -27,7 +34,7 @@ class Logger:
     def clearLogs(self):
         """Clears all logs from the database.
         """
-        self.logs: Dict[str, Dict[datetime, str]] = {"usersDB": {}, "guildsDB": {}, "reactionMenus": {}, "misc": {}}
+        self.logs: Dict[str, Dict[datetime, str]] = {category.name: {} for category in LogCategory}
 
 
     def isEmpty(self) -> bool:

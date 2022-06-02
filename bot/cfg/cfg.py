@@ -71,6 +71,7 @@ def cogPath(cogName: str, basePackage: str = "bot.cogs") -> str:
 
 includedCogs = (
     cogPath("BASEDVersionCog"),
+    cogPath("CommonStaticComponentsCog"),
     cogPath("AdminMiscCog"),
     cogPath("HelpCog"),
     cogPath("DevMiscCog")

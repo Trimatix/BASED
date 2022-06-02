@@ -86,7 +86,7 @@ def waitBeforeStartingTask(task: tasks.Loop):
     task.before_loop(inner)
     return task
 
-
+count = 0
 class BasedClient(ClientBaseClass):
     """A minor extension to discord.ext.commands.Bot to include database saving and extended shutdown procedures.
 
@@ -137,14 +137,19 @@ class BasedClient(ClientBaseClass):
 
 
     async def on_interaction(self, interaction: discord.Interaction):
+        print("ON INTERACTION: " + interaction.type.name)
         if interaction.type != discord.InteractionType.component or not basedComponent.customIdIsStaticComponent(interaction.data["custom_id"]):
             return
 
+        count += 1
+        if count == 2:
+            print()
         componentMeta = basedComponent.staticComponentMeta(interaction.data["custom_id"])
         if not self.hasStaticComponent(componentMeta.ID):
             return
         
         callbackMeta = self.getStaticComponentCallbackMeta(componentMeta.ID)
+        cbArgs = (interaction, componentMeta.args) if callbackMeta.takesArgs else (interaction,)
 
         # Pass the owning object (e.g self/cls) to the callback if it needs one
         if basedApp.isCogApp(callbackMeta.callback):
@@ -152,11 +157,11 @@ class BasedClient(ClientBaseClass):
             cog = self.get_cog(cogName)
             if cog is None:
                 raise ValueError(f"unable to find cog '{cogName}' for static component: {callbackMeta.callback.__qualname__}")
-            await callbackMeta.callback(cog, interaction, componentMeta.args)
+            await callbackMeta.callback(cog, *cbArgs)
         elif callbackMeta.hasSelf():
-            await callbackMeta.callback(callbackMeta.cbSelf, interaction, componentMeta.args)
+            await callbackMeta.callback(callbackMeta.cbSelf, *cbArgs)
         else:
-            await callbackMeta.callback(interaction, componentMeta.args)
+            await callbackMeta.callback(*cbArgs)
 
 
     def addBasedCommand(self, command: discord.app_commands.Command):
