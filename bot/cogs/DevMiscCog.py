@@ -2,6 +2,7 @@ import traceback
 from typing import Optional, TYPE_CHECKING, Protocol
 from .. import client, lib
 from ..lib.discordUtil import ZWSP, EMPTY_IMAGE
+import discord
 from discord import ComponentType, InteractionMessage, app_commands, Interaction, ButtonStyle, Embed, TextStyle, Colour, SelectOption
 from discord import HTTPException, ClientException, NotFound
 from discord.utils import utcnow, MISSING
@@ -10,7 +11,7 @@ from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
-from ..interactions.basedComponent import StaticComponents
+from ..interactions.basedComponent import StaticComponents, staticComponentCustomId
 from ..logging import LogCategory
 
 
@@ -82,19 +83,19 @@ def messageEditorView(userId: Optional[int], embed: Embed = None) -> View:
     view = View()
     userId = "" if userId is None else str(userId)
 
-    # confirmButton = Button(style=ButtonStyle.green, label="send", row=0 if embed is None else 2)
-    # confirmButton.callback = send
-    # cancelButton = Button(style=ButtonStyle.red, label="cancel", row=0 if embed is None else 2)
-    # cancelButton.callback = cancel
-    # view.add_item(cancelButton).add_item(confirmButton)
+    confirmButton = Button(style=ButtonStyle.green, label="send", row=0 if embed is None else 2)
+    confirmButton = StaticComponents.Clone_Message(confirmButton, args=userId)
+    cancelButton = Button(style=ButtonStyle.red, label="cancel", row=0 if embed is None else 2)
+    cancelButton = StaticComponents.Clear_View(cancelButton, args=userId)
+    view.add_item(cancelButton).add_item(confirmButton)
     if embed is not None:
-        # editEmbedTextButton = Button(style=ButtonStyle.blurple, label="edit embed text", row=0)
-        # editEmbedTextButton.callback = editEmbedText
-        # view.add_item(editEmbedTextButton)
+        editEmbedTextButton = Button(style=ButtonStyle.blurple, label="edit embed text", row=0)
+        editEmbedTextButton = StaticComponents.User_Embed_Edit_Text(editEmbedTextButton, args=userId)
+        view.add_item(editEmbedTextButton)
 
-        # editEmbedImagesButton = Button(style=ButtonStyle.blurple, label="edit embed images", row=0)
-        # editEmbedImagesButton.callback = editEmbedImages
-        # view.add_item(editEmbedImagesButton)
+        editEmbedImagesButton = Button(style=ButtonStyle.blurple, label="edit embed images", row=0)
+        editEmbedImagesButton = StaticComponents.User_Embed_Edit_Images(editEmbedImagesButton, args=userId)
+        view.add_item(editEmbedImagesButton)
 
         addFieldButton = Button(style=ButtonStyle.blurple, label="add embed field", row=1)
         addFieldButton = StaticComponents.User_Embed_Add_Field(addFieldButton, args=userId)
@@ -104,9 +105,9 @@ def messageEditorView(userId: Optional[int], embed: Embed = None) -> View:
         removeFieldButton = StaticComponents.User_Embed_Remove_Field_Select(removeFieldButton, args=userId)
         view.add_item(removeFieldButton)
 
-        # editFieldButton = Button(style=ButtonStyle.blurple, label="edit embed field", row=1)
-        # editFieldButton.callback = editField
-        # view.add_item(editFieldButton)
+        editFieldButton = Button(style=ButtonStyle.blurple, label="edit embed field", row=1)
+        editFieldButton = StaticComponents.User_Embed_Edit_Field_Select(editFieldButton, args=userId)
+        view.add_item(editFieldButton)
     
     return view
 
@@ -132,12 +133,12 @@ class DevMiscCog(BasedCog):
         # await interaction.response.defer(thinking=False)
         try:
             message = await interaction.original_message()
-        except (HTTPException, ClientException, NotFound):
-            await interaction.response.send_message(cfg.defaultEmojis.cancel + " This type of interaction is not valid here.", ephemeral=True)
+        except (HTTPException, ClientException, NotFound) as e:
             self.bot.logger.log(type(self).__name__, funcName,
                                 "on-message static component triggered for non-message-based interaction: " \
                                     + interactionErrorString(interaction, staticComponentId),
-                                category=LogCategory.staticComponents, eventType="MESSAGE_FETCH_FAIL")
+                                category=LogCategory.staticComponents, eventType="MESSAGE_FETCH_FAIL", exception=e)
+            await interaction.response.send_message(cfg.defaultEmojis.cancel + " This type of interaction is not valid here.", ephemeral=True)
             return None
 
         if not message.embeds:
@@ -292,100 +293,98 @@ class DevMiscCog(BasedCog):
         await interaction.edit_original_message(embed=embed, view=view)
 
 
-    # async def editEmbedText(interaction: Interaction):
-    #     modal = EmbedTextParams(title="Embed Parameters", currentEmbed=embed)
+    @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Edit_Text)
+    async def editEmbedText(self, interaction: Interaction, userId: str):
+        if userId and interaction.user.id != int(userId):
+            return
 
-    #     await interaction.response.send_modal(modal)
-    #     if await modal.wait(): view.stop()
+        message = await self.messageForInteraction(interaction, "editEmbedText", StaticComponents.User_Embed_Edit_Text)
+        if message is None: return
+        embed = message.embeds[0]
+
+        modal = EmbedTextParams(title="Embed Parameters", currentEmbed=embed)
+
+        await interaction.response.send_modal(modal)
+        if await modal.wait(): return
         
-    #     if modal.titleTxt.value:
-    #         embed.title = modal.titleTxt.value
-    #     else:
-    #         embed.title = None
+        if modal.titleTxt.value:
+            embed.title = modal.titleTxt.value
+        else:
+            embed.title = None
             
-    #     authorIcon = (embed.author.icon_url or "") if embed.author is not None else ""
-    #     if modal.authorName.value:
-    #         embed.set_author(name=modal.authorName.value, icon_url=authorIcon or None)
-    #     else:
-    #         if authorIcon:
-    #             embed.set_author(name=ZWSP, icon_url=authorIcon)
-    #         else:
-    #             embed.remove_author()
+        authorIcon = (embed.author.icon_url or "") if embed.author is not None else ""
+        if modal.authorName.value:
+            embed.set_author(name=modal.authorName.value, icon_url=authorIcon or None)
+        else:
+            if authorIcon:
+                embed.set_author(name=ZWSP, icon_url=authorIcon)
+            else:
+                embed.remove_author()
 
-    #     if modal.desc.value:
-    #         embed.description = modal.desc.value
-    #     else:
-    #         embed.description = None
+        if modal.desc.value:
+            embed.description = modal.desc.value
+        else:
+            embed.description = None
 
-    #     footerIcon = (embed.footer.icon_url or "") if embed.footer is not None else ""
-    #     if modal.footerText.value:
-    #         embed.set_footer(text=modal.footerText.value, icon_url=footerIcon or None)
-    #     else:
-    #         if footerIcon:
-    #             embed.set_footer(text=ZWSP, icon_url=footerIcon)
-    #         else:
-    #             embed.remove_footer()
+        footerIcon = (embed.footer.icon_url or "") if embed.footer is not None else ""
+        if modal.footerText.value:
+            embed.set_footer(text=modal.footerText.value, icon_url=footerIcon or None)
+        else:
+            if footerIcon:
+                embed.set_footer(text=ZWSP, icon_url=footerIcon)
+            else:
+                embed.remove_footer()
 
-    #     if modal.colour.value:
-    #         if modal.colour.value.lower() == "random":
-    #             embed.colour = Colour.random()
-    #         else:
-    #             embed.colour = Colour(int(modal.colour.value, base=16))
-    #     else:
-    #         embed.colour = None
+        if modal.colour.value:
+            if modal.colour.value.lower() == "random":
+                embed.colour = Colour.random()
+            else:
+                embed.colour = Colour(int(modal.colour.value, base=16))
+        else:
+            embed.colour = None
 
-    #     if lib.discordUtil.embedEmpty(embed):
-    #         emptyEmbed = True
-    #         embed.description = ZWSP
-    #     else:
-    #         emptyEmbed = False
-    #     await interaction.edit_original_message(embed=embed)
-    #     if emptyEmbed:
-    #         embed.description = None
+        if lib.discordUtil.embedEmpty(embed):
+            embed.description = ZWSP
+        await interaction.edit_original_message(embed=embed)
 
 
-    # async def editEmbedImages(interaction: Interaction):
-    #     modal = EmbedImageParams(title="Embed parameters", currentEmbed=embed)
-    #     await interaction.response.send_modal(modal)
-    #     if await modal.wait(): return
+    @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Edit_Images)
+    async def editEmbedImages(self, interaction: Interaction, userId: str):
+        if userId and interaction.user.id != int(userId):
+            return
 
-    #     authorName = ("" if embed.author.name in (None, ZWSP) else embed.author.name) if embed.author is not None else ""
-    #     if modal.authorIcon.value:
-    #         embed.set_author(name=authorName or ZWSP, icon_url=modal.authorIcon)
-    #     else:
-    #         if authorName:
-    #             embed.set_author(name=authorName, icon_url=None)
-    #         else:
-    #             embed.remove_author()
+        message = await self.messageForInteraction(interaction, "editEmbedImages", StaticComponents.User_Embed_Edit_Images)
+        if message is None: return
+        embed = message.embeds[0]
 
-    #     embed.set_thumbnail(url=modal.thumb.value or None)
-    #     embed.set_image(url=modal.img.value or None)
+        modal = EmbedImageParams(title="Embed parameters", currentEmbed=embed)
+        await interaction.response.send_modal(modal)
+        if await modal.wait(): return
 
-    #     footerText = ("" if embed.footer.text in (None, ZWSP) else embed.footer.text) if embed.footer is not None else ""
-    #     if modal.footerIcon.value:
-    #         embed.set_footer(text=footerText or ZWSP, icon_url=modal.footerIcon)
-    #     else:
-    #         if footerText:
-    #             embed.set_footer(text=footerText, icon_url=None)
-    #         else:
-    #             embed.remove_footer()
+        authorName = ("" if embed.author.name in (None, ZWSP) else embed.author.name) if embed.author is not None else ""
+        if modal.authorIcon.value:
+            embed.set_author(name=authorName or ZWSP, icon_url=modal.authorIcon)
+        else:
+            if authorName:
+                embed.set_author(name=authorName, icon_url=None)
+            else:
+                embed.remove_author()
 
-    #     if lib.discordUtil.embedEmpty(embed):
-    #         emptyEmbed = True
-    #         embed.description = ZWSP
-    #     else:
-    #         emptyEmbed = False
-    #     await interaction.edit_original_message(embed=embed)
-    #     if emptyEmbed:
-    #         embed.description = None
+        embed.set_thumbnail(url=modal.thumb.value or None)
+        embed.set_image(url=modal.img.value or None)
 
+        footerText = ("" if embed.footer.text in (None, ZWSP) else embed.footer.text) if embed.footer is not None else ""
+        if modal.footerIcon.value:
+            embed.set_footer(text=footerText or ZWSP, icon_url=modal.footerIcon)
+        else:
+            if footerText:
+                embed.set_footer(text=footerText, icon_url=None)
+            else:
+                embed.remove_footer()
 
-    # async def send(interaction: Interaction):
-    #     await interaction.response.edit_message(content="sent!", view=None)
-    #     if lib.discordUtil.embedEmpty(embed):
-    #         embed.description = ZWSP
-    #     await interaction.channel.send(content=content, embed=embed)
-    #     view.stop()
+        if lib.discordUtil.embedEmpty(embed):
+            embed.description = ZWSP
+        await interaction.edit_original_message(embed=embed)
 
 #endregion
 #region commands

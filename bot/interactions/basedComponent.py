@@ -71,11 +71,14 @@ class StaticComponentIDsEnum(Enum, metaclass=StaticComponentEnumMeta):
 class StaticComponents(StaticComponentIDsEnum):
     Help = 1
     Clear_View = 2
-    User_Embed_Add_Field = 3
-    User_Embed_Remove_Field = 4
-    User_Embed_Remove_Field_Select = 5
-    User_Embed_Edit_Field = 6
-    User_Embed_Edit_Field_Select = 7
+    Clone_Message = 3
+    User_Embed_Add_Field = 4
+    User_Embed_Remove_Field = 5
+    User_Embed_Remove_Field_Select = 6
+    User_Embed_Edit_Field = 7
+    User_Embed_Edit_Field_Select = 8
+    User_Embed_Edit_Text = 9
+    User_Embed_Edit_Images = 10
 
 
 class StaticComponentMeta:

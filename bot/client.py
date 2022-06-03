@@ -86,7 +86,6 @@ def waitBeforeStartingTask(task: tasks.Loop):
     task.before_loop(inner)
     return task
 
-count = 0
 class BasedClient(ClientBaseClass):
     """A minor extension to discord.ext.commands.Bot to include database saving and extended shutdown procedures.
 
@@ -137,13 +136,8 @@ class BasedClient(ClientBaseClass):
 
 
     async def on_interaction(self, interaction: discord.Interaction):
-        print("ON INTERACTION: " + interaction.type.name)
         if interaction.type != discord.InteractionType.component or not basedComponent.customIdIsStaticComponent(interaction.data["custom_id"]):
             return
-
-        count += 1
-        if count == 2:
-            print()
         componentMeta = basedComponent.staticComponentMeta(interaction.data["custom_id"])
         if not self.hasStaticComponent(componentMeta.ID):
             return
