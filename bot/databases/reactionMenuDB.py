@@ -1,5 +1,6 @@
 from .. import botState
 from ..reactionMenus import reactionMenu
+from ..logging import LogCategory
 
 
 class ReactionMenuDB(dict):
@@ -44,7 +45,7 @@ async def deserialize(dbDict: dict) -> ReactionMenuDB:
                                     "Invalid menu dict (missing " + attr + "), ignoring and removing. " \
                                         + " ".join(foundAttr + "=" + menuData[foundAttr] \
                                             for foundAttr in requiredAttrs if foundAttr in menuData),
-                                    category="reactionMenus", eventType="dictNo" + attr.capitalize())
+                                    category=LogCategory.reactionMenus, eventType="dictNo" + attr.capitalize())
 
         menuDescriptor = menuData["type"] + "(" + "/".join(str(id) \
                             for id in [menuData["guild"], menuData["channel"], msgID]) + ")"
@@ -55,7 +56,7 @@ async def deserialize(dbDict: dict) -> ReactionMenuDB:
             if dcGuild is None:
                 botState.client.logger.log("reactionMenuDB", "deserialize",
                                     "Unrecognised guild in menu dict, ignoring and removing: " + menuDescriptor,
-                                    category="reactionMenus", eventType="unknGuild")
+                                    category=LogCategory.reactionMenus, eventType="unknGuild")
                 continue
 
         menuChannel = dcGuild.get_channel(menuData["channel"])
@@ -64,14 +65,14 @@ async def deserialize(dbDict: dict) -> ReactionMenuDB:
             if menuChannel is None:
                 botState.client.logger.log("reactionMenuDB", "deserialize",
                                     "Unrecognised channel in menu dict, ignoring and removing: " + menuDescriptor,
-                                    category="reactionMenus", eventType="unknChannel")
+                                    category=LogCategory.reactionMenus, eventType="unknChannel")
                 continue
 
         msg = await menuChannel.fetch_message(menuData["msg"])
         if msg is None:
             botState.client.logger.log("reactionMenuDB", "deserialize",
                                 "Unrecognised message in menu dict, ignoring and removing: " + menuDescriptor,
-                                category="reactionMenus", eventType="unknMsg")
+                                category=LogCategory.reactionMenus, eventType="unknMsg")
             continue
         
         if not reactionMenu.isSaveableMenuTypeName(menuData["type"]):
@@ -80,6 +81,6 @@ async def deserialize(dbDict: dict) -> ReactionMenuDB:
             botState.client.logger.log("reactionMenuDB", "deserialize",
                                 "Attempted to deserialize a non-saveable menu type, ignoring and removing. msg #" + str(msgID) \
                                     + ", type " + menuData["type"],
-                                category="reactionMenus", eventType="dictUnsaveable")
+                                category=LogCategory.reactionMenus, eventType="dictUnsaveable")
 
     return newDB

@@ -26,6 +26,7 @@ import aiohttp
 
 from . import lib, botState
 from .client import BasedClient
+from .logging import LogCategory
 
 
 def setHelpEmbedThumbnails():
@@ -100,7 +101,7 @@ async def on_guild_join(guild: discord.Guild):
 
         botState.client.logger.log("Main", "guild_join", "I joined a new guild! " + guild.name + "#" + str(guild.id) +
                                 ("\n -- The guild was added to botState.client.guildsDB" if not guildExists else ""),
-                                category="guildsDB", eventType="NW_GLD")
+                                category=LogCategory.guildsDB, eventType="NW_GLD")
 
 
 @botState.client.event
@@ -118,7 +119,7 @@ async def on_guild_remove(guild: discord.Guild):
 
         botState.client.logger.log("Main", "guild_remove", "I left a guild! " + guild.name + "#" + str(guild.id) +
                                 ("\n -- The guild was removed from botState.client.guildsDB" if guildExists else ""),
-                                category="guildsDB", eventType="NW_GLD")
+                                category=LogCategory.guildsDB, eventType="NW_GLD")
 
 
 @botState.client.event

@@ -5,11 +5,12 @@ import discord # type: ignore[import]
 from discord.errors import NotFound # type: ignore[import]
 from discord import User, Member, Guild, Message # type: ignore[import]
 from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent # type: ignore[import]
-from discord import DMChannel, GroupChannel, TextChannel # type: ignore[import]
+from discord import DMChannel, GroupChannel, TextChannel
 
 from . import stringTyping, emojis, exceptions
 from .. import botState
 from ..cfg import cfg
+from ..logging import LogCategory
 
 from functools import wraps, partial
 import asyncio
@@ -261,7 +262,7 @@ def asyncWrap(func: Callable) -> Callable[[Any], Awaitable[Any]]:
     return run
 
 
-async def asyncOperationWithRetry(f: AnyCoroutine, opName: str, logCategory: str, className: str, meta: str,
+async def asyncOperationWithRetry(f: AnyCoroutine, opName: str, logCategory: LogCategory, className: str, meta: str,
                                     *fArgs, **fKwargs) -> Optional[Message]:
     """Perform an asynchronous operation with a fixed retry, as defined in cfg.
 

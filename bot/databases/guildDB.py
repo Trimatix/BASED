@@ -5,6 +5,7 @@ from typing import List
 from .. import botState
 from carica import ISerializable # type: ignore[import]
 from .. import lib
+from ..logging import LogCategory
 
 
 class GuildDB(ISerializable):
@@ -167,5 +168,5 @@ class GuildDB(ISerializable):
             except lib.exceptions.NoneDCGuildObj:
                 botState.client.logger.log("GuildDB", "deserialize", "no corresponding discord guild found for ID " + id +
                                                             ", guild removed from database",
-                                    category="guildsDB", eventType="NULL_GLD")
+                                    category=LogCategory.guildsDB, eventType="NULL_GLD")
         return newDB

@@ -146,7 +146,7 @@ class Logger:
         self.clearLogs()
 
 
-    def log(self, classStr: str, funcStr: str, event: str, category: str = "misc", eventType: str = None,
+    def log(self, classStr: str, funcStr: str, event: str, category: LogCategory = LogCategory.misc, eventType: str = None,
                 trace: str = "", exception: Exception = None, noPrintEvent: bool = False, noPrint: bool = False):
         """Log an event, queueing the log to be saved to a file.
 
@@ -169,7 +169,7 @@ class Logger:
             self.log("Log", "log",
                         "ATTEMPTED TO LOG TO AN UNKNOWN CATEGORY '" \
                             + str(category) + "' -> Redirected to misc.", eventType="UNKWN_CTGR",
-                        category="misc")
+                        category=LogCategory.misc)
 
         if exception is not None:
             if event == "":
@@ -188,10 +188,10 @@ class Logger:
                         + "::" + str(funcStr).upper() + "]>" + str(eventType)
             if not noPrint:
                 print(eventStr)
-            self.logs[category][now] = eventStr + ": " + str(event) + ("\n" + trace if trace != "" else "") + "\n\n"
+            self.logs[category.value][now] = eventStr + ": " + str(event) + ("\n" + trace if trace != "" else "") + "\n\n"
         else:
             eventStr = now.strftime(LOG_TIME_FORMAT) + "-[" + str(classStr).upper() \
                         + "::" + str(funcStr).upper() + "]>" + str(eventType) + ": " + str(event)
             if not noPrint:
                 print(eventStr)
-            self.logs[category][now] = eventStr + ("\n" + trace if trace != "" else "") + "\n\n"
+            self.logs[category.value][now] = eventStr + ("\n" + trace if trace != "" else "") + "\n\n"
