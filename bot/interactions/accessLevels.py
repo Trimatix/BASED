@@ -1,17 +1,11 @@
-from typing import Type
+from typing import Dict, Optional, Type, TypeVar, Union
 from ..cfg import cfg
 from ..cogs import helpUtil
 from .. import lib
 from . import basedComponent
 from abc import ABC, abstractmethod
-from discord import Interaction, Member
-
-
-class _flag:
-    pass
-
-
-_MISSING = _flag()
+from discord import Interaction, Member, PartialMessageable
+from discord.utils import MISSING
 
 
 class _AccessLevelBase(ABC):
@@ -24,7 +18,7 @@ class _AccessLevelBase(ABC):
     :var name: The name of the access level
     :type name: str
     """
-    name: str = _MISSING
+    name: str = MISSING
     
     @classmethod
     def _intLevel(cls):
@@ -37,69 +31,67 @@ class _AccessLevelBase(ABC):
         return cfg.userAccessLevels.index(cls.name)
 
 
-class _ImportPlaceholder(_AccessLevelBase):
-    pass
+AccessLevelType = Union[Type["AccessLevelAsync"], Type["AccessLevel"]]
+_accessLevels: Dict[str, AccessLevelType] = {}
+_defaultAccessLevel: AccessLevelType = MISSING
 
 
-_accessLevels: dict[str, _AccessLevelBase] = {}
-_defaultAccessLevel: Type[_AccessLevelBase] = _ImportPlaceholder
-
-
-def accessLevelNamed(name: str) -> Type[_AccessLevelBase]:
+def accessLevelNamed(name: str) -> AccessLevelType:
     """Look up the access level with the given name
 
     :param name: The name of the access level to find
     :type name: str
     :return: An access level with the given name
-    :rtype: Type[_AccessLevelBase]
+    :rtype: AccessLevelType
     """
     return _accessLevels[name]
 
 
-def accessLevelWithIntLevel(level: int) -> Type[_AccessLevelBase]:
+def accessLevelWithIntLevel(level: int) -> AccessLevelType:
     """Find the access level whose `_intLevel()` is `level`
 
     :param level: The level of access to look up, according to the access level heirarchy in `cfg.userAccessLevels`
     :type level: int
     :raises ValueError: unknown level - out of range
     :return: An access level positioned at `_intLevel` `level` in te access level heirarchy
-    :rtype: Type[_AccessLevelBase]
+    :rtype: AccessLevelType
     """
     if level < 0 or level >= len(cfg.userAccessLevels):
         raise ValueError(f"Invalid access level int level: {level}. Must be between 0 and {len(cfg.userAccessLevels) - 1}")
     return accessLevelNamed(cfg.userAccessLevels[level])
 
 
-def defaultAccessLevel() -> Type[_AccessLevelBase]:
+def defaultAccessLevel() -> AccessLevelType:
     """Get the default access level assigned to users
 
     :return: The default access level
-    :rtype: Type[_AccessLevelBase]
+    :rtype: AccessLevelType
     """
     return _defaultAccessLevel
 
 
-def maxAccessLevel() -> Type[_AccessLevelBase]:
+def maxAccessLevel() -> AccessLevelType:
     """Get the highest access level in the heirarchy
 
     :return: The heirarchically-highest access level
-    :rtype: Type[_AccessLevelBase]
+    :rtype: AccessLevelType
     """
-    return accessLevelNamed[cfg.userAccessLevels[-1]]
+    return accessLevelNamed(cfg.userAccessLevels[-1])
 
+T = TypeVar("T", bound=AccessLevelType)
 
-def accessLevel(name: str = None, default: bool = False):
+def accessLevel(name: Optional[str] = None, default: bool = False):
     """Register an Access Level class for use by a `BasedClient`.
 
     :param accessLevel: The class to register
-    :type accessLevel: Type[_AccessLevelBase]
+    :type accessLevel: AccessLevelType
     :param name: The name of the access level, from `cfg` (Default `accessLevel.name`)
     :type name: Optional[str], optional
     :raises ValueError: When `accessLevel` is not an access level subclass
     :param default: Whether to use this access level as the default, lowest-level of access (Default False)
     :type default: bool
     """
-    def inner(accessLevel: Type[_AccessLevelBase], name = name, default = default):
+    def inner(accessLevel: T, name = name, default = default) -> T:
         global _defaultAccessLevel
         if not issubclass(accessLevel, _AccessLevelBase):
             raise ValueError(f"decorator is only valid for use on access level subclasses")
@@ -147,6 +139,8 @@ class DeveloperAccessLevel(AccessLevel):
 class ServerAdministratorAccessLevel(AccessLevel):
     @classmethod
     def userHasAccess(cls, interaction: Interaction) -> bool:
+        if interaction.channel is None or isinstance(interaction.channel, PartialMessageable):
+            return False
         return isinstance(interaction.user, Member) and interaction.channel.permissions_for(interaction.user).administrator
 
 

@@ -1,10 +1,10 @@
 from inspect import iscoroutinefunction
 import inspect
-from discord import ButtonStyle, Embed, Component
+from discord import ButtonStyle, Embed
 from discord import Message, Interaction
-from discord.ui import View, Button
+from discord.ui import View, Button, Item, Select, TextInput
 
-from typing import Any, Awaitable, List, Optional, TypeVar, Union, Callable, Protocol
+from typing import Any, Awaitable, List, Optional, TypeVar, Union, Callable, Protocol, cast, overload, Dict
 from enum import Enum, EnumMeta, _EnumDict
 
 from .. import lib
@@ -17,11 +17,45 @@ STATIC_COMPONENT_CUSTOM_ID_PREFIX = STATIC_COMPONENT_CUSTOM_ID_SEPARATOR
 
 STATIC_COMPONENT_CALLBACK_ID_MAX_LENGTH = 2
 
-class StaticComponentCallbackType(Protocol):
+
+class DecoratedStaticComponentInstanceMethodCallbackType(Protocol):
+    __static_component_meta__: "StaticComponentCallbackMeta"
+    __qualname__: str
+    def __call__(funcSelf, self, interaction: Interaction, *args) -> Awaitable: ... # type: ignore[reportSelfClsParameterName]
+
+class DecoratedStaticComponentClassMethodCallbackType(Protocol):
+    __static_component_meta__: "StaticComponentCallbackMeta"
+    __qualname__: str
+    def __call__(funcSelf, cls, interaction: Interaction, *args) -> Awaitable: ... # type: ignore[reportSelfClsParameterName]
+
+class DecoratedStaticComponentFunctionCallbackType(Protocol):
+    __static_component_meta__: "StaticComponentCallbackMeta"
+    __qualname__: str
     def __call__(self, interaction: Interaction, *args) -> Awaitable: ...
 
 
-TComponent = TypeVar("TComponent", bound=Component)
+class StaticComponentInstanceMethodCallbackType(Protocol):
+    __qualname__: str
+    def __call__(funcSelf, self, interaction: Interaction, *args) -> Awaitable: ... # type: ignore[reportSelfClsParameterName]
+
+class StaticComponentClassMethodCallbackType(Protocol):
+    __qualname__: str
+    def __call__(funcSelf, cls, interaction: Interaction, *args) -> Awaitable: ... # type: ignore[reportSelfClsParameterName]
+
+class StaticComponentFunctionCallbackType(Protocol):
+    __qualname__: str
+    def __call__(self, interaction: Interaction) -> Awaitable: ...
+
+StaticComponentCallbackType = Union[StaticComponentInstanceMethodCallbackType, StaticComponentClassMethodCallbackType, StaticComponentFunctionCallbackType]
+DecoratedStaticComponentCallbackType = Union[DecoratedStaticComponentInstanceMethodCallbackType, DecoratedStaticComponentClassMethodCallbackType, DecoratedStaticComponentFunctionCallbackType]
+
+TStaticComponentCallback = TypeVar("TStaticComponentCallback", bound=StaticComponentCallbackType)
+TDecoratedStaticComponentCallback = TypeVar("TDecoratedStaticComponentCallback", bound=DecoratedStaticComponentCallbackType)
+
+# TODO: The bound here used to be Item[View], but Item does not have a `custom_id`. Item isn't even abstract, which is interesting.
+# I also can't make an Intersection type on some SupportsCustomId protocol and Item, because python doesn't have an Intersection type. (https://github.com/python/typing/issues/213)
+# So for now, I've switched this to be more restrictive and just allow concrete items.
+TComponent = TypeVar("TComponent", bound=Union[Button, Select, TextInput])
 
 
 def validateParam(paramName: str, val: str):
@@ -49,8 +83,10 @@ def validateCustomId(customId: str):
 
 
 class StaticComponentEnumMeta(EnumMeta):
-    def __new__(metacls: type, clsName: str, bases: tuple[type, ...], classdict: _EnumDict, **kwds):
-        enumMembers = {k: classdict[k] for k in classdict._member_names}
+    # Ignoring warning on 'cls' parameter naming - this is the naming chosen by EnumMeta.
+    def __new__(metacls: type, clsName: str, bases: tuple[type, ...], classdict: _EnumDict, **kwds): # type: ignore[ncereportSelfClsParameterName]
+        # Ignoring warning for unknown field _member_names. Go to the _EnumDict source, it's there.
+        enumMembers: Dict[str, Any] = {k: classdict[k] for k in classdict._member_names} # type: ignore[reportGeneralTypeIssues]
         maxId = lib.ids.maxIndex(STATIC_COMPONENT_CALLBACK_ID_MAX_LENGTH, exclusions=[STATIC_COMPONENT_CUSTOM_ID_SEPARATOR])
         for name, value in enumMembers.items():
             if not isinstance(value, int):
@@ -64,7 +100,8 @@ class StaticComponentEnumMeta(EnumMeta):
 
 
 class StaticComponentIDsEnum(Enum, metaclass=StaticComponentEnumMeta):
-    def __call__(self, component: TComponent, args: str = None) -> TComponent:
+    # Ignoring warning on 'self' typing. __get__ for an enum member is a special case, it returns the enum member class rather than the enum class
+    def __call__(self: "StaticComponents", component: TComponent, args: Optional[str] = None) -> TComponent: # type: ignore[reportGeneralTypeIssues]
         return setCallbackToStaticComponent(component, self, args=args or "")
 
 
@@ -89,7 +126,7 @@ class StaticComponentMeta:
     :var args: Arguments for this instance of the static component, to be passed to the callback
     :type args: Optional[str]
     """
-    def __init__(self, ID: StaticComponents, args: str = None) -> None:
+    def __init__(self, ID: StaticComponents, args: Optional[str] = None) -> None:
         self.ID = ID
         self.args = args or None
 
@@ -148,7 +185,8 @@ def validateStaticComponentCallbackSelf(callback: StaticComponentCallbackType) -
     # There are no other ways of defining a static method outside of the __main__ namespace that I
     #   can think of, so assume it is an instance method where we don't know the instance yet
     if hasattr(callback, "__self__"):
-        return callback.__self__
+        # Ignoring warning on no '__self__' attribute, I just checked for it
+        return callback.__self__ # type: ignore[reportGeneralTypeIssues]
 
     funcPath = callback.__qualname__.split(".")
     if len(funcPath) > 1 and "<locals>" not in funcPath:
@@ -183,7 +221,7 @@ def staticComponentCallback(ID: StaticComponents):
     :var ID: The ID of the static component in the `StaticComponents` enum
     :type ID: StaticComponents
     """
-    def decorator(func: StaticComponentCallbackType, ID=ID):
+    def decorator(func: TStaticComponentCallback, ID=ID) -> TStaticComponentCallback:
         if not iscoroutinefunction(func):
             raise TypeError("Decorator can only be applied to coroutines")
 
@@ -208,7 +246,9 @@ def staticComponentCallbackMeta(callback: StaticComponentCallbackType) -> Static
     """
     if basedApp.appType(callback) != basedApp.BasedAppType.StaticComponent:
         raise TypeError("The callback is not a static component callback")
-    return callback.__static_component_meta__
+    
+    # Performing this cast because the type check is performed by basedApp.appType above
+    return cast(DecoratedStaticComponentCallbackType, callback).__static_component_meta__
 
 
 def staticComponentCustomId(ID: StaticComponents, args: str = "") -> str:
@@ -315,7 +355,7 @@ class Menu:
         self.embed = embed
 
 
-def callbackWithChecks(callback: Union[Callable[[Interaction], bool], Callable[[Interaction], Awaitable[bool]]], *checks: Union[Callable[[Interaction], bool], Callable[[Interaction], Awaitable[bool]]]) -> Callable[[Interaction], Awaitable]:
+def callbackWithChecks(callback: Union[Callable[[Interaction], Any], Callable[[Interaction], Awaitable[bool]]], *checks: Union[Callable[[Interaction], bool], Callable[[Interaction], Awaitable[bool]]]) -> Callable[[Interaction], Awaitable]:
     """Construct a callback that performs all of the checks in `checks` and, if they were all successful, calls `callback`.
     All of `callback` and `checks` may be synchronous or asynchronous.
 
@@ -324,7 +364,7 @@ def callbackWithChecks(callback: Union[Callable[[Interaction], bool], Callable[[
     :return: A callback that, when triggered, will perform all checks and then call `callback` if the checks pass
     :rtype: Callable[[Interaction], Awaitable]
     """
-    async def callback(interaction: Interaction):
+    async def inner(interaction: Interaction):
         for check in checks:
             result = check(interaction)
             if isinstance(result, Awaitable):
@@ -333,16 +373,18 @@ def callbackWithChecks(callback: Union[Callable[[Interaction], bool], Callable[[
                 raise TypeError(f"check returned a non-bool ({type(result).__name__}) result: {result}. Not executing callback")
             if not result:
                 await interaction.response.edit_message()
-        isinstance(checks[0](interaction), Awaitable)
+                return
         cbResult = callback(interaction)
         if isinstance(cbResult, Awaitable):
             await cbResult
+    return inner
 
 
+"""
 class PagedMultiButtonMenu:
-    """UNDER CONSTRUCTION
-    """
-    def __init__(self, pages: List[Menu], currentPageEmbed: Embed = None, currentPageNum: int = None, controlsCheck: Callable[[Interaction], bool] = None):
+    ""\"UNDER CONSTRUCTION
+    ""\"
+    def __init__(self, pages: List[Menu], currentPageEmbed: Optional[Embed] = None, currentPageNum: Optional[int] = None, controlsCheck: Optional[Callable[[Interaction], bool]] = None):
         self.pages = pages
 
         # Infer current page number and embed from kwargs (if any)
@@ -397,8 +439,8 @@ class PagedMultiButtonMenu:
 
 
     def updateCurrentPage(self):
-        """Update the menu's options and controls for the current page.
-        """
+        ""\"Update the menu's options and controls for the current page.
+        ""\"
         if len(self.pages) > 1:
             if self.currentPageNum == 1:
                 if not self.backwardComponent.isDisabled():
@@ -421,10 +463,10 @@ class PagedMultiButtonMenu:
 
 
     async def nextPage(self):
-        """Set the menu to display the next page.
+        ""\"Set the menu to display the next page.
 
         :raise lib.exceptions.PageOutOfRange: When the current page is the last page
-        """
+        ""\"
         if self.currentPageNum == self.lastPageNum():
             raise lib.exceptions.PageOutOfRange("Attempted to nextPage while on the last page")
         self.currentPageNum += 1
@@ -433,10 +475,10 @@ class PagedMultiButtonMenu:
 
 
     async def previousPage(self):
-        """Set the menu to display the previous page.
+        ""\"Set the menu to display the previous page.
 
         :raise lib.exceptions.PageOutOfRange: When the current page is the first page
-        """
+        ""\"
         if self.currentPageNum == 0:
             raise lib.exceptions.PageOutOfRange("Attempted to previousPage while on the first page")
         self.currentPageNum -= 1
@@ -445,18 +487,18 @@ class PagedMultiButtonMenu:
 
 
     async def jumpToPage(self, pageNum: int):
-        """Set the menu to display the given page number.
+        ""\"Set the menu to display the given page number.
 
         :param int pageNum: the zero-based index of the page to display
         :raise lib.exceptions.PageOutOfRange: If the given page number is out of range
-        """
+        ""\"
         if pageNum < 0 or pageNum > self.lastPageNum():
             raise lib.exceptions.PageOutOfRange("Page number out of range: " + str(pageNum))
         if pageNum != self.currentPageNum:
             self.currentPageNum = pageNum
             self.updateCurrentPage()
             await self.updateMessage()
-
+"""
 
 # class PagedOptionPicker(PagedMultiButtonMenu):
 #     def __init__(self, msg: Message, pages: Dict[Embed, List[BasedComponent]], submitRespond: Coroutine, currentPageEmbed: Embed = None, currentPageNum: int = None,

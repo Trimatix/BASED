@@ -1,12 +1,35 @@
 from enum import Enum
 from inspect import iscoroutinefunction
-from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, List, Optional, Tuple, Type
+from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, List, Optional, Tuple, Type, TypeVar, TYPE_CHECKING, Union
 
 from discord.ext.commands.cog import Cog
 from discord import app_commands, Interaction, Component
 
 from . import basedCommand, basedComponent
 from .. import client
+
+if TYPE_CHECKING:
+    from .basedCommand import CallBackType, TClass, TParams
+
+TAnyCallback = Callable[..., Awaitable[Any]]
+
+def w(arg):
+    def wrapper(f):
+        return f
+    return wrapper
+
+class X:
+    @w(1)
+    async def clearViewFromMessage(self, interaction: Interaction):
+        if interaction.response.is_done():
+            await interaction.edit_original_message(view=None)
+        else:
+            await interaction.response.edit_message(view=None)
+
+    async def cloneMessage(self, interaction: Interaction, userId: str):
+        await self.clearViewFromMessage(interaction)
+
+    
 
 class DelayedPropogationFlag: pass
 
@@ -19,14 +42,12 @@ class BasedAppType(Enum):
     AppCommand = 1
     StaticComponent = 2
 
-CallBackType = Callable[[Interaction], Awaitable]
 
-
-def appType(callback: CallBackType) -> BasedAppType:
+def appType(callback: TAnyCallback) -> BasedAppType:
     """Decide the BASED app type for a callback, if any
 
     :param callback: The callback to examine
-    :type callback: CallBackType
+    :type callback: TAnyCallback
     :return: The BASED app type for `callback`
     :rtype: BasedAppType
     """
@@ -36,11 +57,11 @@ def appType(callback: CallBackType) -> BasedAppType:
         return BasedAppType.none
 
 
-def _ensureAppType(callback: CallBackType, basedAppType: BasedAppType):
+def _ensureAppType(callback: TAnyCallback, basedAppType: BasedAppType):
     """Raise an exception of `callback` is a BASED app type other than `basedAppType` or `none`.
 
     :param callback: The callback to examine
-    :type callback: CallBackType
+    :type callback: TAnyCallback
     :param basedAppType: The basedAppType to allow `callback` to be
     :type basedAppType: BasedAppType
     :raises ValueError: If `callback` is any BASED app type other than `basedAppType` or `none`
@@ -50,12 +71,12 @@ def _ensureAppType(callback: CallBackType, basedAppType: BasedAppType):
         raise ValueError(f"callback {callback.__name__} is already based app type {callbackType}")
 
 
-def basedApp(callback: CallBackType, basedAppType: BasedAppType):
+def basedApp(callback: TAnyCallback, basedAppType: BasedAppType):
     """Mark a callback as a BASED app. This does not add the behaviour of the BASED app, it only
     marks the callback as of that type.
 
     :param callback: The callback to mark
-    :type callback: CallBackType
+    :type callback: TAnyCallback
     :param basedAppType: The BASED app type to mark `callback` as
     :type basedAppType: BasedAppType
     """
@@ -121,6 +142,7 @@ def getCogAppCogName(callback: Callable) -> str:
     # return callback.__cog_name__
     return callback.__dict__["__cog_name__"]
 
+TStaticComponentCallback = TypeVar("TStaticComponentCallback", bound="basedComponent.StaticComponentCallbackType")
 
 class BasedCog(Cog):
     """An extension of `Cog` to allow for housing of BASED apps.
@@ -133,8 +155,8 @@ class BasedCog(Cog):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._basedCommands: Dict[app_commands.Command, "basedCommand.BasedCommandMeta"] = None
-        self._staticComponentCallbacks: Dict["basedComponent.StaticComponents", "basedComponent.StaticComponentCallbackMeta"] = None
+        self._basedCommands: Optional[Dict[app_commands.Command, "basedCommand.BasedCommandMeta"]] = None
+        self._staticComponentCallbacks: Optional[Dict["basedComponent.StaticComponents", "basedComponent.StaticComponentCallbackMeta"]] = None
 
 
     @property
@@ -159,7 +181,7 @@ class BasedCog(Cog):
         self._staticComponentCallbacks = {}
         # __cog_app_commands__ is assigned in discord._CogMeta.__new__, which does not make new copies of commands
         for command in self.__cog_app_commands__:
-            if appType(command.callback) == BasedAppType.AppCommand:
+            if isinstance(command, app_commands.Command) and appType(command.callback) == BasedAppType.AppCommand:
                 self.basedCommands[command] = basedCommand.commandMeta(command)
                 setCogApp(command.callback, type(self))
                 bot.addBasedCommand(command)
@@ -218,7 +240,7 @@ class BasedCog(Cog):
         :var ID: The ID of the static component in the `StaticComponents` enum
         :type ID: StaticComponents
         """
-        def decorator(func: "basedComponent.StaticComponentCallbackType", ID=ID):
+        def decorator(func: TStaticComponentCallback, ID=ID) -> TStaticComponentCallback:
             if not iscoroutinefunction(func):
                 raise TypeError("Decorator can only be applied to coroutines")
 

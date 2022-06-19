@@ -1,7 +1,7 @@
 from . import timedTask
 from heapq import heappop, heappush
 import inspect
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union
 import asyncio
 from datetime import datetime
 import discord
@@ -22,7 +22,7 @@ class TimedTaskHeap:
     :vartype hasExpiryFunctionArgs: bool
     """
 
-    def __init__(self, expiryFunction : timedTask.TTCallbackType = None, expiryFunctionArgs : Any = None):
+    def __init__(self, expiryFunction : Optional[timedTask.TTCallbackType] = None, expiryFunctionArgs : Any = None):
         """
         :param function expiryFunction: function reference to call upon the expiry of any
                                         TimedTask managed by this heap. (Default None)
@@ -34,7 +34,7 @@ class TimedTaskHeap:
         self.expiryFunction = expiryFunction
         self.hasExpiryFunction = expiryFunction is not None
         self.hasExpiryFunctionArgs = expiryFunctionArgs is not None
-        self.expiryFunctionArgs = expiryFunctionArgs if self.hasExpiryFunctionArgs else {}
+        self.expiryFunctionArgs: Any = expiryFunctionArgs if self.hasExpiryFunctionArgs else {}
 
 
     def cleanHead(self):
@@ -67,11 +67,14 @@ class TimedTaskHeap:
         Accounts for expiry function arguments (if specified) and asynchronous expiry functions
         TODO: pass down whatever the expiry function returns
         """
+        if self.expiryFunction is None: return
         # Pass args to the expiry function, if they are specified
+        # ignoring warnings here due to arguments being incompatible with expiry function signature.
+        # The signature is checked with hasExpiryFunctionArgs, so the call signature is correct.
         if self.hasExpiryFunctionArgs:
-            asyncio.create_task(self.expiryFunction(self.expiryFunctionArgs))
+            asyncio.create_task(self.expiryFunction(self.expiryFunctionArgs)) # type: ignore[reportGeneralTypeIssues]
         else:
-            asyncio.create_task(self.expiryFunction())
+            asyncio.create_task(self.expiryFunction()) # type: ignore[reportGeneralTypeIssues]
 
 
     def doTaskChecking(self):
@@ -93,7 +96,7 @@ class TimedTaskHeap:
                 heappush(self.tasksHeap, task)
 
 
-def startSleeper(delay: int, loop: asyncio.AbstractEventLoop, result: bool = None) -> asyncio.Task:
+def startSleeper(delay: int, loop: asyncio.AbstractEventLoop, result: Optional[bool] = None) -> asyncio.Task:
     async def _start(delay, loop, result=None):
         coro = asyncio.sleep(delay, result=result, loop=loop)
         task = asyncio.create_task(coro)
@@ -126,7 +129,7 @@ class AutoCheckingTimedTaskHeap(TimedTaskHeap):
     :vartype active: bool
     """
 
-    def __init__(self, loop: asyncio.AbstractEventLoop, expiryFunction: timedTask.TTCallbackType = None, expiryFunctionArgs = None):
+    def __init__(self, loop: asyncio.AbstractEventLoop, expiryFunction: Optional[timedTask.TTCallbackType] = None, expiryFunctionArgs = None):
         """
         :param asyncio.AbstractEventLoop loop: The event loop to schedule the heap into
         :param function expiryFunction: function reference to call upon the expiry of any
@@ -179,9 +182,12 @@ class AutoCheckingTimedTaskHeap(TimedTaskHeap):
         """
         if self.active:
             self.active = False
-            self.sleepTask.cancel()
-            self.sleepTask = None
-            self.checkingLoopFuture.cancel()
+            if self.sleepTask is not None:
+                self.sleepTask.cancel()
+                self.sleepTask = None
+            if self.checkingLoopFuture is not None:
+                self.checkingLoopFuture.cancel()
+                self.checkingLoopFuture = None
 
 
     def scheduleTask(self, task: timedTask.TimedTask, startLoop: bool = True):

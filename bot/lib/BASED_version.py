@@ -3,10 +3,10 @@ from ..cfg import cfg
 from .. import lib
 from datetime import datetime, timezone
 import aiohttp
-from carica import SerializableDataClass # type: ignore[import]
+from carica import SerializableDataClass, PrimativeType # type: ignore[import]
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional, Type
 
 from discord.utils import utcnow # type: ignore[import]
 

@@ -1,11 +1,11 @@
-from typing import Dict, List, Union, overload
+from typing import Dict, List, Optional, Union, overload
 import string
 
-_idToIndex: Dict[str, int] = {c: i for i, c in enumerate(string.printable)}
-_indexToID: Dict[int, str] = {i: c for c, i in _idToIndex.items()}
+_idToIndex = {c: i for i, c in enumerate(string.printable)}
+_indexToID = {i: c for c, i in _idToIndex.items()}
 _numChars = len(_idToIndex)
 
-def _idCharToIndex(c: str, exclusions: List[str] = None) -> int:
+def _idCharToIndex(c: str, exclusions: Optional[Union[str, List[str]]] = None) -> int:
     v = _idToIndex[c]
     if exclusions:
         if c in exclusions:
@@ -14,7 +14,7 @@ def _idCharToIndex(c: str, exclusions: List[str] = None) -> int:
     return v
 
 
-def _indexToCharID(i: int, exclusions: List[str] = None) -> str:
+def _indexToCharID(i: int, exclusions: Optional[Union[str, List[str]]] = None) -> str:
     if exclusions is not None:
         i -= sum(1 for c in exclusions if _idToIndex[c] < i)
     v = _indexToID.get(i, None)
@@ -23,7 +23,7 @@ def _indexToCharID(i: int, exclusions: List[str] = None) -> str:
     return v
 
 
-def idToIndex(ID: str, exclusions: List[str] = None) -> int:
+def idToIndex(ID: str, exclusions: Optional[Union[str, List[str]]] = None) -> int:
     """Convert a compacted ID from `indexToID` back into the original number.
     This method effectively converts `i` to a higher base, but allows for exclusions of characters
     from the alphabet.
@@ -50,7 +50,7 @@ def idToIndex(ID: str, exclusions: List[str] = None) -> int:
     return v
 
 
-def indexToID(i: int, pad: int = None, exclusions: List[str] = None) -> str:
+def indexToID(i: int, pad: Optional[int] = None, exclusions: Optional[Union[str, List[str]]] = None) -> str:
     """Compact a number into a much smaller string ID. This method effectively
     converts `i` to a higher base, but allows for exclusions of characters from the alphabet.
 
@@ -87,7 +87,7 @@ def indexToID(i: int, pad: int = None, exclusions: List[str] = None) -> str:
     return v
 
 
-def maxIndex(idLength: int, exclusions: List[str] = None) -> int:
+def maxIndex(idLength: int, exclusions: Optional[Union[str, List[str]]] = None) -> int:
     """The largest ID representable in the given number of characters
 
     :param idLength: The number of characters to allow in the ID
@@ -97,5 +97,8 @@ def maxIndex(idLength: int, exclusions: List[str] = None) -> int:
     :return: The largest ID representable, given `exclusions`
     :rtype: int
     """
-    maxI = max(c for c in reversed(_indexToID.keys()) if exclusions is None or c not in exclusions)
+    if exclusions:
+        maxI = max(i for i, c in reversed(_indexToID.items()) if c not in exclusions)
+    else:
+        maxI = max(_indexToID.keys())
     return idToIndex(_indexToID[maxI] * idLength, exclusions=exclusions)

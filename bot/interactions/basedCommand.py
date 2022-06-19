@@ -1,19 +1,24 @@
-from discord import app_commands
+from discord import app_commands, Interaction
 from discord.utils import MISSING
-from typing import Dict, Optional, Type, Union
-from .accessLevels import _AccessLevelBase, AccessLevel, accessLevelNamed, defaultAccessLevel
+from typing import Callable, Dict, Optional, Tuple, Type, TypeVar, Union, Awaitable
+from .accessLevels import AccessLevelType, AccessLevel, accessLevelNamed, defaultAccessLevel
 from .commandChecks import requireAccess
 from .basedApp import basedApp, BasedAppType
 from . import basedComponent
 from ..cfg import cfg
 from ..cogs.helpUtil import *
 
+TClass = TypeVar("TClass")
+TParam = TypeVar("TParam")
+TParams = Tuple[TParam, ...]
+CallBackType = Callable[[TClass, Interaction, TParams], Awaitable]
+
 
 class BasedCommandMeta:
     """A data class defining attributes of a BASED command.
 
     :var accessLevel: The access level required to use the command
-    :type accessLevel: _AccessLevelBase
+    :type accessLevel: AccessLevelType
     :var showInHelp: Whether or not this command should appear in help command listings
     :type showInHelp: bool
     :var helpSection: The section of the help command in which to list this command
@@ -23,7 +28,7 @@ class BasedCommandMeta:
     :var formattedParamDescs: Descriptions for each parameter of the command with more allowed length and markdown formatting, to be used in help commands
     :type formattedParamDescs: Optional[Dict[str, str]]
     """
-    def __init__(self, accessLevel: _AccessLevelBase = MISSING, showInHelp: bool = True, helpSection: Optional[str] = None, formattedDesc: Optional[str] = None, formattedParamDescs : Optional[Dict[str, str]] = None):
+    def __init__(self, accessLevel: AccessLevelType = MISSING, showInHelp: bool = True, helpSection: Optional[str] = None, formattedDesc: Optional[str] = None, formattedParamDescs : Optional[Dict[str, str]] = None):
         self._accessLevel = accessLevel
         self.showInHelp = showInHelp
         self._helpSection = helpSection
@@ -36,7 +41,7 @@ class BasedCommandMeta:
         """The access level required to use the command
 
         :return: The access level required to use the command
-        :rtype: _AccessLevelBase
+        :rtype: AccessLevelType
         """
         return self._accessLevel if self._accessLevel is not MISSING else defaultAccessLevel()
 
@@ -82,9 +87,9 @@ def basedCommand(
     *,
     accessLevel: Union[Type[AccessLevel], str] = MISSING,
     showInHelp: bool = True,
-    helpSection: str = None,
-    formattedDesc: str = None,
-    formattedParamDescs : Dict[str, str] = None
+    helpSection: Optional[str] = None,
+    formattedDesc: Optional[str] = None,
+    formattedParamDescs : Optional[Dict[str, str]] = None
 ):
     """Decorator that marks a discord app command as a BASED command.
 
@@ -134,13 +139,13 @@ def commandMeta(command: app_commands.Command) -> BasedCommandMeta:
     return BasedCommandMeta()
 
 
-def accessLevel(command: app_commands.Command) -> _AccessLevelBase:
+def accessLevel(command: app_commands.Command) -> AccessLevelType:
     """Get the access level required to use a BASED command
     If the command is not a BASED command, then the default access level is returned
 
     :param command: The command
     :type command: app_commands.Command
     :return: The access level required to use the command
-    :rtype: _AccessLevelBase
+    :rtype: AccessLevelType
     """
     return commandMeta(command).accessLevel

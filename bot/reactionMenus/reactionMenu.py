@@ -5,12 +5,14 @@ from ..scheduling.timedTask import TimedTask
 import inspect
 from discord import Embed, Colour, NotFound, HTTPException, Forbidden # type: ignore[import]
 from discord import Member, User, Message, Role, RawReactionActionEvent # type: ignore[import]
+from discord.abc import GuildChannel
 from ..cfg import cfg
 from .. import botState, lib
+from ..lib.jsonHandler import JsonType
 from abc import abstractmethod
-from typing import Any, Awaitable, Callable, Type, Union, Dict, List, cast
+from typing import Any, Awaitable, Callable, Optional, Type, TypeVar, Union, Dict, List, cast
 import asyncio
-from carica import ISerializable # type: ignore[import]
+from carica import ISerializable
 from . import expiryFunctions
 
 
@@ -54,8 +56,8 @@ class ReactionMenuOption(ISerializable):
     :vartype removeHasArgs: bool
     """
 
-    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, addFunc: MenuOptionCallbackType = None, addArgs=None,
-                    removeFunc: MenuOptionCallbackType = None, removeArgs=None):
+    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, addFunc: Optional[MenuOptionCallbackType] = None, addArgs: Any = None,
+                    removeFunc: Optional[MenuOptionCallbackType] = None, removeArgs: Any = None):
         """
         :param str name: The name of this option, as displayed in the menu embed.
         :param lib.emojis.BasedEmoji emoji: The emoji that a user must react with to trigger this option
@@ -162,7 +164,7 @@ class ReactionMenuOption(ISerializable):
 
 
     @abstractmethod
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> JsonType:
         """Serialize this menu option into dictionary format for saving to file.
         This is a base, abstract definition that does not encode option functionality (i.e function calls and arguments).
 
@@ -188,7 +190,7 @@ class ReactionMenuOption(ISerializable):
 
 
     @classmethod
-    def deserialize(cls, data: dict, **kwargs):
+    def deserialize(cls, data: JsonType, **kwargs):
         raise NotImplementedError("Attempted to deserialize an unserializable menu option type: " + cls.__name__)
 
 
@@ -198,8 +200,8 @@ class NonSaveableReactionMenuOption(ReactionMenuOption):
     Instead, inherit directly from ReactionMenuOption or another suitable subclass that is not marked as unsaveable.
     """
 
-    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, addFunc: MenuOptionCallbackType = None, addArgs=None,
-                        removeFunc: MenuOptionCallbackType = None, removeArgs=None):
+    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, addFunc: Optional[MenuOptionCallbackType] = None, addArgs: Any = None,
+                        removeFunc: Optional[MenuOptionCallbackType] = None, removeArgs: Any = None):
         """
         :param str name: The name of this option, as displayed in the menu embed.
         :param lib.emojis.BasedEmoji emoji: The emoji that a user must react with to trigger this option
@@ -213,7 +215,7 @@ class NonSaveableReactionMenuOption(ReactionMenuOption):
                                                             removeFunc=removeFunc, removeArgs=removeArgs)
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs):
         """Unimplemented.
         This class should only be used for reaction menu options that will not be saved to file.
 
@@ -235,7 +237,7 @@ class DummyReactionMenuOption(ReactionMenuOption):
         super(DummyReactionMenuOption, self).__init__(name, emoji)
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> JsonType:
         """Serialize this menu option into dictionary format for saving to file.
         Since dummy reaction menu options have no on-toggle functionality, the resulting base dictionary contains
         all information needed to reconstruct this option instance.
@@ -310,10 +312,10 @@ class ReactionMenu(ISerializable):
     :vartype targetRole: discord.Role
     """
 
-    def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = None,
-                 titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: TimedTask = None,
+    def __init__(self, msg: Message, options: Optional[Dict[lib.emojis.BasedEmoji, ReactionMenuOption]] = None,
+                 titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: Optional[TimedTask] = None,
                  footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "",
-                 authorName: str = "", targetMember: Member = None, targetRole: Role = None):
+                 authorName: str = "", targetMember: Optional[Union[User, Member]] = None, targetRole: Optional[Role] = None):
         """
         :param discord.Message msg: the message where this menu is embedded
         :param options: A dictionary storing all of the menu's options and their behaviour (Default {})
@@ -384,8 +386,7 @@ class ReactionMenu(ISerializable):
                 member != self.targetMember):
             return
 
-        if self.targetRole is not None and \
-                self.targetRole not in member.roles:
+        if not isinstance(member, Member) or (self.targetRole is not None and self.targetRole not in member.roles):
             return
 
         return await self.options[emoji].add(member)
@@ -409,8 +410,7 @@ class ReactionMenu(ISerializable):
                 member != self.targetMember:
             return
 
-        if self.targetRole is not None and \
-                self.targetRole not in member.roles:
+        if not isinstance(member, Member) or (self.targetRole is not None and self.targetRole not in member.roles):
             return
 
         return await self.options[emoji].remove(member)
@@ -453,7 +453,9 @@ class ReactionMenu(ISerializable):
             except Forbidden:
                 for reaction in self.msg.reactions:
                     try:
-                        await reaction.remove(botState.client.user)
+                        # ignoring a warning here that Client.user can be None, if the client is not logged in.
+                        # The client will always be logged in here, because menu changes can only be triggered by discord reactions.
+                        await reaction.remove(botState.client.user) # type: ignore[reportGeneralTypeIssues] 
                     except (HTTPException, NotFound):
                         pass
 
@@ -475,7 +477,7 @@ class ReactionMenu(ISerializable):
             self.timeout.forceExpire()
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> JsonType:
         """Serialize this ReactionMenu into dictionary format for saving to file.
         This is a base, concrete implementation that saves all information required to recreate a ReactionMenu instance;
         when extending ReactionMenu, you will likely wish to overload this method, using super.serialize as a base for your
@@ -489,7 +491,10 @@ class ReactionMenu(ISerializable):
             optionsDict[reaction.sendable] = self.options[reaction].serialize(**kwargs)
 
         data = {"channel": self.msg.channel.id, "msg": self.msg.id, "options": optionsDict,
-                "type": self.__class__.__name__, "guild": self.msg.channel.guild.id}
+                "type": self.__class__.__name__}
+
+        if isinstance(self.msg.channel, GuildChannel):
+            data["guild"] = self.msg.channel.guild.id
 
         if self.titleTxt != "":
             data["titleTxt"] = self.titleTxt
@@ -528,7 +533,7 @@ class ReactionMenu(ISerializable):
 
 
     @classmethod
-    def deserialize(cls, data: dict, **kwargs):
+    def deserialize(cls, data: JsonType, **kwargs):
         raise NotImplementedError("Attempted to deserialize an unserializable menu type: " + cls.__name__)
 
 
@@ -549,9 +554,9 @@ class CancellableReactionMenu(ReactionMenu):
 
     def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption],
                     cancelEmoji: lib.emojis.BasedEmoji = cfg.defaultEmojis.cancel,
-                    titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: TimedTask = None,
+                    titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: Optional[TimedTask] = None,
                     footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "", authorName: str = "",
-                    targetMember: Member = None, targetRole: Role = None):
+                    targetMember: Optional[Member] = None, targetRole: Optional[Role] = None):
         """
         :param discord.Message msg: the message where this menu is embedded
         :param options: A dictionary storing all of the menu's options and their behaviour (Default {})
@@ -582,7 +587,7 @@ class CancellableReactionMenu(ReactionMenu):
                                                         targetRole=targetRole)
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> JsonType:
         """Serializes the reaction menu to a dictionary representation.
         This currently does not add any information on top of ReactionMenu.serialize, but ensures that the cancel option
         is not included in the dictionary for space efficiency purposes.
@@ -593,9 +598,10 @@ class CancellableReactionMenu(ReactionMenu):
         :return: A dictionary containing information about this menu, to be used when configuring a recreation of this object.
         :rtype: dict
         """
-        baseDict = super(CancellableReactionMenu, self).serialize(**kwargs)
+        baseDict = super().serialize(**kwargs)
         # TODO: Make sure the option is in there?
-        del baseDict["options"][self.cancelEmoji.sendable]
+        # ignoring a warning here because pyright doesn't know the structure of a serialized ReacionMenu
+        del baseDict["options"][self.cancelEmoji.sendable] # type: ignore[reportGeneralTypeIssues]
 
         return baseDict
 
@@ -617,7 +623,7 @@ class SingleUserReactionMenu(ReactionMenu):
     """
 
     def __init__(self, msg: Message, targetMember: Union[Member, User], timeoutSeconds: int,
-                 options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption] = None,
+                 options: Optional[Dict[lib.emojis.BasedEmoji, ReactionMenuOption]] = None,
                  returnTriggers: List[lib.emojis.BasedEmoji] = [], titleTxt: str = "", desc: str = "",
                  col: Colour = Colour.blue(), footerTxt: str = "", img: str = "", thumb: str = "",
                  icon: str = "", authorName: str = ""):
@@ -671,16 +677,26 @@ class SingleUserReactionMenu(ReactionMenu):
             return []
         else:
             updatedMsg = await self.msg.channel.fetch_message(self.msg.id)
-            return [lib.emojis.BasedEmoji.fromReaction(react.emoji) for react in updatedMsg.reactions \
-                    if self.targetMember in await react.users().flatten() and \
-                    lib.emojis.BasedEmoji.fromReaction(react.emoji) in self.options]
+            selectedOptions = []
+            for react in updatedMsg.reactions:
+                e = lib.emojis.BasedEmoji.fromReaction(react.emoji)
+                if e not in self.options:
+                    continue
+                
+                async for user in react.users():
+                    if user == self.targetMember:
+                        selectedOptions.append(e)
+                        break
+
+            return selectedOptions
 
 
-saveableMenuTypeNames: Dict[type, str] = {}
-saveableNameMenuTypes: Dict[str, type] = {}
+saveableMenuTypeNames: Dict[Type[ReactionMenu], str] = {}
+saveableNameMenuTypes: Dict[str, Type[ReactionMenu]] = {}
 
+TMenuType = TypeVar("TMenuType", bound=Type[ReactionMenu])
 
-def saveableMenu(cls: type) -> type:
+def saveableMenu(cls: TMenuType) -> TMenuType:
     """A decorator registering a ReactionMenu subclass as saveable.
     Once applied, instances of your class will automatically save their serialize representation to SQL on creation,
     and the instance will be reconstructed on bot restart with your provided deserialize implementation.
@@ -700,7 +716,7 @@ def saveableMenu(cls: type) -> type:
     return cls
 
 
-def isSaveableMenuClass(cls: type) -> bool:
+def isSaveableMenuClass(cls: Type[ReactionMenu]) -> bool:
     """Decide if the given class has been registered as a saveable reaction menu.
 
     :param type cls: The class to check for saveability registration
@@ -730,7 +746,7 @@ def isSaveableMenuTypeName(clsName: str) -> bool:
     return clsName in saveableNameMenuTypes
 
 
-def saveableMenuClassFromName(clsName: str) -> Type[ISerializable]:
+def saveableMenuClassFromName(clsName: str) -> Type[ReactionMenu]:
     """Retreive the saveable ReactionMenu subclass that as the given class name.
     clsName must correspond to a ReactionMenu subclass that has been registered as saveble with the saveableMenu decorator.
 

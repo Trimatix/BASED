@@ -1,5 +1,5 @@
 from .. import client, lib
-from ..lib.discordUtil import ZWSP
+from ..lib.discordUtil import ZWSP, textChannel
 from discord import Interaction
 from ..cfg import cfg
 from ..interactions.basedApp import BasedCog
@@ -29,11 +29,16 @@ class CommonStaticComponentsCog(BasedCog):
         embed = message.embeds[0] if message.embeds else None
 
         await interaction.response.edit_message(content="sent!", view=None)
-        if lib.discordUtil.embedEmpty(embed):
-            embed.description = ZWSP
-        await interaction.channel.send(content=message.content, embed=embed)
+        if embed is not None:
+            if lib.discordUtil.embedEmpty(embed):
+                embed.description = ZWSP
+            await textChannel(interaction).send(content=message.content, embed=embed)
+        else:
+            await textChannel(interaction).send(content=message.content)
         await self.clearViewFromMessage(interaction)
 
 
 async def setup(bot: client.BasedClient):
-    await bot.add_cog(CommonStaticComponentsCog(bot), guilds=cfg.developmentGuilds)
+    # TODO: Fix SerializableDiscordObject somehow not matching Snowflake protocol
+    await bot.add_cog(CommonStaticComponentsCog(bot),
+                        guilds=cfg.developmentGuilds) # type: ignore[reportGeneralTypeIssues]

@@ -1,4 +1,4 @@
 git+https://github.com/Rapptz/discord.py
 emoji==1.7.0
-carica
+carica>1.3
 aiohttp[speedups]

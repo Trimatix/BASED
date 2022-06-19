@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable, List
+from typing import Awaitable, Callable, List, Optional
 from discord import Message # type: ignore[import]
 from ..lib.exceptions import IncorrectCommandCallContext
 
@@ -29,7 +29,7 @@ class CommandRegistry:
     """
 
     def __init__(self, ident: str, func: COMMAND_FUNCTION_TYPE, forceKeepArgsCasing: bool, forceKeepCommandCasing: bool,
-                    allowDM: bool, allowHelp: bool, aliases: List[str] = None, signatureStr: str = "", shortHelp: str = "",
+                    allowDM: bool, allowHelp: bool, aliases: Optional[List[str]] = None, signatureStr: str = "", shortHelp: str = "",
                     longHelp: str = "", helpSection: str = "miscellaneous"):
         """
         :param str ident: The string command name by which this command is identified and called

@@ -1,14 +1,15 @@
 # Set up bot config
 
 from typing import List, Literal, Optional, Union, cast
-from bot.lib.emojis import UninitializedBasedEmoji
-from .cfg import cfg, versionInfo
+from .lib.emojis import UninitializedBasedEmoji
+from .cfg import cfg
 
 # Discord Imports
 
 import discord # type: ignore[import]
-from discord import Object, app_commands, Interaction
+from discord import Member, Object, app_commands, Interaction
 from discord.ext.commands import ExtensionNotLoaded
+from discord.abc import GuildChannel
 from .interactions import basedCommand
 
 
@@ -25,6 +26,7 @@ import aiohttp
 # BASED Imports
 
 from . import lib, botState
+from .lib import BASED_version
 from .client import BasedClient
 from .logging import LogCategory
 
@@ -33,6 +35,8 @@ def setHelpEmbedThumbnails():
     """Loads the bot application's profile picture into all help menu embeds as the embed thumbnail.
     If no profile picture is set for the application, the default profile picture is used instead.
     """
+    if botState.client.user is None:
+        raise ValueError("Cannot set help embed thumbs because the client is not yet logged in")
     avatar = botState.client.user.display_avatar.url
     for levelSection in botCommands.helpSectionEmbeds:
         for helpSection in levelSection.values():
@@ -48,7 +52,8 @@ def inferUserPermissions(message: discord.Message) -> int:
     """
     if message.author.id in cfg.developers:
         return 3
-    elif message.author.permissions_in(message.channel).administrator:
+    # Performing a Member cast here, because we already know that the channel is in a guild, so the author must be a member.
+    elif isinstance(message.channel, GuildChannel) and message.channel.permissions_for(cast(Member, message.author)).administrator:
         return 2
     else:
         return 0
@@ -93,15 +98,14 @@ async def on_guild_join(guild: discord.Guild):
 
     :param discord.Guild guild: the guild just joined.
     """
-    if botState.client.storeGuilds:
-        guildExists = True
-        if not botState.client.guildsDB.idExists(guild.id):
-            guildExists = False
-            botState.client.guildsDB.addID(guild.id)
+    guildExists = True
+    if not botState.client.guildsDB.idExists(guild.id):
+        guildExists = False
+        botState.client.guildsDB.addID(guild.id)
 
-        botState.client.logger.log("Main", "guild_join", "I joined a new guild! " + guild.name + "#" + str(guild.id) +
-                                ("\n -- The guild was added to botState.client.guildsDB" if not guildExists else ""),
-                                category=LogCategory.guildsDB, eventType="NW_GLD")
+    botState.client.logger.log("Main", "guild_join", "I joined a new guild! " + guild.name + "#" + str(guild.id) +
+                            ("\n -- The guild was added to botState.client.guildsDB" if not guildExists else ""),
+                            category=LogCategory.guildsDB, eventType="NW_GLD")
 
 
 @botState.client.event
@@ -111,15 +115,14 @@ async def on_guild_remove(guild: discord.Guild):
 
     :param discord.Guild guild: the guild just left.
     """
-    if botState.client.storeGuilds:
-        guildExists = False
-        if botState.client.guildsDB.idExists(guild.id):
-            guildExists = True
-            botState.client.guildsDB.removeID(guild.id)
+    guildExists = False
+    if botState.client.guildsDB.idExists(guild.id):
+        guildExists = True
+        botState.client.guildsDB.removeID(guild.id)
 
-        botState.client.logger.log("Main", "guild_remove", "I left a guild! " + guild.name + "#" + str(guild.id) +
-                                ("\n -- The guild was removed from botState.client.guildsDB" if guildExists else ""),
-                                category=LogCategory.guildsDB, eventType="NW_GLD")
+    botState.client.logger.log("Main", "guild_remove", "I left a guild! " + guild.name + "#" + str(guild.id) +
+                            ("\n -- The guild was removed from botState.client.guildsDB" if guildExists else ""),
+                            category=LogCategory.guildsDB, eventType="NW_GLD")
 
 
 @botState.client.event
@@ -127,7 +130,7 @@ async def on_ready():
     # Set help embed thumbnails
     setHelpEmbedThumbnails()
 
-    print("BASED " + versionInfo.BASED_VERSION + " loaded.\nClient logged in as {0.user}".format(botState.client))
+    print("BASED " + BASED_version.BASED_VERSION + " loaded.\nClient logged in as {0.user}".format(botState.client))
 
     # Set custom bot status
     await botState.client.change_presence(activity=discord.Game("BASED APP"))
@@ -154,14 +157,15 @@ async def on_message(message: discord.Message):
         return
     # Check whether the command was requested in DMs
     try:
-        isDM = message.channel.guild is None
+        isDM = not isinstance(message.channel, GuildChannel)
     except AttributeError:
         isDM = True
     # Get the context-relevant command prefix
     if isDM:
         commandPrefix = cfg.defaultCommandPrefix
     else:
-        commandPrefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
+        # ignoring a warning on guild.id access. isDM guarantees that this is a guild channel, so the guild cannot be None.
+        commandPrefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix # type: ignore[reportOptionalMemberAccess]
 
     # For any messages beginning with commandPrefix
     if message.content.startswith(commandPrefix) and len(message.content) > len(commandPrefix):
@@ -214,7 +218,9 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
         return
 
     # ignore bot reactions
-    if payload.user_id != botState.client.user.id:
+    # ignoring a warning here that Client.user can be None, if the client is not logged in.
+    # The client will always be logged in here, because this event can only be triggered by discord reactions.
+    if payload.user_id != botState.client.user.id: # type: ignore[reportOptionalMemberAccess] 
         # Get rich, useable reaction data
         _, user, emoji = await lib.discordUtil.reactionFromRaw(payload)
         if None in [user, emoji]:
@@ -238,7 +244,9 @@ async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
         return
         
     # ignore bot reactions
-    if payload.user_id != botState.client.user.id:
+    # ignoring a warning here that Client.user can be None, if the client is not logged in.
+    # The client will always be logged in here, because this event can only be triggered by discord reactions.
+    if payload.user_id != botState.client.user.id: # type: ignore[reportOptionalMemberAccess] 
         # Get rich, useable reaction data
         _, user, emoji = await lib.discordUtil.reactionFromRaw(payload)
         if None in [user, emoji]:
@@ -349,7 +357,7 @@ botState.client.tree.add_command(dev_cmd_unload_extension, guilds=cfg.developmen
 @app_commands.guilds(*cfg.developmentGuilds)
 async def dev_cmd_sync_app_commands(interaction: Interaction, guilds: Optional[str] = None, spec: Optional[Literal["here", "copy to here"]] = None) -> None:
     await interaction.response.defer(ephemeral=True, thinking=True)
-    if guilds in (None, ""):
+    if not guilds:
         if not spec:
             fmt = await botState.client.tree.sync()
             await interaction.followup.send(f"Synced {len(fmt)} commands globally")
@@ -372,16 +380,16 @@ async def dev_cmd_sync_app_commands(interaction: Interaction, guilds: Optional[s
         else:
             synced.append(None) # stupid scoping workaround, can't use an int
 
-    guilds = set(map(lambda x: discord.Object(int(x)), guilds.split(", ")))
+    _guilds = set(map(lambda x: discord.Object(int(x)), guilds.split(", ")))
 
     tasks = lib.discordUtil.BasicScheduler()
-    for guild in guilds:
+    for guild in _guilds:
         tasks.add(syncGuild(guild))
     
     await tasks.wait()
     tasks.logExceptions()
 
-    await interaction.followup.send(f"Synced the tree to {len(synced)}/{len(guilds)} guilds.")
+    await interaction.followup.send(f"Synced the tree to {len(synced)}/{len(_guilds)} guilds.")
 
 botState.client.tree.add_command(dev_cmd_sync_app_commands, guilds=cfg.developmentGuilds)
 

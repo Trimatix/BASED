@@ -1,10 +1,10 @@
 # Typing imports
 from __future__ import annotations
 
-from carica import ISerializable # type: ignore[import]
+from carica import SerializesToDict
+from ..lib.jsonHandler import JsonType
 
-
-class BasedUser(ISerializable):
+class BasedUser(SerializesToDict):
     """A user of the bot. There is currently no guarantee that user still shares any guilds with the bot,
     though this is planned to change in the future.
 
@@ -26,7 +26,7 @@ class BasedUser(ISerializable):
         pass
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> JsonType:
         """Serialize this BasedUser to a dictionary representation for saving to file.
 
         :return: A dictionary containing all information needed to recreate this user
@@ -45,7 +45,7 @@ class BasedUser(ISerializable):
 
 
     @classmethod
-    def deserialize(cls, userDict: dict, **kwargs) -> BasedUser:
+    def deserialize(cls, userDict: JsonType, **kwargs) -> BasedUser:
         """Construct a new BasedUser object from the given ID and the information in the
         given dictionary - The opposite of BasedUser.serialize
 

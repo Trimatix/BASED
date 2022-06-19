@@ -1,6 +1,8 @@
 from __future__ import annotations
-import emoji # type: ignore[import]
+import emoji
+
 from .. import botState
+from ..lib.jsonHandler import JsonType
 from . import stringTyping, exceptions
 import traceback
 from carica import ISerializable, PrimativeType, SerializableType # type: ignore[import]
@@ -229,7 +231,7 @@ class BasedEmoji(IBasedEmoji):
         self._classInit = True
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs):
         """Serialize this emoji to dictionary format for saving to file.
 
         :return: A dictionary containing all information needed to reconstruct this emoji.
@@ -280,7 +282,7 @@ class BasedEmoji(IBasedEmoji):
 
 
     @classmethod
-    def deserialize(cls, emojiDict: dict, rejectInvalid: bool = False, **kwargs) -> BasedEmoji:
+    def deserialize(cls, emojiDict: JsonType, rejectInvalid: bool = False, **kwargs) -> BasedEmoji:
         """Construct a BasedEmoji object from its dictionary representation.
         If both an ID and a unicode representation are provided, the emoji ID will be used.
 
@@ -296,11 +298,15 @@ class BasedEmoji(IBasedEmoji):
         :rtype: BasedEmoji
         """
         if type(emojiDict) == BasedEmoji:
-            return emojiDict
+            # Ignoring warning here saying that I'm returning a dict.
+            # I just checked the type!
+            return emojiDict # type: ignore[reportGeneralTypeIssues]
         if "id" in emojiDict:
-            return BasedEmoji(id=emojiDict["id"], rejectInvalid=rejectInvalid)
+
+        # doing some casts here because pyright doesn't know the structure of a serialized emoji
+            return BasedEmoji(id=cast(int, emojiDict["id"]), rejectInvalid=rejectInvalid)
         else:
-            return BasedEmoji(unicode=emojiDict["unicode"], rejectInvalid=rejectInvalid)
+            return BasedEmoji(unicode=cast(str, emojiDict["unicode"]), rejectInvalid=rejectInvalid)
 
 
     @classmethod
@@ -315,11 +321,14 @@ class BasedEmoji(IBasedEmoji):
         :rtype: BasedEmoji
         """
         if type(e) == BasedEmoji:
-            return e
+            # Ignoring warning here saying that I'm returning a PartialEmoji.
+            # I just checked the type!
+            return e # type: ignore[reportGeneralTypeIssues]
         if e.is_unicode_emoji():
             return BasedEmoji(unicode=e.name, rejectInvalid=rejectInvalid)
         else:
-            return BasedEmoji(id=e.id, rejectInvalid=rejectInvalid)
+            # Casting the id here from Optional[int] to int, because id will always be present for non-unicode emojis
+            return BasedEmoji(id=cast(int, e.id), rejectInvalid=rejectInvalid)
 
 
     @classmethod
@@ -336,8 +345,12 @@ class BasedEmoji(IBasedEmoji):
         :rtype: BasedEmoji
         """
         if type(e) == BasedEmoji:
-            return e
+            # Ignoring warning here saying that I'm returning the wrong type.
+            # I just checked the type!
+            return e # type: ignore[reportGeneralTypeIssues]
         if type(e) == str:
+            # Casting to str here because I just checked the type!
+            e = cast(str, e)
             if strIsUnicodeEmoji(e):
                 return BasedEmoji(unicode=e, rejectInvalid=rejectInvalid)
             elif strIsCustomEmoji(e):
@@ -345,9 +358,13 @@ class BasedEmoji(IBasedEmoji):
             else:
                 raise ValueError("Given a string that does not match any emoji format: " + e)
         if type(e) == PartialEmoji:
-            return BasedEmoji.fromPartial(e, rejectInvalid=rejectInvalid)
+            # Ignoring a warning here saying I'm passing Emoji to fromPartial, because I just checked the type!
+            return BasedEmoji.fromPartial(e, rejectInvalid=rejectInvalid) # type: ignore[reportGeneralTypeIssues]
         else:
-            return BasedEmoji(id=cast(PartialEmoji, e).id, rejectInvalid=rejectInvalid)
+            # Ignoring two warnings here:
+            # e could be str - I've already checked for this.
+            # e.id could be None - Here e can only be Emoji (a custom emoji), so id is guaranteed to be present
+            return BasedEmoji(id=e.id, rejectInvalid=rejectInvalid) # type: ignore[reportGeneralTypeIssues]
 
 
     @classmethod
@@ -367,7 +384,9 @@ class BasedEmoji(IBasedEmoji):
         :rtype: BasedEmoji
         """
         if type(s) == BasedEmoji:
-            return s
+            # Ignoring warning here saying that I'm returning the wrong type.
+            # I just checked the type!
+            return s # type: ignore[reportGeneralTypeIssues]
         if type(s) == dict:
             return BasedEmoji.deserialize(cast(dict, s), rejectInvalid=rejectInvalid)
         if strIsUnicodeEmoji(s):

@@ -118,12 +118,12 @@ class Logger:
                             logsSaved += "[+]"
                         except IOError as e:
                             print(nowStr + "-[LOG::SAVE]>F_NEW_IOERR: ERROR CREATING LOG FILE: " +
-                                  currentFName + ":" + e.__class__.__name__ + "\n" + traceback.format_exc())
+                                  str(currentFName) + ":" + e.__class__.__name__ + "\n" + traceback.format_exc())
                     try:
                         files[category] = open(currentFName, 'ab')
                     except IOError as e:
                         print(nowStr + "-[LOG::SAVE]>F_OPN_IOERR: ERROR OPENING LOG FILE: " +
-                              currentFName + ":" + e.__class__.__name__ + "\n" + traceback.format_exc())
+                              str(currentFName) + ":" + e.__class__.__name__ + "\n" + traceback.format_exc())
                         files[category] = None
 
         while not self.isEmpty():
@@ -146,8 +146,8 @@ class Logger:
         self.clearLogs()
 
 
-    def log(self, classStr: str, funcStr: str, event: str, category: LogCategory = LogCategory.misc, eventType: str = None,
-                trace: str = "", exception: Exception = None, noPrintEvent: bool = False, noPrint: bool = False):
+    def log(self, classStr: str, funcStr: str, event: str, category: LogCategory = LogCategory.misc, eventType: Optional[str] = None,
+                trace: str = "", exception: Optional[BaseException] = None, noPrintEvent: bool = False, noPrint: bool = False):
         """Log an event, queueing the log to be saved to a file.
 
         :param str classStr: The class in which the event occurred

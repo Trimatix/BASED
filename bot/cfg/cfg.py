@@ -1,30 +1,31 @@
-from ..lib.emojis import UninitializedBasedEmoji
+from ..lib.emojis import UninitializedBasedEmoji, BasedEmoji
 from ..lib.discordUtil import SerializableDiscordObject
 from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, SerializablePath
+from typing import List, cast
 
 # All emojis used by the bot
 defaultEmojis = EmojisConfig(
-    longProcess = UninitializedBasedEmoji("⏳"),
+    longProcess = cast(BasedEmoji, UninitializedBasedEmoji("⏳")),
     # When a user message prompts a DM to be sent, this emoji will be added to the message reactions.
-    dmSent = UninitializedBasedEmoji("📬"),
-    cancel = UninitializedBasedEmoji("🇽"),
-    submit = UninitializedBasedEmoji("✅"),
-    spiral = UninitializedBasedEmoji("🌀"),
-    error = UninitializedBasedEmoji("❓"),
-    accept = UninitializedBasedEmoji("👍"),
-    reject = UninitializedBasedEmoji("👎"),
-    next = UninitializedBasedEmoji('⏩'),
-    previous = UninitializedBasedEmoji('⏪'),
-    numbers = [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
+    dmSent = cast(BasedEmoji, UninitializedBasedEmoji("📬")),
+    cancel = cast(BasedEmoji, UninitializedBasedEmoji("🇽")),
+    submit = cast(BasedEmoji, UninitializedBasedEmoji("✅")),
+    spiral = cast(BasedEmoji, UninitializedBasedEmoji("🌀")),
+    error = cast(BasedEmoji, UninitializedBasedEmoji("❓")),
+    accept = cast(BasedEmoji, UninitializedBasedEmoji("👍")),
+    reject = cast(BasedEmoji, UninitializedBasedEmoji("👎")),
+    next = cast(BasedEmoji, UninitializedBasedEmoji('⏩')),
+    previous = cast(BasedEmoji, UninitializedBasedEmoji('⏪')),
+    numbers = cast(List[BasedEmoji], [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
                 UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
                 UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"),
-                UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")],
+                UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")]),
 
     # The default emojis to list in a reaction menu
-    menuOptions = [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
+    menuOptions = cast(List[BasedEmoji], [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
                     UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
                     UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"),
-                    UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")]
+                    UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")])
 )
 
 timeouts = TimeoutsConfig(
@@ -110,6 +111,6 @@ httpErrRetryDelaySeconds = 1
 
 
 def validateConfig():
-    for basicAccessLevel in basicAccessLevels._fieldItems().values():
+    for _, basicAccessLevel in basicAccessLevels._fieldItems():
         if basicAccessLevel not in userAccessLevels:
             raise ValueError(f"basic access level '{basicAccessLevel}' is missing from userAccessLevels")

@@ -1,7 +1,8 @@
 import asyncio
 from inspect import iscoroutinefunction
 import signal
-from typing import List, Optional, Dict, Tuple, Type, Union, overload
+from typing import List, Optional, Dict, Tuple, Type, Union, cast, overload
+from pathlib import Path
 import aiohttp
 import discord # type: ignore[import]
 from discord import app_commands
@@ -45,7 +46,7 @@ class GracefulKiller:
         self.kill_now = True
 
 
-def loadUsersDB(filePath: str) -> userDB.UserDB:
+def loadUsersDB(filePath: Union[Path, str]) -> userDB.UserDB:
     """Build a UserDB from the specified JSON file.
 
     :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
@@ -56,7 +57,7 @@ def loadUsersDB(filePath: str) -> userDB.UserDB:
     return userDB.UserDB()
 
 
-def loadGuildsDB(filePath: str, dbReload: bool = False) -> guildDB.GuildDB:
+def loadGuildsDB(filePath: Union[Path, str], dbReload: bool = False) -> guildDB.GuildDB:
     """Build a GuildDB from the specified JSON file.
 
     :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
@@ -67,7 +68,7 @@ def loadGuildsDB(filePath: str, dbReload: bool = False) -> guildDB.GuildDB:
     return guildDB.GuildDB()
 
 
-async def loadReactionMenusDB(filePath: str) -> reactionMenuDB.ReactionMenuDB:
+async def loadReactionMenusDB(filePath: Union[Path, str]) -> reactionMenuDB.ReactionMenuDB:
     """Build a reactionMenuDB from the specified JSON file.
     This method must be called asynchronously, to allow awaiting of discord message fetching functions.
 
@@ -81,7 +82,7 @@ async def loadReactionMenusDB(filePath: str) -> reactionMenuDB.ReactionMenuDB:
 
 def waitBeforeStartingTask(task: tasks.Loop):
     async def inner():
-        await asyncio.sleep(timedelta(seconds=task.seconds, minutes=task.minutes, hours=task.hours).total_seconds())
+        await asyncio.sleep(timedelta(seconds=task.seconds or 0, minutes=task.minutes or 0, hours=task.hours or 0).total_seconds())
     
     task.before_loop(inner)
     return task
@@ -103,9 +104,8 @@ class BasedClient(ClientBaseClass):
     def __init__(self, usersDB: Optional[userDB.UserDB] = None,
                         guildsDB: Optional[guildDB.GuildDB] = None,
                         reactionMenusDB: Optional[reactionMenuDB.ReactionMenuDB] = None,
-                        logger: logging.Logger = None,
-                        taskScheduler: timedTaskHeap.TimedTaskHeap = None,
-                        httpClient: aiohttp.ClientSession = None):
+                        logger: Optional[logging.Logger] = None,
+                        httpClient: Optional[aiohttp.ClientSession] = None):
         intents = discord.Intents.default()
         intents.message_content = True
         intents.members = True
@@ -120,12 +120,12 @@ class BasedClient(ClientBaseClass):
         self.launchTime = discord.utils.utcnow()
         self.killer = GracefulKiller()
 
-        self.taskScheduler = taskScheduler
-        self._schedulerLoaded = taskScheduler is not None
+        self._taskScheduler = None
+        self._schedulerLoaded = False
         self.shutDownState = ShutDownState.restart
         
         self.logger = logger if logger is not None else logging.Logger()
-        self.httpClient = httpClient
+        self._httpClient = httpClient
 
         self.basedCommands: Dict[discord.app_commands.Command, "basedCommand.BasedCommandMeta"] = {}
         self.staticComponentCallbacks: Dict["basedComponent.StaticComponents", "basedComponent.StaticComponentCallbackMeta"] = {}
@@ -136,9 +136,12 @@ class BasedClient(ClientBaseClass):
 
 
     async def on_interaction(self, interaction: discord.Interaction):
-        if interaction.type != discord.InteractionType.component or not basedComponent.customIdIsStaticComponent(interaction.data["custom_id"]):
+        customId = None if interaction.data is None else interaction.data.get("custom_id", None)
+        if interaction.type != discord.InteractionType.component \
+                or customId is None \
+                or not basedComponent.customIdIsStaticComponent(customId):
             return
-        componentMeta = basedComponent.staticComponentMeta(interaction.data["custom_id"])
+        componentMeta = basedComponent.staticComponentMeta(customId)
         if not self.hasStaticComponent(componentMeta.ID):
             return
         
@@ -151,11 +154,14 @@ class BasedClient(ClientBaseClass):
             cog = self.get_cog(cogName)
             if cog is None:
                 raise ValueError(f"unable to find cog '{cogName}' for static component: {callbackMeta.callback.__qualname__}")
-            await callbackMeta.callback(cog, *cbArgs)
+
+        # Ignoring some warnings here for incorrect call syntax - pyright can't see that the tuple will always contain
+        # the correct arguments, because we can't unpack a tuple until runtime
+            await callbackMeta.callback(cog, *cbArgs) # type: ignore[reportGeneralTypeIssues]
         elif callbackMeta.hasSelf():
-            await callbackMeta.callback(callbackMeta.cbSelf, *cbArgs)
+            await callbackMeta.callback(callbackMeta.cbSelf, *cbArgs) # type: ignore[reportGeneralTypeIssues]
         else:
-            await callbackMeta.callback(*cbArgs)
+            await callbackMeta.callback(*cbArgs) # type: ignore[reportGeneralTypeIssues]
 
 
     def addBasedCommand(self, command: discord.app_commands.Command):
@@ -191,11 +197,11 @@ class BasedClient(ClientBaseClass):
         :raises ValueError: If the callback has not been made into a static component callback with the `staticComponentCallback` decorator
         """
         if basedApp.appType(callback) != basedApp.BasedAppType.StaticComponent:
-            raise ValueError(f"callback {callback.__name__} is not a static component callback")
+            raise ValueError(f"callback {callback.__qualname__} is not a static component callback")
         
         meta = basedComponent.staticComponentCallbackMeta(callback)
         if meta.ID in self.staticComponentCallbacks:
-            raise KeyError(f"Static component callback {callback.__name__} is already registered")
+            raise KeyError(f"Static component callback {callback.__qualname__} is already registered")
 
         self.staticComponentCallbacks[meta.ID] = meta
 
@@ -204,9 +210,9 @@ class BasedClient(ClientBaseClass):
         *,
         accessLevel: Union[Type["accessLevels.AccessLevel"], str] = MISSING,
         showInHelp: bool = True,
-        helpSection: str = None,
-        formattedDesc: str = None,
-        formattedParamDescs : Dict[str, str] = None
+        helpSection: Optional[str] = None,
+        formattedDesc: Optional[str] = None,
+        formattedParamDescs : Optional[Dict[str, str]] = None
     ):
         """Decorator that marks a discord app command as a BASED command.
 
@@ -325,10 +331,11 @@ class BasedClient(ClientBaseClass):
         :raises ValueError: If the callback has not been made into a static component callback with the `staticComponentCallback` decorator
         """
 
-    def removeStaticComponent(self, val: Union["basedComponent.StaticComponentCallbackType", "basedComponent.StaticComponents"]):
+    # ignoring a warning here bceause the two overloads for this method correctly use different names for their parameters
+    def removeStaticComponent(self, val: Union["basedComponent.StaticComponentCallbackType", "basedComponent.StaticComponents"]): # type: ignore[reportGeneralTypeIssues]
         if not isinstance(val, basedComponent.StaticComponents):
             if basedApp.appType(val) != basedApp.BasedAppType.StaticComponent:
-                raise ValueError(f"callback {val.__name__} is not a static component callback")
+                raise ValueError(f"callback {val.__qualname__} is not a static component callback")
         
             meta = basedComponent.staticComponentCallbackMeta(val)
             ID = meta.ID
@@ -341,24 +348,24 @@ class BasedClient(ClientBaseClass):
         del self.staticComponentCallbacks[ID]
 
 
-    def commandsInSectionForAccessLevel(self, section: str, level: "accessLevels._AccessLevelBase") -> List[discord.app_commands.Command]:
+    def commandsInSectionForAccessLevel(self, section: str, level: "accessLevels.AccessLevelType") -> List[discord.app_commands.Command]:
         """Get the commands in help section `section` that require access level `level`
 
         :param section: The help section for commands to look up
         :type section: str
         :param level: The access level that commands should require
-        :type level: accessLevels._AccessLevelBase
+        :type level: accessLevels.AccessLevelType
         :return: A list of commands in help section `section` requiring access level `level`
         :rtype: List[discord.app_commands.Command]
         """
         return [c for c in self.helpSections[section] if basedCommand.accessLevel(c) is level and basedCommand.commandMeta(c).showInHelp]
 
 
-    def helpSectionsForAccessLevel(self, level: "accessLevels._AccessLevelBase") -> Dict[str, List[discord.app_commands.Command]]:
+    def helpSectionsForAccessLevel(self, level: "accessLevels.AccessLevelType") -> Dict[str, List[discord.app_commands.Command]]:
         """Get the commands for a particular access level, organized by help section
 
         :param level: The access level of commands to look up
-        :type level: accessLevels._AccessLevelBase
+        :type level: accessLevels.AccessLevelType
         :return: The commands that require `level`, organized by help section
         :rtype: Dict[str, List[discord.app_commands.Command]]
         """
@@ -366,9 +373,16 @@ class BasedClient(ClientBaseClass):
         return {s: c for s, c in result.items() if c}
 
 
+    @property
+    def httpClient(self) -> aiohttp.ClientSession:
+        if self._httpClient is None:
+            raise lib.exceptions.NotReady("httpClient not yet loaded. BasedClient.httpClient is only available after on_ready.")
+        return self._httpClient
+
+
     async def setup_hook(self):
-        if self.httpClient is None:
-            self.httpClient = aiohttp.ClientSession()
+        if self._httpClient is None:
+            self._httpClient = aiohttp.ClientSession()
 
     
     @property
@@ -382,7 +396,7 @@ class BasedClient(ClientBaseClass):
         """
         if not self._dbsLoaded:
             raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient.usersDB is only available after on_ready.")
-        return self._usersDB
+        return cast(userDB.UserDB, self._usersDB)
 
 
     @property
@@ -396,7 +410,7 @@ class BasedClient(ClientBaseClass):
         """
         if not self._dbsLoaded:
             raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient.usersDB is only available after on_ready.")
-        return self._guildsDB
+        return cast(guildDB.GuildDB, self._guildsDB)
 
 
     @property
@@ -410,7 +424,21 @@ class BasedClient(ClientBaseClass):
         """
         if not self._dbsLoaded:
             raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient.usersDB is only available after on_ready.")
-        return self._reactionMenusDB
+        return cast(reactionMenuDB.ReactionMenuDB, self._reactionMenusDB)
+
+
+    @property
+    def taskScheduler(self):
+        """The bot's running task scheduler
+        Only available after on_ready.
+
+        :raises lib.exceptions.NotReady: scheduler not loaded yet
+        :return: The bot's task scheduler.
+        :rtype: TimedTaskHeap
+        """
+        if not self._schedulerLoaded:
+            raise lib.exceptions.NotReady("Task scheduler not yet loaded. BasedClient.taskScheduler is only available after on_ready.")
+        return cast(timedTaskHeap.AutoCheckingTimedTaskHeap, self._taskScheduler)
 
 
     async def reloadDBs(self):
@@ -470,7 +498,7 @@ class BasedClient(ClientBaseClass):
 
         # log out of discord
         self.loggedIn = False
-        await self.logout()
+        await self.close()
         # save bot save data
         self.saveAllDBs()
         # close the bot's aiohttp session
@@ -502,8 +530,8 @@ class BasedClient(ClientBaseClass):
     
     async def _asyncInit(self, dispatchReady: bool = True, *args, **kwargs):
         if not self._schedulerLoaded:
-            self.taskScheduler = timedTaskHeap.AutoCheckingTimedTaskHeap(asyncio.get_running_loop())
-            self.taskScheduler.startTaskChecking()
+            self._taskScheduler = timedTaskHeap.AutoCheckingTimedTaskHeap(asyncio.get_running_loop())
+            self._taskScheduler.startTaskChecking()
 
         if not self.shutdownCheckTask.is_running():
             self.shutdownCheckTask.start()
@@ -541,7 +569,7 @@ class BasedClient(ClientBaseClass):
         :return: The callback that is registered with id `ID`. This may or may not belong to a Cog
         :rtype: basedComponent.StaticComponentCallbackType
         """
-        return self.getStaticComponentMeta(ID).callback
+        return self.getStaticComponentCallbackMeta(ID).callback
 
 
     def hasStaticComponent(self, ID: "basedComponent.StaticComponents") -> bool:

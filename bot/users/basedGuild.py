@@ -1,8 +1,10 @@
 from __future__ import annotations
+from typing import cast
 
 from discord import Guild # type: ignore[import]
 
 from .. import botState, lib
+from ..lib.jsonHandler import JsonType
 from carica import ISerializable # type: ignore[import]
 from ..cfg import cfg
 
@@ -33,7 +35,7 @@ class BasedGuild(ISerializable):
         self.commandPrefix = commandPrefix
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> JsonType:
         """Serialize this BasedGuild into dictionary format to be saved to file.
 
         :return: A dictionary containing all information needed to reconstruct this BasedGuild
@@ -43,7 +45,7 @@ class BasedGuild(ISerializable):
 
 
     @classmethod
-    def deserialize(cls, guildDict: dict, **kwargs) -> BasedGuild:
+    def deserialize(cls, guildDict: JsonType, **kwargs) -> BasedGuild:
         """Factory function constructing a new BasedGuild object from the information
         in the provided guildDict - the opposite of BasedGuild.serialize
 
@@ -61,5 +63,6 @@ class BasedGuild(ISerializable):
             raise lib.exceptions.NoneDCGuildObj("Could not get guild object for id " + str(guildID))
 
         if "commandPrefix" in guildDict:
-            return BasedGuild(guildID, dcGuild, commandPrefix=guildDict["commandPrefix"])
+            # casting here because pyright doesn't know the structure of a serialized guild
+            return BasedGuild(guildID, dcGuild, commandPrefix=cast(str, guildDict["commandPrefix"]))
         return BasedGuild(guildID, dcGuild)

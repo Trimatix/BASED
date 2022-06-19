@@ -1,11 +1,13 @@
 from __future__ import annotations
+from abc import abstractmethod
 from typing import Any, Awaitable, Callable, Coroutine, Optional, Protocol, Set, Union, Tuple, Dict, cast
 
 import discord # type: ignore[import]
 from discord.errors import NotFound # type: ignore[import]
-from discord import User, Member, Guild, Message # type: ignore[import]
+from discord import PartialMessageable, User, Member, ClientUser, Guild, Message # type: ignore[import]
 from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent # type: ignore[import]
 from discord import DMChannel, GroupChannel, TextChannel
+from discord.abc import Messageable
 
 from . import stringTyping, emojis, exceptions
 from .. import botState
@@ -95,12 +97,13 @@ async def endLongProcess(message: Message):
     :param discord.Message message: The message to remove the reaction from
     """
     try:
-        await message.remove_reaction(cfg.defaultEmojis.longProcess.sendable, botState.client.user)
+        # ClientUser is pretty much guaranteed not to be null
+        await message.remove_reaction(cfg.defaultEmojis.longProcess.sendable, cast(discord.ClientUser, botState.client.user))
     except (HTTPException, Forbidden):
         pass
 
 
-async def reactionFromRaw(payload: RawReactionActionEvent) -> Tuple[Optional[Message], Optional[Union[User, Member]],
+async def reactionFromRaw(payload: RawReactionActionEvent) -> Tuple[Optional[Message], Optional[Union[User, Member, ClientUser]],
                                                                     Optional[emojis.BasedEmoji]]:
     """Retrieve complete Reaction and user info from a RawReactionActionEvent payload.
 
@@ -124,6 +127,8 @@ async def reactionFromRaw(payload: RawReactionActionEvent) -> Tuple[Optional[Mes
 
         # Individual handling for each channel type for efficiency
         if isinstance(channel, DMChannel):
+            if channel.recipient is None:
+                return None, None, None
             if channel.recipient.id == payload.user_id:
                 user = channel.recipient
             else:
@@ -147,7 +152,9 @@ async def reactionFromRaw(payload: RawReactionActionEvent) -> Tuple[Optional[Mes
     # If a reacting member was given, the guild can be inferred from the member.
     else:
         user = payload.member
-        message = await payload.member.guild.get_channel(payload.channel_id).fetch_message(payload.message_id)
+        # Casting to Messageable here because RawReactionActionEvent will only ever be constructed from Messageable channels
+        message = await cast(Messageable, payload.member.guild.get_channel(payload.channel_id)) \
+                    .fetch_message(payload.message_id)
 
     if message is None:
         return None, None, None
@@ -161,7 +168,7 @@ async def reactionFromRaw(payload: RawReactionActionEvent) -> Tuple[Optional[Mes
     return message, user, emoji
 
 
-def messageArgsFromStr(msgStr: str) -> Dict[str, Union[str, Embed]]:
+def messageArgsFromStr(msgStr: str) -> Dict[str, Union[str, Union[Embed, None]]]:
     """Transform a string description of the arguments to pass to a discord.Message constructor into type-correct arguments.
 
     To specify message content, simply place it at the beginning of msgStr.
@@ -185,12 +192,11 @@ def messageArgsFromStr(msgStr: str) -> Dict[str, Union[str, Embed]]:
     :return: The message content from msgStr, and an embed as described by the kwargs and fields in msgStr.
     :rtype: Dict[str, Union[str, Embed]]
     """
-    msgEmbed = None
-
     try:
         embedIndex = msgStr.index("embed=")
     except ValueError:
         msgText = msgStr
+        msgEmbed = None
     else:
         msgText, msgStr = msgStr[:embedIndex], msgStr[embedIndex + len("embed="):]
 
@@ -293,6 +299,8 @@ async def asyncOperationWithRetry(f: AnyCoroutine, opName: str, logCategory: Log
 
     try:
         return await f(*fArgs, **fKwargs)
+    except (Forbidden, NotFound) as e:
+        logError(e)
     except HTTPException as e:
         for tryNum in range(cfg.httpErrRetries):
             try:
@@ -306,8 +314,6 @@ async def asyncOperationWithRetry(f: AnyCoroutine, opName: str, logCategory: Log
                 await asyncio.sleep(cfg.httpErrRetryDelaySeconds)
 
         logError(e)
-    except (Forbidden, NotFound) as e:
-        logError(e)
 
     return None
     
@@ -319,6 +325,12 @@ def messageDescriptor(m: Message) -> str:
     :return: A string identifying m, its channel and guild
     :rtype: str
     """
+    if isinstance(m.channel, DMChannel):
+        return f"DM m:{m.id} u:{'None' if m.channel.recipient is None else m.channel.recipient.id}#{m.channel.id}"
+    elif isinstance(m.channel, GroupChannel):
+        return f"gDM m:{m.id} c:{'None' if m.channel.name is None else m.channel.name}#{m.channel.id}"
+    elif isinstance(m.channel, PartialMessageable):
+        return f"UNKNOWN m:{m.id} c:#{m.channel.id}"
     return f"m:{m.id} g:{m.channel.guild.name}#{m.channel.guild.id} c:{m.channel.name}#{m.channel.id}"
 
 
@@ -338,8 +350,8 @@ def extractFuncName(f: Union[Awaitable, Callable]) -> Tuple[str, str]:
         return "main", name
 
 
-def logException(task: asyncio.Task, exception: Exception, logCategory: str = None, className: str = None,
-                    funcName: str = None, noPrintEvent: bool = False, noPrint: bool = False):
+def logException(task: asyncio.Task, exception: BaseException, logCategory: Optional[LogCategory] = None, className: Optional[str] = None,
+                    funcName: Optional[str] = None, noPrintEvent: bool = False, noPrint: bool = False):
     """Convenience method to log an exception that occurred on `task`, using `botState.client.logger`.
     This method is intended to be called by `logExceptionsOnTask`. 
     All parameters other than `task` and `exception` are optional. If not given, they will be inferred from `task`.
@@ -356,10 +368,13 @@ def logException(task: asyncio.Task, exception: Exception, logCategory: str = No
     :type noPrint: Optional[bool]
     """
     if logCategory is None:
-        logCategory = "misc"
+        logCategory = LogCategory.misc
 
     if className is None or funcName is None:
-        extractedClass, extractedFunc = extractFuncName(task.get_coro())
+        # TODO: Ignoring warning here on incorrect type return from get_coro
+        # Theoretically this can return a Generator, but I can't see where in the code that would happen!
+        # Also, Task.__init__ will validate that the task's coro is a Coroutine
+        extractedClass, extractedFunc = extractFuncName(task.get_coro()) # type: ignore[reportGeneralTypeIssues]
         className = extractedClass if className is None else className
         funcName = extractedFunc if funcName is None else funcName
 
@@ -367,7 +382,7 @@ def logException(task: asyncio.Task, exception: Exception, logCategory: str = No
                                 noPrint=noPrint, noPrintEvent=noPrintEvent)
 
 
-def logExceptionsOnTask(task: asyncio.Task, logCategory: str = None, className: str = None, funcName: str = None,
+def logExceptionsOnTask(task: asyncio.Task, logCategory: Optional[LogCategory] = None, className: Optional[str] = None, funcName: Optional[str] = None,
                         noPrintEvent: bool = False, noPrint: bool = False):
     """See if any exceptions occurred in `task`. If they did, then log them using `botState.client.logger`.
     If `task` has not finished execution, this is treated as an exception and is logged.
@@ -401,7 +416,7 @@ class BasicScheduler:
         return bool(self.tasks)
 
 
-    def add(self, coro: Awaitable) -> asyncio.Task:
+    def add(self, coro: Coroutine) -> asyncio.Task:
         """Schedule a coroutine execution onto the event loop.
         Pass a normal parenthesized call to a coroutine, but without awaiting it.
         Execution begins immediately.
@@ -423,7 +438,7 @@ class BasicScheduler:
             await asyncio.wait(self.tasks)
 
 
-    def logExceptions(self, logCategory: str = None, className: str = None, funcName: str = None, noPrintEvent: bool = False,
+    def logExceptions(self, logCategory: Optional[LogCategory] = None, className: Optional[str] = None, funcName: Optional[str] = None, noPrintEvent: bool = False,
                         noPrint: bool = False):
         """See if any exceptions occurred in the registered tasks. If they did, then log them using `botState.client.logger`.
 
@@ -462,15 +477,18 @@ class BasicScheduler:
         :return: A mapping from coroutines to raised exceptions. Will be empty if no exceptions were raised
         :rtype: Dict[Coroutine, BaseException]
         """
+        # TODO: Ignoring warning here on incorrect type return from get_coro
+        # Theoretically this can return a Generator, but I can't see where in the code that would happen!
+        # Also, Task.__init__ will validate that the task's coro is a Coroutine
         exceptions: Dict[Coroutine, BaseException] = {}
         for t in self.tasks:
             try:
                 e = t.exception()
             except BaseException as ex:
-                exceptions[t.get_coro()] = ex
+                exceptions[t.get_coro()] = ex # type: ignore[reportGeneralTypeIssues]
             else:
                 if e is not None:
-                    exceptions[t.get_coro()] = e
+                    exceptions[t.get_coro()] = e # type: ignore[reportGeneralTypeIssues]
 
         return exceptions
 
@@ -488,13 +506,16 @@ class BasicScheduler:
         :return: A mapping from coroutines to their exceptions and returned values
         :rtype: Dict[Coroutine, Tuple[Optional[BaseException], Any]]
         """
+        # TODO: Ignoring warning here on incorrect type return from get_coro
+        # Theoretically this can return a Generator, but I can't see where in the code that would happen!
+        # Also, Task.__init__ will validate that the task's coro is a Coroutine
         results: Dict[Coroutine, Tuple[Optional[BaseException], Any]] = {}
         for t in self.tasks:
             c = t.get_coro()
             try:
-                results[c] = (None, t.result())
+                results[c] = (None, t.result()) # type: ignore[reportGeneralTypeIssues]
             except BaseException as e:
-                results[c] = (e, None)
+                results[c] = (e, None) # type: ignore[reportGeneralTypeIssues]
         
         return results
 
@@ -523,7 +544,7 @@ class BasicScheduler:
         return len(self.tasks)
 
 
-async def awaitCoroAndLogExceptions(coro: Awaitable, logCategory: str = None, className: str = None, funcName: str = None,
+async def awaitCoroAndLogExceptions(coro: Coroutine, logCategory: Optional[LogCategory] = None, className: Optional[str] = None, funcName: Optional[str] = None,
                         noPrintEvent: bool = False, noPrint: bool = False) -> Any:
     """Await `coro`, and then log any exceptions that occurred using `botState.client.logger`.
     All parameters other than `coro` are optional. If not given, they will be inferred from `coro`.
@@ -550,7 +571,7 @@ async def awaitCoroAndLogExceptions(coro: Awaitable, logCategory: str = None, cl
     return inner.result
 
 
-def scheduleCoroWithLogging(coro: Awaitable, logCategory: str = None, className: str = None, funcName: str = None,
+def scheduleCoroWithLogging(coro: Coroutine, logCategory: Optional[LogCategory] = None, className: Optional[str] = None, funcName: Optional[str] = None,
                         noPrintEvent: bool = False, noPrint: bool = False) -> asyncio.Task:
     """Schedule a coroutine execution onto the event loop, and log any exceptions that occur during
     execution with `botState.client.logger`.
@@ -581,8 +602,7 @@ def scheduleCoroWithLogging(coro: Awaitable, logCategory: str = None, className:
 
 class SerializableDiscordObject(ISerializable, discord.Object):
     """A version of discord.Object with basic serializing, to support adding in configs.
-    """
-    
+    """    
     def serialize(self, **kwargs) -> int:
         return self.id
 
@@ -599,4 +619,31 @@ ZWSP = "​"
 def embedEmpty(embed: Embed) -> bool:
     return not any((embed.fields, embed.title, embed.author.name if embed.author else None,
                     embed.author.icon_url if embed.author else None, embed.description,
-                    embed.footer.text if embed.footer else None, embed.footer.icon_url if embed.footer else None))  
+                    embed.footer.text if embed.footer else None, embed.footer.icon_url if embed.footer else None))
+
+
+class SupportsOptionalChannelUncached(Protocol):
+    @property
+    def channel(self) -> Optional[discord.interactions.InteractionChannel]: ...
+
+
+class SupportsOptionalChannelCached(Protocol):
+    channel: discord.utils.CachedSlotProperty[Any, Optional[discord.interactions.InteractionChannel]]
+
+SupportsOptionalChannel = Union[SupportsOptionalChannelUncached, SupportsOptionalChannelCached]
+
+
+def textChannel(o: SupportsOptionalChannel, e: Optional[Exception] = None) -> discord.abc.Messageable:
+    """Get the channel from `o`. If the channel cannot be used for sending messages, then raise `e`.
+
+    :param o: The object whose channel to retrieve
+    :type o: SupportsChannel
+    :param e: The exception to raise if `o`'s channel is not messageable (default IncorrectInteractionContext)
+    :type e: Exception
+    :raises e: If `o` is not messegeable
+    :return: `o`'s channel
+    :rtype: discord.abc.Messageable
+    """
+    if not isinstance(o.channel, discord.abc.Messageable):
+        raise e if e is not None else exceptions.IncorrectInteractionContext("This operation is not valid here.")
+    return o.channel

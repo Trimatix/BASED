@@ -2,22 +2,18 @@ from ..users import basedUser
 from .import reactionMenu
 from discord import Message, Member, Role, Embed # type: ignore[import]
 from .. import lib, botState
-from typing import Dict
+from typing import Dict, Optional, cast
 from ..scheduling import timedTask
 from ..cfg import cfg
-
-
-async def menuJumpToPage(data: dict):
-    await botState.client.reactionMenusDB[data["menuID"]].jumpToPage(data["pageNum"])
 
 
 class PagedReactionMenu(reactionMenu.ReactionMenu):
     """A reaction menu that, instead of taking a list of options, takes a list of pages of options.
     """
 
-    def __init__(self, msg: Message, pages: Dict[Embed, Dict[lib.emojis.BasedEmoji, reactionMenu.ReactionMenuOption]] = None,
-                 timeout: timedTask.TimedTask = None, targetMember: Member = None, targetRole: Role = None,
-                 owningBasedUser: basedUser.BasedUser = None):
+    def __init__(self, msg: Message, pages: Optional[Dict[Embed, Dict[lib.emojis.BasedEmoji, reactionMenu.ReactionMenuOption]]] = None,
+                 timeout: Optional[timedTask.TimedTask] = None, targetMember: Optional[Member] = None, targetRole: Optional[Role] = None,
+                 owningBasedUser: Optional[basedUser.BasedUser] = None):
         """
         :param discord.Message msg: the message where this menu is embedded
         :param pages: A dictionary associating embeds with pages, where each page is a dictionary
@@ -33,8 +29,6 @@ class PagedReactionMenu(reactionMenu.ReactionMenu):
 
         self.pages = pages if pages is not None else {}
         self.msg = msg
-        self.currentPageNum = 0
-        self.currentPage = None
         self.currentPageControls = {}
         self.timeout = timeout
         self.targetMember = targetMember
@@ -62,6 +56,11 @@ class PagedReactionMenu(reactionMenu.ReactionMenu):
 
         if len(self.pages) == 1:
             self.currentPageControls = self.onePageControls
+
+            
+        self.currentPageNum = 0
+        # Performing this cast here because currentPage is guaranteed to be updated to an Embed during updateCurrentPage
+        self.currentPage = cast(Embed, None)
         self.updateCurrentPage()
 
 
@@ -106,7 +105,11 @@ class PagedReactionMenu(reactionMenu.ReactionMenu):
         await self.updateMessage(noRefreshOptions=True)
         if self.currentPageNum == len(self.pages) - 1:
             self.msg = await self.msg.channel.fetch_message(self.msg.id)
-            await self.msg.remove_reaction(cfg.defaultEmojis.next.sendable, botState.client.user)
+            # ignoring a warning here that Client.user can be None, if the client is not logged in.
+            # That probably won't happen!
+            # probably is not a good word to use here, but at the same time, a menu's page cannot be updated if the bot is not logged in,
+            # because it can't receive any reactions.
+            await self.msg.remove_reaction(cfg.defaultEmojis.next.sendable, botState.client.user) # type: ignore[reportGeneralTypeIssues] 
         if self.currentPageNum == 1:
             await self.msg.add_reaction(cfg.defaultEmojis.previous.sendable)
 
@@ -123,7 +126,9 @@ class PagedReactionMenu(reactionMenu.ReactionMenu):
         await self.updateMessage(noRefreshOptions=True)
         if self.currentPageNum == 0:
             self.msg = await self.msg.channel.fetch_message(self.msg.id)
-            await self.msg.remove_reaction(cfg.defaultEmojis.previous.sendable, botState.client.user)
+            # ignoring a warning here that Client.user can be None, if the client is not logged in.
+            # The client will always be logged in here, because menu changes can only be triggered by discord reactions.
+            await self.msg.remove_reaction(cfg.defaultEmojis.previous.sendable, botState.client.user) # type: ignore[reportGeneralTypeIssues] 
         if self.currentPageNum == len(self.pages) - 2:
             await self.msg.add_reaction(cfg.defaultEmojis.next.sendable)
 
@@ -143,6 +148,8 @@ class PagedReactionMenu(reactionMenu.ReactionMenu):
             if len(self.pages) > 1:
                 if self.currentPageNum == 0:
                     self.msg = await self.msg.channel.fetch_message(self.msg.id)
-                    await self.msg.remove_reaction(cfg.defaultEmojis.previous.sendable, botState.client.user)
+            # ignoring a warning here that Client.user can be None, if the client is not logged in.
+            # The client will always be logged in here, because menu changes can only be triggered by discord reactions.
+                    await self.msg.remove_reaction(cfg.defaultEmojis.previous.sendable, botState.client.user) # type: ignore[reportGeneralTypeIssues]
                 if self.currentPageNum != len(self.pages) - 1:
                     await self.msg.add_reaction(cfg.defaultEmojis.next.sendable)

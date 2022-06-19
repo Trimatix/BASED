@@ -42,11 +42,7 @@ async def markExpiredMenu(menuID: int):
     menu = botState.client.reactionMenusDB[menuID]
     try:
         await menu.msg.edit(content=cfg.expiredMenuMsg)
-    except NotFound:
-        pass
-    except HTTPException:
-        pass
-    except Forbidden:
+    except HTTPException: # note: HttpException also covers NotFound and Forbidden
         pass
     if menuID in botState.client.reactionMenusDB:
         del botState.client.reactionMenusDB[menuID]

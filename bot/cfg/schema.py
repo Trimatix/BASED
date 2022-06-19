@@ -1,9 +1,10 @@
-from carica.models import SerializableDataClass, SerializableTimedelta, SerializablePath # type: ignore[import]
+from carica.models import SerializableDataClass, SerializableTimedelta, SerializablePath
+from carica.typeChecking import TypeOverride
 from dataclasses import dataclass
 import os
 from typing import Dict, List, Set, Tuple, Union, Any, cast
 
-from ..lib.emojis import IBasedEmoji, UninitializedBasedEmoji
+from ..lib.emojis import IBasedEmoji, UninitializedBasedEmoji, BasedEmoji
 
 EmojisFieldType = Union[IBasedEmoji, List["EmojisFieldType"], Set["EmojisFieldType"], Tuple["EmojisFieldType"], Dict[Any, "EmojisFieldType"]] # type: ignore
 
@@ -20,20 +21,20 @@ def convertEmoji(o) -> EmojisFieldType:
 
 @dataclass
 class EmojisConfig(SerializableDataClass):
-    longProcess: Union[UninitializedBasedEmoji, IBasedEmoji]
+    longProcess: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
     # When a user message prompts a DM to be sent, this emoji will be added to the message reactions.
-    dmSent: Union[UninitializedBasedEmoji, IBasedEmoji]
-    cancel: Union[UninitializedBasedEmoji, IBasedEmoji]
-    submit: Union[UninitializedBasedEmoji, IBasedEmoji]
-    spiral: Union[UninitializedBasedEmoji, IBasedEmoji]
-    error: Union[UninitializedBasedEmoji, IBasedEmoji]
-    accept: Union[UninitializedBasedEmoji, IBasedEmoji]
-    reject: Union[UninitializedBasedEmoji, IBasedEmoji]
-    next: Union[UninitializedBasedEmoji, IBasedEmoji]
-    previous: Union[UninitializedBasedEmoji, IBasedEmoji]
-    numbers: List[Union[UninitializedBasedEmoji, IBasedEmoji]]
+    dmSent: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    cancel: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    submit: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    spiral: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    error: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    accept: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    reject: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    next: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    previous: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    numbers: List[BasedEmoji] = TypeOverride(List[UninitializedBasedEmoji], [])
     # The default emojis to list in a reaction menu
-    menuOptions: List[Union[UninitializedBasedEmoji, IBasedEmoji]]
+    menuOptions: List[BasedEmoji] = TypeOverride(List[UninitializedBasedEmoji], [])
 
 
     def initializeEmojis(self):

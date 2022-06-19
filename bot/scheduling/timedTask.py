@@ -1,16 +1,16 @@
 # Typing imports
 from __future__ import annotations
-from asyncio import Task
+from asyncio import Task, create_task
 import asyncio
 
 from datetime import datetime, timedelta
 import inspect
 import discord
-from typing import Any, Callable, Awaitable, Union
+from typing import Any, Callable, Coroutine, Optional, Union
 from .. import botState, lib
 
 
-TTCallbackType = Union[Callable[[Any], Awaitable[Any]], Callable[[], Awaitable[Any]]]
+TTCallbackType = Union[Callable[[Any], Coroutine], Callable[[], Coroutine]]
 
 
 class TimedTask:
@@ -43,8 +43,8 @@ class TimedTask:
     :vartype rescheduleOnExpiryFuncFailure: bool
     """
 
-    def __init__(self, issueTime : datetime = None, expiryTime : datetime = None, expiryDelta : timedelta = None,
-                 expiryFunction : TTCallbackType = None, expiryFunctionArgs : Any = None, autoReschedule : bool = False,
+    def __init__(self, issueTime : Optional[datetime] = None, expiryTime : Optional[datetime] = None, expiryDelta : Optional[timedelta] = None,
+                 expiryFunction : Optional[TTCallbackType] = None, expiryFunctionArgs : Any = None, autoReschedule : bool = False,
                  rescheduleOnExpiryFuncFailure : bool = False):
         """
         :param datetime.datetime issueTime: The datetime when this task was created. (Default now)
@@ -74,7 +74,7 @@ class TimedTask:
         self.expiryFunction = expiryFunction
         self.hasExpiryFunction = expiryFunction is not None
         self.hasExpiryFunctionArgs = expiryFunctionArgs is not None
-        self.expiryFunctionArgs = expiryFunctionArgs if self.hasExpiryFunctionArgs else {}
+        self.expiryFunctionArgs: Any = expiryFunctionArgs if self.hasExpiryFunctionArgs else {}
         self.autoReschedule = autoReschedule
         self.rescheduleOnExpiryFuncFailure = rescheduleOnExpiryFuncFailure
 
@@ -162,11 +162,14 @@ class TimedTask:
         the exception is IGNORED and the timedtask rescheduled.
         :return: the results of the expiryFunction
         """
+        if self.expiryFunction is None: return
         # Pass args to expiry function if specified
+        # ignoring warnings here due to arguments being incompatible with expiry function signature.
+        # The signature is checked with hasExpiryFunctionArgs, so the call signature is correct.
         if self.hasExpiryFunctionArgs:
-            asyncio.create_task(self.doTaskWithRescheduling(self.expiryFunction(self.expiryFunctionArgs)))
+            create_task(self.doTaskWithRescheduling(create_task(self.expiryFunction(self.expiryFunctionArgs)))) # type: ignore[reportGeneralTypeIssues]
         else:
-            asyncio.create_task(self.doTaskWithRescheduling(self.expiryFunction()))
+            create_task(self.doTaskWithRescheduling(create_task(self.expiryFunction()))) # type: ignore[reportGeneralTypeIssues]
 
 
     def doExpiryCheck(self, callExpiryFunc: bool = True) -> bool:
@@ -186,7 +189,7 @@ class TimedTask:
         return expired
 
 
-    def reschedule(self, expiryTime: datetime = None, expiryDelta: timedelta = None):
+    def reschedule(self, expiryTime: Optional[datetime] = None, expiryDelta: Optional[timedelta] = None):
         """Reschedule this task, with the timedelta given/calculated on the task's creation,
         or to a given expiryTime/Delta. Rescheduling will update the task's issueTime to now.
         TODO: A firstIssueTime may be useful in the future to represent creation time.
@@ -260,9 +263,9 @@ class DynamicRescheduleTask(TimedTask):
     :varType autoReschedule: True
     """
 
-    def __init__(self, delayTimeGenerator : DelayGeneratorType, initialDelta: timedelta = None,
-                        delayTimeGeneratorArgs : Any = None, issueTime : datetime = None, expiryTime : datetime = None,
-                        expiryFunction : TTCallbackType = None, expiryFunctionArgs : Any = None, autoReschedule : bool = False,
+    def __init__(self, delayTimeGenerator : DelayGeneratorType, initialDelta: Optional[timedelta] = None,
+                        delayTimeGeneratorArgs : Any = None, issueTime : Optional[datetime] = None, expiryTime : Optional[datetime] = None,
+                        expiryFunction : Optional[TTCallbackType] = None, expiryFunctionArgs : Any = None, autoReschedule : bool = False,
                         rescheduleOnExpiryFuncFailure : bool = False):
         """
         :param DelayGeneratorType delayTimeGenerator: Reference (not call!) to the function which generates the expiryDelta.
@@ -282,18 +285,15 @@ class DynamicRescheduleTask(TimedTask):
                                                     reschedule. Useful for delaying a task to retry later once a problem will
                                                     be fixed (Default False)
         """
-        self.asyncDelayTimeGenerator = inspect.iscoroutinefunction(delayTimeGenerator)
-        if self.asyncDelayTimeGenerator and initialDelta is None:
-            raise ValueError("delayTimeGenerator, and so initialDelta is a required argument. Received None.")
-
-        # Initialise TimedTask-inherited attributes
+        self.delayTimeGenerator = delayTimeGenerator
+        self.hasDelayTimeGeneratorArgs = delayTimeGeneratorArgs is not None
+        self.delayTimeGeneratorArgs: Any = delayTimeGeneratorArgs if self.hasDelayTimeGeneratorArgs else {}
+        initialDelta = initialDelta if initialDelta is not None else self.callDelayTimeGenerator()
         super(DynamicRescheduleTask, self).__init__(issueTime=issueTime, expiryTime=expiryTime, expiryDelta=initialDelta,
                                                     expiryFunction=expiryFunction, expiryFunctionArgs=expiryFunctionArgs,
                                                     autoReschedule=autoReschedule,
                                                     rescheduleOnExpiryFuncFailure=rescheduleOnExpiryFuncFailure)
-        self.delayTimeGenerator = delayTimeGenerator
-        self.hasDelayTimeGeneratorArgs = delayTimeGeneratorArgs is not None
-        self.delayTimeGeneratorArgs = delayTimeGeneratorArgs if self.hasDelayTimeGeneratorArgs else {}
+        
         
 
     def callDelayTimeGenerator(self) -> timedelta:
