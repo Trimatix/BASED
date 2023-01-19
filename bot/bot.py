@@ -386,10 +386,15 @@ async def dev_cmd_sync_app_commands(interaction: Interaction, guilds: Optional[s
     for guild in _guilds:
         tasks.add(syncGuild(guild))
     
-    await tasks.wait()
-    tasks.logExceptions()
-
-    await interaction.followup.send(f"Synced the tree to {len(synced)}/{len(_guilds)} guilds.")
+    if tasks.any():
+        await tasks.wait()
+        if exceptions := tasks.getExceptions():
+            tasks.logExceptions()
+            await interaction.followup.send(f"Synced the tree to {len(synced)}/{len(_guilds)} guilds. {len(exceptions)} guild(s) failed to sync, exceptions have been logged.")
+        else:
+            await interaction.followup.send(f"Synced the tree to {len(synced)}/{len(_guilds)} guilds.")
+    else:
+        await interaction.followup.send(f"No syncing was performed: No guilds to sync to")
 
 botState.client.tree.add_command(dev_cmd_sync_app_commands, guilds=cfg.developmentGuilds)
 
