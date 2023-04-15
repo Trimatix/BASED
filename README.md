@@ -108,7 +108,7 @@ Hese is a step-by-step setup guide for your bot's database:
       For more information on this file, see the Liquibase website: [[Liquibase: search path](https://docs.liquibase.com/concepts/changelogs/how-liquibase-finds-files.html)] [[Liquibase: liquibase.properties](https://docs.liquibase.com/concepts/connections/creating-config-properties.html?Highlight=liquibase.properties)]
    2. If you have not created a root changelog file at this stage, reference the BASED root changelog file.
 6. Run `liquibase update` from the commandline to deploy the database schema to your database.
-7. Configure your bot to connect to the database, by setting the `dbConnectionString` toml config variable.
+7. Configure your bot to connect to the database, by setting the `databaseConnection` toml config variable.
 
 # Running Your Bot
 
