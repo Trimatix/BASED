@@ -55,7 +55,8 @@ BASED is a template project for creating advanced discord bots using python.
 1. Fork this repository.
 2. Install the project requirements with `pip install -r requirements.txt`.
 3. Provide your bot token (see the [Configuring Your Bot](https://github.com/Trimatix/BASED#configuring-your-bot) section below).
-4. Build your bot directly over BASED.
+4. Create a MySQL database and create a liquibase.properties file (see [Configuring Your Bot](https://github.com/Trimatix/BASED#configuring-your-bot)).
+5. Build your bot directly over BASED.
 
 The project is already working as is, with a connected client instance, dynamic commands importing and calling, scheduler and database initialization, and reactionMenu interaction using client events.<br>
 To test the base project, try running the bot, and calling the `.help` command.
@@ -87,6 +88,27 @@ The bot token can now be given in a config variable, or in an environment variab
 - Give the name of the environment variable containing your token, in `botToken_envVarName`
 
 You must give exactly one of these variables, either in the default config values (`cfg/cfg.py`), or in a toml config file.
+
+## Connecting to your database
+
+BASED v2.0 now uses MySQL for savedata management instead of json flatfiles. BASED uses Liquibase for database change management.
+
+Hese is a step-by-step setup guide for your bot's database:
+
+1. Set up a new MySQL database: https://dev.mysql.com/downloads/installer/
+2. Install Liquibase: https://www.liquibase.com/download
+3. Download the jar files that Liquibase needs, and place them somewhere accessible - select the most recent version, and then click "jar".
+   *If your classes are located within the repository, don't forget to exclude their directory from git.*
+   1. https://mvnrepository.com/artifact/mysql/mysql-connector-java
+   2. https://mvnrepository.com/artifact/org.yaml/snakeyaml/2.0
+4. Create a root changelog file in `db/changelogs/<your project name>` for your database schemas.
+   Reference the BASED root changelog in this file, as described in `db/changelogs/readme.md`.
+5. Make a copy of `_liquibase.properties.template`, and call it `liquibase.properties`
+   1. Customize this file with the correct connection details for your database, and your root changelog file.
+      For more information on this file, see the Liquibase website: [[Liquibase: search path](https://docs.liquibase.com/concepts/changelogs/how-liquibase-finds-files.html)] [[Liquibase: liquibase.properties](https://docs.liquibase.com/concepts/connections/creating-config-properties.html?Highlight=liquibase.properties)]
+   2. If you have not created a root changelog file at this stage, reference the BASED root changelog file.
+6. Run `liquibase update` from the commandline to deploy the database schema to your database.
+7. Configure your bot to connect to the database, by setting the `dbConnectionString` toml config variable.
 
 # Running Your Bot
 
