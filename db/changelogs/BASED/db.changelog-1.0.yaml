@@ -1,0 +1,28 @@
+databaseChangeLog:
+  -  changeSet:
+      id:  1-81-init_users_table
+      author:  trimatix
+      changes:
+        -  createTable:
+            tableName:  user
+            columns:
+              -  column:
+                  name:  id
+                  type:  int
+                  constraints:
+                    primaryKey:  true
+                    nullable:  false
+  
+  -  changeSet:
+      id:  1-81-init_guilds_table
+      author:  trimatix
+      changes:
+        -  createTable:
+            tableName:  guild
+            columns:
+              -  column:
+                  name:  id
+                  type:  int
+                  constraints:
+                    primaryKey:  true
+                    nullable:  false
