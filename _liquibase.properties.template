@@ -1,6 +1,6 @@
 changeLogFile:  db.changelog-root.yaml
-url:  jdbc:mysql://<servername>:<port>/<dbname>
+url:  jdbc:postgresql://<servername>:<port>/<dbname>
 username:  username
 password:  password
-classpath:  my_classpath/mysql-connector-java-x.x.xx.jar;my_classpath/snakeyaml-x.x.jar
+classpath:  my_classpath/snakeyaml-x.x.jar
 liquibase.searchPath: db/changelogs/my_project

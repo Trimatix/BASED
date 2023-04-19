@@ -55,7 +55,7 @@ BASED is a template project for creating advanced discord bots using python.
 1. Fork this repository.
 2. Install the project requirements with `pip install -r requirements.txt`.
 3. Provide your bot token (see the [Configuring Your Bot](https://github.com/Trimatix/BASED#configuring-your-bot) section below).
-4. Create a MySQL database and create a liquibase.properties file (see [Configuring Your Bot](https://github.com/Trimatix/BASED#configuring-your-bot)).
+4. Create a PostgreSQL database and create a liquibase.properties file (see [Configuring Your Bot](https://github.com/Trimatix/BASED#configuring-your-bot)).
 5. Build your bot directly over BASED.
 
 The project is already working as is, with a connected client instance, dynamic commands importing and calling, scheduler and database initialization, and reactionMenu interaction using client events.<br>
@@ -91,16 +91,16 @@ You must give exactly one of these variables, either in the default config value
 
 ## Connecting to your database
 
-BASED v2.0 now uses MySQL for savedata management instead of json flatfiles. BASED uses Liquibase for database change management.
+BASED v2.0 now uses PostgreSQL for savedata management instead of json flatfiles. BASED uses Liquibase for database change management.
 
 Hese is a step-by-step setup guide for your bot's database:
 
-1. Set up a new MySQL database: https://dev.mysql.com/downloads/installer/
+1. Set up a new PostgreSQL database: https://www.postgresql.org/download/
 2. Install Liquibase: https://www.liquibase.com/download
 3. Download the jar files that Liquibase needs, and place them somewhere accessible - select the most recent version, and then click "jar".
    *If your classes are located within the repository, don't forget to exclude their directory from git.*
-   1. https://mvnrepository.com/artifact/mysql/mysql-connector-java
-   2. https://mvnrepository.com/artifact/org.yaml/snakeyaml/2.0
+   1. https://mvnrepository.com/artifact/org.yaml/snakeyaml/2.0
+   ~~2. PostgreSQL driver~~ *removed - this is included with Liquibase*
 4. Create a root changelog file in `db/changelogs/<your project name>` for your database schemas.
    Reference the BASED root changelog in this file, as described in `db/changelogs/readme.md`.
 5. Make a copy of `_liquibase.properties.template`, and call it `liquibase.properties`
