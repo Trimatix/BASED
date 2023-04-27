@@ -95,22 +95,35 @@ BASED v2.0 allows you to use the database of your choice, by using database-agno
 - Liquibase for change management.
 - SQLAlchemy for the async ORM.
 
-Hese is a step-by-step setup guide for your bot's database:
+Here is a minimal setup guide for your bot's database:
 
-1. Set up a new PostgreSQL database: https://www.postgresql.org/download/
+1. Set up a new database.
 2. Install Liquibase: https://www.liquibase.com/download
-3. Download the jar files that Liquibase needs, and place them somewhere accessible - select the most recent version, and then click "jar".
+3. Download the jar files that Liquibase needs, and place them somewhere accessible.<br>
    *If your classes are located within the repository, don't forget to exclude their directory from git.*
-   1. https://mvnrepository.com/artifact/org.yaml/snakeyaml/2.0
-   2. 
+   - BASED manages changelogs in yaml, so the snakeyaml jar is required: https://mvnrepository.com/artifact/org.yaml/snakeyaml/2.0
+   - Depending on your database, you may require a driver jar (e.g MySQL) - please check [the Liquibase documentation](https://docs.liquibase.com/start/tutorials/home.html). 
 4. Create a root changelog file in `db/changelogs/<your project name>` for your database schemas.
    Reference the BASED root changelog in this file, as described in `db/changelogs/readme.md`.
 5. Make a copy of `_liquibase.properties.template`, and call it `liquibase.properties`
    1. Customize this file with the correct connection details for your database, and your root changelog file.
       For more information on this file, see the Liquibase website: [[Liquibase: search path](https://docs.liquibase.com/concepts/changelogs/how-liquibase-finds-files.html)] [[Liquibase: liquibase.properties](https://docs.liquibase.com/concepts/connections/creating-config-properties.html?Highlight=liquibase.properties)]
-   2. If you have not created a root changelog file at this stage, reference the BASED root changelog file.
+   2. If you have not created a changelog file, add a reference to the BASED root changelog file.
 6. Run `liquibase update` from the commandline to deploy the database schema to your database.
-7. Configure your bot to connect to the database, by setting the `databaseConnection` toml config variable.
+7. Setting your database connection string is similar to providing your bot token. Either:
+   - Set the connection string in the `databaseConnectionString` variable of your toml config file, if you are using one.<br>
+     *It is not recommended to set sensitive information in python files.*
+   - Set the `databaseConnectionString_envVarName` variable, either in toml or directly in `cfg.py`, to have the bot retrieve your connection string from a named environment variable.
+
+For full details on the connection string format, please see [the SQLAlchemy documentation](https://docs.sqlalchemy.org/en/latest/tutorial/engine.html).<br>
+In summary, the connection string is given as a URL: `<dialect>+<DBAPI>://<user>:<password>@<host><:port?>/<database>`<br>
+For example, the below connection string connects to:
+- a **postgresql** database *(dialect)*
+- with the **psycopg3** library *(DBAPI)*
+- as user **postgres** (user), with password **root** *(password)*
+- hosted at **localhost:5432** *(host, port)*
+- defaulting to the **mybot** database *(database)*
+> `postgres+psycopg://postgres:root@localhost:5432/mybot`
 
 # Running Your Bot
 
