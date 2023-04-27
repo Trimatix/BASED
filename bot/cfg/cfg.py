@@ -109,6 +109,12 @@ httpErrRetries = 3
 # The number of seconds to wait between API call retries upon HTTP exception catching
 httpErrRetryDelaySeconds = 1
 
+# Exactly one of databaseConnectionString or databaseConnectionString_envVarName must be given.
+# databaseConnectionString directly contains the connection string for your database
+# databaseConnectionString_envVarName contains the name of an environment variable to get your connection string from
+databaseConnectionString = ""
+databaseConnectionString_envVarName = ""
+
 
 def validateConfig():
     for _, basicAccessLevel in basicAccessLevels._fieldItems():

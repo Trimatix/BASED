@@ -1,5 +1,5 @@
 changeLogFile:  db.changelog-root.yaml
-url:  jdbc:postgresql://<servername>:<port>/<dbname>
+url:  jdbc:<dialect>://<servername>:<port>/<dbname>
 username:  username
 password:  password
 classpath:  my_classpath/snakeyaml-x.x.jar
