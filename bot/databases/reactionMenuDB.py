@@ -1,96 +1,79 @@
-from typing import cast
-from .. import botState
+from typing import Optional, Tuple, Type
 from ..reactionMenus import reactionMenu
-from ..logging import LogCategory
-from discord.abc import Messageable
-from carica import SerializesToDict
-from ..lib.jsonHandler import JsonType
 
-class ReactionMenuDB(dict, SerializesToDict):
-    """A database of ReactionMenu instances.
-    Currently just an extension of dict to add serialize()."""
+from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine
+from sqlalchemy.sql._typing import _ColumnsClauseArgument
+from sqlalchemy import select
 
-    def serialize(self, **kwargs):
-        """Serialise all saveable ReactionMenus in this DB into a single dictionary.
+from .snowflakeDb import SnowflakeDB
 
-        :return: A dictionary containing full dictionary descriptions of all saveable ReactionMenu instances in this database
-        :rtype: dict
+class ReactionMenuDB(SnowflakeDB[reactionMenu.DatabaseReactionMenu]):
+    def __init__(self, engine: AsyncEngine):
+        super().__init__(reactionMenu.DatabaseReactionMenu, engine)
+
+
+    async def getMenuClassForRecord(self, recordId: int, session: Optional[AsyncSession] = None) -> Optional[Type[reactionMenu.DatabaseReactionMenu]]:
+        """Get the menu class for the record with the given ID. Returns `None` if it does not exist.
+
+        :param int recordId: integer discord ID for the DatabaseReactionMenu to get
+        :return: The class for the stored record, or None if no record is found with the id
+        :rtype: Optional[Type[DatabaseReactionMenu]]
         """
-        data = {}
-        for msgID in self:
-            if reactionMenu.isSaveableMenuInstance(self[msgID]):
-                data[msgID] = self[msgID].serialize(**kwargs)
-        return data
+        recordTypeQuery = select(reactionMenu.DatabaseReactionMenu).where(reactionMenu.DatabaseReactionMenu.id == recordId).with_only_columns(reactionMenu.DatabaseReactionMenu.menuType)
 
+        async with session if session else self.sessionMaker() as _session:
+            recordType = await _session.scalar(recordTypeQuery)
+
+            if recordType is None: return None
+
+            return reactionMenu.databaseMenuClassFromName(recordType)
+
+
+    async def create(self, record: reactionMenu.DatabaseReactionMenu, session: Optional[AsyncSession] = None) -> reactionMenu.DatabaseReactionMenu:
+        """Add a new reaction menu to the database.
+
+        :param DatabaseReactionMenu record: The record to add
+        :raises IntegrityError: If a reaction menu already exists in the database with the specified ID
+        :return: the newly created reaction menu
+        :rtype: DatabaseReactionMenu
+        """
+        async with session if session else self.sessionMaker() as _session:
+            _session.add(record)
+
+        return record
     
-    @classmethod
-    def deserialize(cls, d, **kwargs):
-        raise NotImplementedError()
 
+    async def get(self, recordId: int, session: Optional[AsyncSession] = None, withOnlyFields: Optional[Tuple[_ColumnsClauseArgument[reactionMenu.DatabaseReactionMenu]]] = None) -> Optional[reactionMenu.DatabaseReactionMenu]:
+        """Get the record with the given ID. Returns `None` if it does not exist.
+        The menu is deserialized into the class named in its `menuType` field.
 
-async def deserialize(dbDict: JsonType) -> ReactionMenuDB:
-    """Factory function constructing a new ReactionMenuDB from dictionary-serialized format;
-    the opposite of ReactionMenuDB.serialize
+        :param int recordId: integer discord ID for the DatabaseReactionMenu to get
+        :return: The stored record, or None if no record is found with the id
+        :rtype: Optional[DatabaseReactionMenu]
+        """
+        async with session if session else self.sessionMaker() as _session:
+            menuClass = await self.getMenuClassForRecord(recordId, session=session)
+            if menuClass is None: return None
 
-    :param dict dbDict: A dictionary containing all info needed to reconstruct a ReactionMenuDB,
-                        in accordance with ReactionMenuDB.serialize
-    :return: A new ReactionMenuDB instance as described by dbDict
-    :rtype: ReactionMenuDB
-    """
-    # lots of casting going on in this method, because pyright doesn't know the structure of a serialized reaction menu
-    newDB = ReactionMenuDB()
-    requiredAttrs = ["type", "guild", "channel"]
+            query = select(menuClass).where(menuClass.id == recordId)
 
-    for msgID in dbDict:
-        menuData = cast(JsonType, dbDict[msgID])
+            if withOnlyFields:
+                query = query.with_only_columns(*withOnlyFields)
 
-        for attr in requiredAttrs:
-            if attr not in menuData:
-                botState.client.logger.log("reactionMenuDB", "deserialize",
-                                    "Invalid menu dict (missing " + attr + "), ignoring and removing. " \
-                                        + " ".join(foundAttr + "=" + str(menuData[foundAttr]) \
-                                            for foundAttr in requiredAttrs if foundAttr in menuData),
-                                    category=LogCategory.reactionMenus, eventType="dictNo" + attr.capitalize())
+            result = await _session.execute(query)
+            row = result.one_or_none()
+            return None if row is None else row.t[0]
+    
 
-        menuDescriptor = cast(str, menuData["type"]) + "(" + "/".join(str(id) \
-                            for id in [menuData["guild"], menuData["channel"], msgID]) + ")"
+    async def getOrCreate(self, record: reactionMenu.DatabaseReactionMenu, session: Optional[AsyncSession] = None) -> reactionMenu.DatabaseReactionMenu:
+        async with session if session else self.sessionMaker() as _session:
+            menuClass = await self.getMenuClassForRecord(record.id, session=session)
+            if menuClass is None:
+                return await self.create(record, session=_session)
 
-        dcGuild = botState.client.get_guild(cast(int, menuData["guild"]))
-        if dcGuild is None:
-            dcGuild = await botState.client.fetch_guild(cast(int, menuData["guild"]))
-            if dcGuild is None:
-                botState.client.logger.log("reactionMenuDB", "deserialize",
-                                    "Unrecognised guild in menu dict, ignoring and removing: " + menuDescriptor,
-                                    category=LogCategory.reactionMenus, eventType="unknGuild")
-                continue
+            query = select(menuClass).where(menuClass.id == record.id)
 
-        menuChannel = dcGuild.get_channel(cast(int, menuData["channel"]))
-        if menuChannel is None:
-            menuChannel = await dcGuild.fetch_channel(cast(int, menuData["channel"]))
-            if menuChannel is None:
-                botState.client.logger.log("reactionMenuDB", "deserialize",
-                                    "Unrecognised channel in menu dict, ignoring and removing: " + menuDescriptor,
-                                    category=LogCategory.reactionMenus, eventType="unknChannel")
-                continue
-        if not isinstance(menuChannel, Messageable):
-            botState.client.logger.log("reactionMenuDB", "deserialize",
-                                "Cannot send messages to this channel, ignoring and removing: " + menuDescriptor,
-                                category=LogCategory.reactionMenus, eventType="unknChannel")
-            continue
-
-        msg = await menuChannel.fetch_message(cast(int, menuData["msg"]))
-        if msg is None:
-            botState.client.logger.log("reactionMenuDB", "deserialize",
-                                "Unrecognised message in menu dict, ignoring and removing: " + menuDescriptor,
-                                category=LogCategory.reactionMenus, eventType="unknMsg")
-            continue
+            result = await _session.execute(query)
         
-        if not reactionMenu.isSaveableMenuTypeName(cast(str, menuData["type"])):
-            newDB[int(msgID)] = reactionMenu.saveableMenuClassFromName(cast(str, menuData["type"])).deserialize(menuData, msg=msg)
-        else:
-            botState.client.logger.log("reactionMenuDB", "deserialize",
-                                "Attempted to deserialize a non-saveable menu type, ignoring and removing. msg #" + str(msgID) \
-                                    + ", type " + cast(str, menuData["type"]),
-                                category=LogCategory.reactionMenus, eventType="dictUnsaveable")
-
-    return newDB
+            row = result.one()
+            return row[0]

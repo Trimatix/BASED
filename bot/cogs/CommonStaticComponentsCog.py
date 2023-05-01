@@ -12,7 +12,7 @@ class CommonStaticComponentsCog(BasedCog):
 
 
     @BasedCog.staticComponentCallback(StaticComponents.Clear_View)
-    async def clearViewFromMessage(self, interaction: Interaction):
+    async def clearViewFromMessage(self, interaction: Interaction, *_):
         if interaction.response.is_done():
             await interaction.edit_original_message(view=None)
         else:
@@ -20,7 +20,7 @@ class CommonStaticComponentsCog(BasedCog):
 
 
     @BasedCog.staticComponentCallback(StaticComponents.Clone_Message)
-    async def cloneMessage(self, interaction: Interaction, userId: str):
+    async def cloneMessage(self, interaction: Interaction, userId: str, *_):
         if userId and interaction.user.id != int(userId):
             return
 

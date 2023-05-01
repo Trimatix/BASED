@@ -1,77 +1,103 @@
-from .. import botState
-from discord import NotFound, HTTPException, Forbidden # type: ignore[import]
+from typing import cast
+from discord import ClientUser, HTTPException, Forbidden # type: ignore[import]
 from ..cfg import cfg
+from ..client import BasedClient
 
 
-async def deleteReactionMenu(menuID: int):
+async def _findMenu(client: BasedClient, menuID: int):
+    menu = client.inMemoryReactionMenusDB.get(menuID, None)
+    if menu is not None: return True, menu
+
+    return False, await client.databaseReactionMenusDB.get(menuID)
+
+
+async def _deleteRecord(inMemory: bool, client: BasedClient, menuID: int):
+    if inMemory:
+        client.inMemoryReactionMenusDB.pop(menuID, None)
+    else:
+        await client.databaseReactionMenusDB.delete(menuID)
+
+
+async def deleteReactionMenu(client: BasedClient, menuID: int):
     """Delete the currently active reaction menu and its message entirely, with the given message ID
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
-    menu = botState.client.reactionMenusDB[menuID]
+    inMemory, menu = await _findMenu(client, menuID)
+    if menu is None: return
+    
+    msg = client.get_partial_messageable(menu.channelId).get_partial_message(menuID)
+
     try:
-        await menu.msg.delete()
-    except NotFound:
+        await msg.delete()
+    except HTTPException: # note: HttpException also covers NotFound and Forbidden
         pass
-    if menu.msg.id in botState.client.reactionMenusDB:
-        del botState.client.reactionMenusDB[menu.msg.id]
+    
+    await _deleteRecord(inMemory, client, menuID)
 
 
-async def removeEmbedAndOptions(menuID: int):
+async def removeEmbedAndOptions(client: BasedClient, menuID: int):
     """Delete the currently active menu with the given ID, removing its embed and option reactions, but
     leaving the corresponding message intact.
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
-    if menuID in botState.client.reactionMenusDB:
-        menu = botState.client.reactionMenusDB[menuID]
-        await menu.msg.edit(suppress=True)
+    inMemory, menu = await _findMenu(client, menuID)
+    if menu is None: return
+    
+    msg = client.get_partial_messageable(menu.channelId).get_partial_message(menuID)
 
-        for react in menu.options:
-            await menu.msg.remove_reaction(react.sendable, menu.msg.guild.me)
+    await msg.edit(embed=None)
 
-        del botState.client.reactionMenusDB[menu.msg.id]
+    for react in menu.options:
+        await msg.remove_reaction(react.emoji if isinstance(react.emoji, str) else react.emoji.sendable, cast(ClientUser, client.user))
+
+    await _deleteRecord(inMemory, client, menuID)
 
 
-async def markExpiredMenu(menuID: int):
+async def markExpiredMenu(client: BasedClient, menuID: int):
     """Replace the message content of the given menu with cfg.expiredMenuMsg, and remove 
     the menu from the active reaction menus DB.
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
-    menu = botState.client.reactionMenusDB[menuID]
+    inMemory, menu = await _findMenu(client, menuID)
+    if menu is None: return
+
+    msg = client.get_partial_messageable(menu.channelId).get_partial_message(menuID)
+
     try:
-        await menu.msg.edit(content=cfg.expiredMenuMsg)
+        await msg.edit(content=cfg.expiredMenuMsg)
     except HTTPException: # note: HttpException also covers NotFound and Forbidden
         pass
-    if menuID in botState.client.reactionMenusDB:
-        del botState.client.reactionMenusDB[menuID]
+
+    await _deleteRecord(inMemory, client, menuID)
 
 
-async def markExpiredMenuAndRemoveOptions(menuID: int):
+async def markExpiredMenuAndRemoveOptions(client: BasedClient, menuID: int):
     """Remove all option reactions from the menu message, replace the message content of the given menu
     with cfg.expiredMenuMsg, and remove the menu from the active reaction menus DB.
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
-    menu = botState.client.reactionMenusDB[menuID]
-    menu.msg = await menu.msg.channel.fetch_message(menu.msg.id)
+    inMemory, menu = await _findMenu(client, menuID)
+    if menu is None: return
+
+    msg = client.get_partial_messageable(menu.channelId).get_partial_message(menuID)
+
     try:
-        await menu.msg.clear_reactions()
+        await msg.clear_reactions()
     except Forbidden:
-        for reaction in menu.msg.reactions:
+        msg = await msg.fetch()
+        for reaction in msg.reactions:
             try:
-                await reaction.remove(botState.client.user)
-            except (HTTPException, NotFound):
+                await reaction.remove(cast(ClientUser, client.user))
+            except HTTPException: # note: HttpException also covers NotFound and Forbidden
                 pass
 
-    await markExpiredMenu(menuID)
+    try:
+        await msg.edit(content=cfg.expiredMenuMsg)
+    except HTTPException: # note: HttpException also covers NotFound and Forbidden
+        pass
 
-
-async def expireHelpMenu(menuID: int):
-    """Expire a reaction help menu, and mark it so in the discord message.
-    Reset the owning user's helpMenuOwned tracker.
-    """
-    menu = botState.client.reactionMenusDB[menuID]
-    menu.owningBasedUser.helpMenuOwned = False
-    await markExpiredMenuAndRemoveOptions(menuID)
+    await _deleteRecord(inMemory, client, menuID)

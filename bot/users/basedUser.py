@@ -1,38 +1,22 @@
-# Typing imports
 from __future__ import annotations
 
-from carica import SerializesToDict
-from ..lib.jsonHandler import JsonType
+from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import mapped_column
 
-class BasedUser(SerializesToDict):
+class Base(DeclarativeBase):
+    pass
+
+
+class BasedUser(Base):
     """A user of the bot. There is currently no guarantee that user still shares any guilds with the bot,
     though this is planned to change in the future.
 
     :var id: The user's unique ID. The same as their unique discord ID.
     :vartype id: int
     """
-
-    def __init__(self, id: int):
-        """
-        :param int id: The user's unique ID. The same as their unique discord ID.
-        """
-        self.id = id
-        self.helpMenuOwned = False
-
-
-    def resetUser(self):
-        """Reset the user's attributes back to their default values.
-        """
-        pass
-
-
-    def serialize(self, **kwargs) -> JsonType:
-        """Serialize this BasedUser to a dictionary representation for saving to file.
-
-        :return: A dictionary containing all information needed to recreate this user
-        :rtype: dict
-        """
-        return {}
+    __tablename__ = "user"
+    id: Mapped[int] = mapped_column(primary_key=True)
 
 
     def __str__(self) -> str:
@@ -41,22 +25,4 @@ class BasedUser(SerializesToDict):
         :return: A string summar of the user, containing the user ID and home guild ID.
         :rtype: str
         """
-        return "<BasedUser #" + str(self.id) + ">"
-
-
-    @classmethod
-    def deserialize(cls, userDict: JsonType, **kwargs) -> BasedUser:
-        """Construct a new BasedUser object from the given ID and the information in the
-        given dictionary - The opposite of BasedUser.serialize
-
-        :param int id: The discord ID of the user
-        :param dict userDict: A dictionary containing all information necessary to construct
-                                the BasedUser object, other than their ID.
-        :return: A BasedUser object as described in userDict
-        :rtype: BasedUser 
-        """
-        if "id" not in kwargs:
-            raise NameError("Required kwarg not given: id")
-        userID = kwargs["id"]
-
-        return BasedUser(userID)
+        return f"<{type(self).__name__} #" + str(self.id) + ">"

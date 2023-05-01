@@ -8,7 +8,7 @@ databaseChangeLog:
             columns:
               -  column:
                   name:  id
-                  type:  int
+                  type:  bigint unsigned
                   constraints:
                     primaryKey:  true
                     nullable:  false
@@ -22,7 +22,75 @@ databaseChangeLog:
             columns:
               -  column:
                   name:  id
-                  type:  int
+                  type:  bigint unsigned
                   constraints:
                     primaryKey:  true
                     nullable:  false
+              -  column:
+                  name:  commandPrefix
+                  type:  char
+
+  -  changeSet:
+      id:  1-81-init_reaction_menus_table
+      author:  trimatix
+      changes:
+        -  createTable:
+            tableName:  reactionMenu
+            columns:
+              -  column:
+                  name:  id
+                  type:  bigint unsigned
+                  constraints:
+                    primaryKey:  true
+                    nullable:  false
+              -  column:
+                  name:  channelId
+                  type:  bigint unsigned
+                  constraints:
+                    nullable:  false
+              -  column:
+                  name:  menuType
+                  type:  varchar(30)
+                  constraints:
+                    nullable:  false
+              -  column:
+                  name:  expiryTime
+                  type:  datetime
+              -  column:
+                  name:  multipleChoice
+                  type:  bool
+              -  column:
+                  name:  ownerId
+                  type:  bigint unsigned
+              -  column:
+                  name:  private
+                  type:  bool
+
+        -  createTable:
+            tableName:  reactionMenuOption
+            columns:
+              -  column:
+                  name:  id
+                  type:  int unsigned
+                  autoIncrement:  true
+                  startWith:  0
+                  constraints:
+                    primaryKey:  true
+                    nullable:  false
+              -  column:
+                  name:  menuId
+                  type:  bigint unsigned
+                  constraints:
+                    primaryKey:  true
+                    nullable:  false
+              -  column:
+                  name:  emoji
+                  type:  varchar(20)
+                  constraints:
+                    nullable:  false
+              -  column:
+                  name:  name
+                  type:  varchar(50)
+              -  column:
+                  name:  value
+                  type:  varchar(50)

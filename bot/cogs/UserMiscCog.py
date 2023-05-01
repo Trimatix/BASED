@@ -41,4 +41,4 @@ class UserMiscCog(basedApp.BasedCog):
 
 
 async def setup(bot: client.BasedClient):
-    await bot.add_cog(UserMiscCog(bot), guilds=cfg.developmentGuilds)
+    await bot.add_cog(UserMiscCog(bot), guilds=cfg.developmentGuilds) # type: ignore[reportGeneralTypeIssues]

@@ -11,6 +11,8 @@ from discord.ext import tasks # type: ignore[import]
 from discord.utils import MISSING # type: ignore[import]
 from datetime import datetime, timedelta
 
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
+
 from .interactions import accessLevels, commandChecks
 from .databases import userDB, guildDB, reactionMenuDB
 import os
@@ -19,6 +21,7 @@ from .cfg import cfg
 from . import logging
 from .scheduling import timedTaskHeap
 from .interactions import basedCommand, basedComponent, basedApp
+from .reactionMenus import reactionMenu
 
 
 class ShutDownState:
@@ -46,46 +49,13 @@ class GracefulKiller:
         self.kill_now = True
 
 
-def loadUsersDB(filePath: Union[Path, str]) -> userDB.UserDB:
-    """Build a UserDB from the specified JSON file.
-
-    :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
-    :return: a UserDB as described by the dictionary-serialized representation stored in the file located in filePath.
-    """
-    if os.path.isfile(filePath):
-        return userDB.UserDB.deserialize(lib.jsonHandler.readJSON(filePath))
-    return userDB.UserDB()
-
-
-def loadGuildsDB(filePath: Union[Path, str], dbReload: bool = False) -> guildDB.GuildDB:
-    """Build a GuildDB from the specified JSON file.
-
-    :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
-    :return: a GuildDB as described by the dictionary-serialized representation stored in the file located in filePath.
-    """
-    if os.path.isfile(filePath):
-        return guildDB.GuildDB.deserialize(lib.jsonHandler.readJSON(filePath))
-    return guildDB.GuildDB()
-
-
-async def loadReactionMenusDB(filePath: Union[Path, str]) -> reactionMenuDB.ReactionMenuDB:
-    """Build a reactionMenuDB from the specified JSON file.
-    This method must be called asynchronously, to allow awaiting of discord message fetching functions.
-
-    :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
-    :return: a reactionMenuDB as described by the dictionary-serialized representation stored in the file located in filePath.
-    """
-    if os.path.isfile(filePath):
-        return await reactionMenuDB.deserialize(lib.jsonHandler.readJSON(filePath))
-    return reactionMenuDB.ReactionMenuDB()
-
-
 def waitBeforeStartingTask(task: tasks.Loop):
     async def inner():
         await asyncio.sleep(timedelta(seconds=task.seconds or 0, minutes=task.minutes or 0, hours=task.hours or 0).total_seconds())
     
     task.before_loop(inner)
     return task
+
 
 class BasedClient(ClientBaseClass):
     """A minor extension to discord.ext.commands.Bot to include database saving and extended shutdown procedures.
@@ -101,11 +71,17 @@ class BasedClient(ClientBaseClass):
     :vartype killer: GracefulKiller
     """
 
-    def __init__(self, usersDB: Optional[userDB.UserDB] = None,
+    def __init__(self, databaseEngine: AsyncEngine,
+                        usersDB: Optional[userDB.UserDB] = None,
                         guildsDB: Optional[guildDB.GuildDB] = None,
-                        reactionMenusDB: Optional[reactionMenuDB.ReactionMenuDB] = None,
+                        inMemoryReactionMenusDB: Optional[Dict[int, "reactionMenu.InMemoryReactionMenu"]] = None,
+                        databaseReactionMenusDB: Optional[reactionMenuDB.ReactionMenuDB] = None,
                         logger: Optional[logging.Logger] = None,
                         httpClient: Optional[aiohttp.ClientSession] = None):
+        
+        self.databaseEngine = databaseEngine
+        self.sessionMaker = async_sessionmaker(self.databaseEngine)
+
         intents = discord.Intents.default()
         intents.message_content = True
         intents.members = True
@@ -113,8 +89,9 @@ class BasedClient(ClientBaseClass):
 
         self._usersDB = usersDB
         self._guildsDB = guildsDB
-        self._reactionMenusDB = reactionMenusDB
-        self._dbsLoaded = None not in (usersDB, guildsDB, reactionMenusDB)
+        self._databaseReactionMenusDB = databaseReactionMenusDB
+        self._inMemoryReactionMenusDB = inMemoryReactionMenusDB
+        self._dbsLoaded = None not in (usersDB, guildsDB, databaseReactionMenusDB, inMemoryReactionMenusDB)
 
         self.loggedIn = False
         self.launchTime = discord.utils.utcnow()
@@ -414,7 +391,7 @@ class BasedClient(ClientBaseClass):
 
 
     @property
-    def reactionMenusDB(self):
+    def databaseReactionMenusDB(self):
         """The bot's database of reaction menus.
         Databases are only available after on_ready.
 
@@ -423,8 +400,22 @@ class BasedClient(ClientBaseClass):
         :rtype: databases.reactionMenuDB.ReactionMenuDB
         """
         if not self._dbsLoaded:
-            raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient.usersDB is only available after on_ready.")
-        return cast(reactionMenuDB.ReactionMenuDB, self._reactionMenusDB)
+            raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient._databaseReactionMenusDB is only available after on_ready.")
+        return cast(reactionMenuDB.ReactionMenuDB, self._databaseReactionMenusDB)
+    
+
+    @property
+    def inMemoryReactionMenusDB(self):
+        """The bot's database of reaction menus.
+        Databases are only available after on_ready.
+
+        :raises lib.exceptions.NotReady: Databases not loaded yet
+        :return: The bot's database of user metadata.
+        :rtype: databases.reactionMenuDB.ReactionMenuDB
+        """
+        if not self._dbsLoaded:
+            raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient.inMemoryReactionMenusDB is only available after on_ready.")
+        return cast(Dict[int, reactionMenu.InMemoryReactionMenu], self._inMemoryReactionMenusDB)
 
 
     @property
@@ -443,20 +434,20 @@ class BasedClient(ClientBaseClass):
 
     async def reloadDBs(self):
         """Save all savedata to file, and start the db saving task if it is not running.
+        inMemoryReactionMenusDB is not affected.
         """
-        self._usersDB = loadUsersDB(cfg.paths.usersDB)
-        print(f"{len(self._usersDB.users)} users loaded")
-    
-        self._guildsDB = loadGuildsDB(cfg.paths.guildsDB)
-        async for guild in self.fetch_guilds(limit=None):
-            if not self._guildsDB.idExists(guild.id):
-                self._guildsDB.addID(guild.id)
-                
-        print(f"{len(self._guildsDB.guilds)} guilds loaded")
+        self._usersDB = userDB.UserDB(self.databaseEngine)
+        self._guildsDB = guildDB.GuildDB(self.databaseEngine)
+        self._databaseReactionMenusDB = reactionMenuDB.ReactionMenuDB(self.databaseEngine)
+        if self._inMemoryReactionMenusDB is None:
+            self._inMemoryReactionMenusDB = {}
+        
+        async with self.sessionMaker() as session:
+            print(f"{await self._usersDB.countAllDocuments(session=session)} users loaded")                    
+            print(f"{await self._guildsDB.countAllDocuments(session=session)} guilds loaded")                  
+            print(f"{await self._databaseReactionMenusDB.countAllDocuments(session=session)} database reaction menus loaded")
 
-        self._reactionMenusDB = await loadReactionMenusDB(cfg.paths.reactionMenusDB)
-
-        print(f"{len(self._reactionMenusDB)} reaction menus loaded")
+        print(f"{len(self._inMemoryReactionMenusDB)} in memory reaction menus loaded")
         
         self._dbsLoaded = True
 
@@ -466,15 +457,8 @@ class BasedClient(ClientBaseClass):
 
     def saveAllDBs(self):
         """Save all of the bot's savedata to file.
-        This currently saves:
-        - the users database
-        - the guilds database
-        - the reaction menus database
-        - logs
+        This currently only save logs.
         """
-        lib.jsonHandler.saveObject(cfg.paths.usersDB, self.usersDB)
-        lib.jsonHandler.saveObject(cfg.paths.guildsDB, self.guildsDB)
-        lib.jsonHandler.saveObject(cfg.paths.reactionMenusDB, self.reactionMenusDB)
         self.logger.save()
 
 
@@ -489,10 +473,11 @@ class BasedClient(ClientBaseClass):
         print("shutdown signal received, shutdown scheduled.")
         self.taskScheduler.stopTaskChecking()
         tasks = lib.discordUtil.BasicScheduler()
+
         # expire non-saveable reaction menus
-        for menu in self.reactionMenusDB.values():
-            if not menu.saveable:
-                tasks.add(menu.delete())
+        for menu in self.inMemoryReactionMenusDB.values():
+            tasks.add(menu.end(self, timedOut=True))
+
         await tasks.wait()
         tasks.logExceptions()
 
@@ -503,6 +488,8 @@ class BasedClient(ClientBaseClass):
         self.saveAllDBs()
         # close the bot's aiohttp session
         await self.httpClient.close()
+        await self.databaseEngine.dispose()
+
         print(datetime.now().strftime("%H:%M:%S: Shutdown complete."))
 
 

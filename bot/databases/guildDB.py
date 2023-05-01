@@ -1,177 +1,18 @@
 from __future__ import annotations
+from typing import Optional
 
-from ..users import basedGuild
-from typing import List, cast
-from .. import botState
-from carica import SerializesToDict
-from .. import lib
-from ..lib.jsonHandler import JsonType
-from ..logging import LogCategory
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from sqlalchemy import select
 
+from .snowflakeDb import SnowflakeDB
+from ..users.basedGuild import BasedGuild
 
-class GuildDB(SerializesToDict):
-    """A database of BasedGuilds.
+class GuildDB(SnowflakeDB[BasedGuild]):
+    def __init__(self, engine: AsyncEngine):
+        super().__init__(BasedGuild, engine)
 
-    :var guilds: Dictionary of guild.id to guild, where guild is a BasedGuild
-    :vartype guilds: dict[int, BasedGuild]
-    """
+    async def getCommandPrefix(self, recordId: int, session: Optional[AsyncSession] = None):
+        query = select(BasedGuild).with_only_columns(BasedGuild.commandPrefix).where(BasedGuild.id == recordId)
 
-    def __init__(self):
-        # Store guilds as a dict of guild.id: guild
-        self.guilds = {}
-
-
-    def getIDs(self) -> List[int]:
-        """Get a list of all guild IDs in the database.
-
-        :return: A list containing all guild IDs (ints) stored in the database.
-        :rtype: list
-        """
-        return list(self.guilds.keys())
-
-
-    def getGuilds(self) -> List[basedGuild.BasedGuild]:
-        """Get a list of all BasedGuilds in the database.
-
-        :return: A list containing all BasedGuild objects stored in the database
-        :rtype: list
-        """
-        return list(self.guilds.values())
-
-
-    def getGuild(self, id: int) -> basedGuild.BasedGuild:
-        """Get the BasedGuild object with the specified ID.
-
-        :param str id: integer discord ID for the requested guild
-        :return: BasedGuild having the requested ID
-        :rtype: BasedGuild
-        """
-        return self.guilds[id]
-
-
-    def idExists(self, id: int) -> bool:
-        """Check whether a BasedGuild with a given ID exists in the database.
-
-        :param int id: integer discord ID to check for existence
-        :return: True if a BasedGuild is stored in the database with the requested ID, False otherwise
-        :rtype: bool
-        """
-        # Search the DB for the requested ID
-        try:
-            self.getGuild(id)
-        # No BasedGuild found, return False
-        except KeyError:
-            return False
-        # Return True otherwise
-        return True
-
-
-    def guildExists(self, guild: basedGuild.BasedGuild) -> bool:
-        """Check whether a BasedGuild object exists in the database.
-        Existence checking is currently handled by checking if a guild with the requested ID is stored.
-
-        :param BasedGuild guild: BasedGuild object to check for existence
-
-        :return: True if the exact BasedGuild exists in the DB, False otherwise
-        :rtype: bool
-        """
-        return self.idExists(guild.id)
-
-
-    def addGuild(self, guild: basedGuild.BasedGuild):
-        """Add a given BasedGuild object to the database.
-
-        :param BasedGuild guild: the BasedGuild object to store
-        :raise KeyError: If the the guild is already in the database
-        """
-        # Ensure guild is not yet in the database
-        if self.guildExists(guild):
-            raise KeyError(f"Attempted to add a guild that already exists: {guild.id}")
-        self.guilds[guild.id] = guild
-
-
-    def addID(self, id: int) -> basedGuild.BasedGuild:
-        """Add a BasedGuild object with the requested ID to the database
-
-        :param int id: integer discord ID to create and store a BasedGuild for
-        :raise KeyError: If a BasedGuild is already stored for the requested ID
-
-        :return: the new BasedGuild object
-        :rtype: BasedGuild
-        """
-        # Ensure the requested ID does not yet exist in the database
-        if self.idExists(id):
-            raise KeyError(f"Attempted to add a guild that already exists: {id}")
-        # Create and return a BasedGuild for the requested ID
-        dcGuild = botState.client.get_guild(id)
-        if dcGuild is None:
-            raise ValueError(f"Client is not a member of a guild with id {id}")
-        self.guilds[id] = basedGuild.BasedGuild(id, dcGuild)
-        return self.guilds[id]
-
-
-    def removeID(self, id: int):
-        """Remove the BasedGuild with the requested ID from the database.
-
-        :param int id: integer discord ID to remove from the database
-        """
-        self.guilds.pop(id)
-
-
-    def removeGuild(self, guild: basedGuild.BasedGuild):
-        """Remove the given BasedGuild object from the database
-        Currently removes any BasedGuild sharing the given guild's ID, even if it is a different object.
-
-        :param BasedGuild guild: the guild object to remove from the database
-        """
-        self.removeID(guild.id)
-
-
-    def serialize(self, **kwargs) -> JsonType:
-        """Serialise this GuildDB into dictionary format
-
-        :return: A dictionary containing all data needed to recreate this GuildDB
-        :rtype: dict
-        """
-        data = {}
-        # Iterate over all stored guilds
-        for guild in self.getGuilds():
-            # Serialise and then store each guild
-            # JSON stores properties as strings, so ids must be converted to str first.
-            data[str(guild.id)] = guild.serialize(**kwargs)
-        return data
-
-
-    def __str__(self) -> str:
-        """Fetch summarising information about the database, as a string
-        Currently only the number of guilds stored
-
-        :return: A string summarising this db
-        :rtype: str
-        """
-        return "<GuildDB: " + str(len(self.guilds)) + " guilds>"
-
-
-    @classmethod
-    def deserialize(cls, guildDBDict: JsonType, **kwargs) -> GuildDB:
-        """Construct a GuildDB object from dictionary-serialised format; the reverse of GuildDB.serialize()
-
-        :param dict bountyDBDict: The dictionary representation of the GuildDB to create
-        :return: The new GuildDB
-        :rtype: GuildDB
-        """
-        # Instance the new GuildDB
-        newDB = GuildDB()
-        # Iterate over all IDs to add to the DB
-        for id in guildDBDict.keys():
-            # Instance new BasedGuilds for each ID, with the provided data
-            # JSON stores properties as strings, so ids must be converted to int first.
-            try:
-                # casting here because pyright doesn't know the structure of a serialized guild
-                newDB.addGuild(basedGuild.BasedGuild.deserialize(cast(JsonType, guildDBDict[id]), id=int(id)))
-            # Ignore guilds that don't have a corresponding dcGuild
-            except lib.exceptions.NoneDCGuildObj:
-                botState.client.logger.log("GuildDB", "deserialize", "no corresponding discord guild found for ID " + id +
-                                                            ", guild removed from database",
-                                    category=LogCategory.guildsDB, eventType="NULL_GLD")
-        return newDB
+        async with session if session else self.sessionMaker() as _session:
+            return await _session.scalar(query)

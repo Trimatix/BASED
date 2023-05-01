@@ -7,7 +7,7 @@ from .cfg import cfg
 # Discord Imports
 
 import discord # type: ignore[import]
-from discord import Member, Object, app_commands, Interaction
+from discord import ClientUser, Member, Object, app_commands, Interaction
 from discord.ext.commands import ExtensionNotLoaded
 from discord.abc import GuildChannel
 from .interactions import basedCommand
@@ -22,6 +22,8 @@ import asyncio
 import signal
 import aiohttp
 
+from sqlalchemy.ext.asyncio import create_async_engine
+
 
 # BASED Imports
 
@@ -29,6 +31,7 @@ from . import lib, botState
 from .lib import BASED_version
 from .client import BasedClient
 from .logging import LogCategory
+from .users.basedGuild import BasedGuild
 
 
 def setHelpEmbedThumbnails():
@@ -62,8 +65,20 @@ def inferUserPermissions(message: discord.Message) -> int:
 
 ####### GLOBAL VARIABLES #######
 
+# Ensure a connection string token is provided
+if not (bool(cfg.databaseConnectionString) ^ bool(cfg.databaseConnectionString_envVarName)):
+    raise ValueError("You must give exactly one of either cfg.databaseConnectionString or cfg.databaseConnectionString_envVarName")
+
+if cfg.databaseConnectionString_envVarName and cfg.databaseConnectionString_envVarName not in os.environ:
+    raise KeyError(f"Bot token environment variable {cfg.databaseConnectionString_envVarName} not set (cfg.databaseConnectionString_envVarName")
+
 # interface into the discord servers
-botState.client = BasedClient()
+engine = create_async_engine(
+    # mysql+asyncmy://root:{os.environ['BB_MYSQL_PASS']}@localhost:3306/bountybot
+    cfg.databaseConnectionString if cfg.databaseConnectionString else os.environ[cfg.databaseConnectionString_envVarName],
+)
+
+botState.client = BasedClient(engine)
 
 async def loadExtensions():
     for c in cfg.includedCogs:
@@ -99,9 +114,9 @@ async def on_guild_join(guild: discord.Guild):
     :param discord.Guild guild: the guild just joined.
     """
     guildExists = True
-    if not botState.client.guildsDB.idExists(guild.id):
+    if not await botState.client.guildsDB.exists(guild.id):
         guildExists = False
-        botState.client.guildsDB.addID(guild.id)
+        await botState.client.guildsDB.create(guild.id)
 
     botState.client.logger.log("Main", "guild_join", "I joined a new guild! " + guild.name + "#" + str(guild.id) +
                             ("\n -- The guild was added to botState.client.guildsDB" if not guildExists else ""),
@@ -116,9 +131,9 @@ async def on_guild_remove(guild: discord.Guild):
     :param discord.Guild guild: the guild just left.
     """
     guildExists = False
-    if botState.client.guildsDB.idExists(guild.id):
+    if await botState.client.guildsDB.exists(guild.id):
         guildExists = True
-        botState.client.guildsDB.removeID(guild.id)
+        await botState.client.guildsDB.delete(guild.id)
 
     botState.client.logger.log("Main", "guild_remove", "I left a guild! " + guild.name + "#" + str(guild.id) +
                             ("\n -- The guild was removed from botState.client.guildsDB" if guildExists else ""),
@@ -155,17 +170,16 @@ async def on_message(message: discord.Message):
     # ignore messages sent by bots
     if message.author.bot:
         return
-    # Check whether the command was requested in DMs
-    try:
-        isDM = not isinstance(message.channel, GuildChannel)
-    except AttributeError:
+    
+    if message.guild is None:
         isDM = True
-    # Get the context-relevant command prefix
-    if isDM:
         commandPrefix = cfg.defaultCommandPrefix
     else:
-        # ignoring a warning on guild.id access. isDM guarantees that this is a guild channel, so the guild cannot be None.
-        commandPrefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix # type: ignore[reportOptionalMemberAccess]
+        isDM = False
+        storedGuild = await botState.client.guildsDB.get(message.guild.id, withOnlyFields=(BasedGuild.commandPrefix,))
+        commandPrefix = cfg.defaultCommandPrefix \
+                            if storedGuild is None or storedGuild.commandPrefix is None \
+                        else storedGuild.commandPrefix
 
     # For any messages beginning with commandPrefix
     if message.content.startswith(commandPrefix) and len(message.content) > len(commandPrefix):
@@ -214,23 +228,22 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 
     :param discord.RawReactionActionEvent payload: An event describing the message and the reaction added
     """
-    if not botState.client.loggedIn:
-        return
+    if not botState.client.loggedIn: return
 
     # ignore bot reactions
     # ignoring a warning here that Client.user can be None, if the client is not logged in.
     # The client will always be logged in here, because this event can only be triggered by discord reactions.
-    if payload.user_id != botState.client.user.id: # type: ignore[reportOptionalMemberAccess] 
-        # Get rich, useable reaction data
-        _, user, emoji = await lib.discordUtil.reactionFromRaw(payload)
-        if None in [user, emoji]:
-            return
+    if payload.user_id == cast(ClientUser, botState.client.user).id: return
 
-        # If the message reacted to is a reaction menu
-        if payload.message_id in botState.client.reactionMenusDB and \
-                botState.client.reactionMenusDB[payload.message_id].hasEmojiRegistered(emoji):
-            # Envoke the reacted option's behaviour
-            await botState.client.reactionMenusDB[payload.message_id].reactionAdded(emoji, user)
+    _, user, emoji = await lib.discordUtil.reactionFromRaw(payload)
+    if user is None or emoji is None or isinstance(user, ClientUser): return
+
+    menu = botState.client.inMemoryReactionMenusDB.get(payload.message_id, None) \
+            or \
+            await botState.client.databaseReactionMenusDB.get(payload.message_id)
+    
+    if menu is not None and menu.hasEmoji(emoji):
+        await menu.reactionAdded(emoji, user)
 
 
 @botState.client.event
@@ -240,23 +253,27 @@ async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
 
     :param discord.RawReactionActionEvent payload: An event describing the message and the reaction removed
     """
-    if not botState.client.loggedIn:
-        return
+    if not botState.client.loggedIn: return
         
-    # ignore bot reactions
-    # ignoring a warning here that Client.user can be None, if the client is not logged in.
-    # The client will always be logged in here, because this event can only be triggered by discord reactions.
-    if payload.user_id != botState.client.user.id: # type: ignore[reportOptionalMemberAccess] 
-        # Get rich, useable reaction data
-        _, user, emoji = await lib.discordUtil.reactionFromRaw(payload)
-        if None in [user, emoji]:
-            return
+    # Get rich, useable reaction data
+    _, user, emoji = await lib.discordUtil.reactionFromRaw(payload)
+    if user is None or emoji is None or isinstance(user, ClientUser): return
 
-        # If the message reacted to is a reaction menu
-        if payload.message_id in botState.client.reactionMenusDB and \
-                botState.client.reactionMenusDB[payload.message_id].hasEmojiRegistered(emoji):
-            # Envoke the reacted option's behaviour
-            await botState.client.reactionMenusDB[payload.message_id].reactionRemoved(emoji, user)
+    menu = botState.client.inMemoryReactionMenusDB.get(payload.message_id, None) \
+            or \
+            await botState.client.databaseReactionMenusDB.get(payload.message_id)
+    
+    if menu is not None and menu.hasEmoji(emoji):
+        await menu.reactionRemoved(emoji, user)
+
+
+async def tryEndMenu(menuId: int):
+    menu = botState.client.inMemoryReactionMenusDB.get(menuId, None) \
+            or \
+            await botState.client.databaseReactionMenusDB.get(menuId)
+    
+    if menu is not None:
+        await menu.end(botState.client)
 
 
 @botState.client.event
@@ -266,11 +283,9 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
 
     :param discord.RawMessageDeleteEvent payload: An event describing the message deleted.
     """
-    if not botState.client.loggedIn:
-        return
+    if not botState.client.loggedIn: return
         
-    if payload.message_id in botState.client.reactionMenusDB:
-        await botState.client.reactionMenusDB[payload.message_id].delete()
+    await tryEndMenu(payload.message_id)
 
 
 @botState.client.event
@@ -280,12 +295,15 @@ async def on_raw_bulk_message_delete(payload: discord.RawBulkMessageDeleteEvent)
 
     :param discord.RawBulkMessageDeleteEvent payload: An event describing all messages deleted.
     """
-    if not botState.client.loggedIn:
-        return
+    if not botState.client.loggedIn: return
+
+    tasks = lib.discordUtil.BasicScheduler()
         
     for msgID in payload.message_ids:
-        if msgID in botState.client.reactionMenusDB:
-            await botState.client.reactionMenusDB[msgID].delete()
+        tasks.add(tryEndMenu(msgID))
+
+    await tasks.wait()
+    tasks.logExceptions()
 
 
 def removeViewFromMessageCallback(message: discord.Message):

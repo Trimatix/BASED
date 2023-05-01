@@ -16,7 +16,7 @@ shutdown = ShutDownState.restart
 
 usersDB = cast("userDB.UserDB", None)
 guildsDB = cast("guildDB.GuildDB", None)
-reactionMenusDB = cast("reactionMenuDB.ReactionMenuDB", None)
+inMemoryReactionMenusDB = cast("reactionMenuDB.ReactionMenuDB", None)
 
 dbSaveTT = cast("timedTask.TimedTask", None)
 updatesCheckTT = cast("timedTask.TimedTask", None)

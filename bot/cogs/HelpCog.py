@@ -176,7 +176,7 @@ class HelpCog(basedApp.BasedCog):
 
 
     @basedApp.BasedCog.staticComponentCallback(basedComponent.StaticComponents.Help)
-    async def showHelpPageStatic(self, interaction: Interaction, args: str):
+    async def showHelpPageStatic(self, interaction: Interaction, args: str, *_):
         category, page, accessLevelNum, showAll = unpackHelpPageArgs(args)
         pageNum = int(page) if page is not None else 1
         commandAccessLevel = accessLevels.defaultAccessLevel() if accessLevelNum is None else accessLevels.accessLevelWithIntLevel(accessLevelNum)
@@ -365,4 +365,4 @@ class HelpCog(basedApp.BasedCog):
 
 async def setup(bot: client.BasedClient):
     bot.remove_command("help")
-    await bot.add_cog(HelpCog(bot), guilds=cfg.developmentGuilds)
+    await bot.add_cog(HelpCog(bot), guilds=cfg.developmentGuilds) # type: ignore[reportGeneralTypeIssues]

@@ -34,4 +34,4 @@ class BASED_VersionCog(commands.Cog):
 
 
 async def setup(bot: client.BasedClient):
-    await bot.add_cog(BASED_VersionCog(bot), guilds=cfg.developmentGuilds)
+    await bot.add_cog(BASED_VersionCog(bot), guilds=cfg.developmentGuilds) # type: ignore[reportGeneralTypeIssues]

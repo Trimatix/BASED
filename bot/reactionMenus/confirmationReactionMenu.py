@@ -1,20 +1,27 @@
+from datetime import datetime
 from . import reactionMenu
-from discord import Message, Member, User, Colour # type: ignore[import]
-from typing import Dict, Union
+from discord import Embed, Member, User
+from typing import Optional, Union
 from ..cfg import cfg
-from ..lib.emojis import BasedEmoji
+from ..client import BasedClient
 
 
-class InlineConfirmationMenu(reactionMenu.SingleUserReactionMenu):
-    def __init__(self, msg: Message, targetMember: Union[Member, User], timeoutSeconds: int,
-                 titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), footerTxt: str = "", img: str = "",
-                 thumb: str = "", icon: str = "", authorName: str = ""):
+class InMemoryConfirmationMenu(reactionMenu.InMemoryReactionMenu):
+    def __init__(self, client: BasedClient, menuId: int, channelId: int,
+                    ownerId: Optional[int] = None, expiryTime: Optional[datetime] = None,
+                    multipleChoice: Optional[bool] = None, embed: Optional[Embed] = None):
 
-        options: Dict[BasedEmoji, reactionMenu.ReactionMenuOption] = {
-            cfg.defaultEmojis.accept: reactionMenu.DummyReactionMenuOption("Yes", cfg.defaultEmojis.accept),
-            cfg.defaultEmojis.reject: reactionMenu.DummyReactionMenuOption("No", cfg.defaultEmojis.reject)
-        }
+        self.client = client
 
-        super().__init__(msg, targetMember, timeoutSeconds, options=options, img=img, thumb=thumb, icon=icon,
-                            authorName=authorName, returnTriggers=[cfg.defaultEmojis.accept, cfg.defaultEmojis.reject],
-                            titleTxt=titleTxt, desc=desc, col=col, footerTxt=footerTxt)
+        options = [
+            reactionMenu.InMemoryReactionMenuOption("Yes", cfg.defaultEmojis.accept, onAdd=self.endMenu),
+            reactionMenu.InMemoryReactionMenuOption("No", cfg.defaultEmojis.reject, onAdd=self.endMenu)
+        ]
+
+        super().__init__(client, menuId, channelId, options,
+                            ownerId = ownerId, expiryTime = expiryTime,
+                            multipleChoice = multipleChoice, embed = embed)
+        
+
+    async def endMenu(self, user: Union[User, Member]):
+        await self.end(self.client)

@@ -153,7 +153,7 @@ class DevMiscCog(BasedCog):
 #region static components
 
     @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Add_Field)
-    async def addField(self, interaction: Interaction, userId: str):
+    async def addField(self, interaction: Interaction, userId: str, *_):
         if userId and interaction.user.id != int(userId):
             return
 
@@ -175,7 +175,7 @@ class DevMiscCog(BasedCog):
 
 
     @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Remove_Field_Select)
-    async def startRemoveField(self, interaction: Interaction, userId: str):
+    async def startRemoveField(self, interaction: Interaction, userId: str, *_):
         if userId and interaction.user.id != int(userId):
             return
 
@@ -201,7 +201,7 @@ class DevMiscCog(BasedCog):
 
 
     @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Remove_Field)
-    async def endRemoveField(self, interaction: Interaction, userId: str):
+    async def endRemoveField(self, interaction: Interaction, userId: str, *_):
         if userId and interaction.user.id != int(userId):
             return
 
@@ -232,7 +232,7 @@ class DevMiscCog(BasedCog):
 
 
     @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Edit_Field_Select)
-    async def startEditField(self, interaction: Interaction, userId: str):
+    async def startEditField(self, interaction: Interaction, userId: str, *_):
         if userId and interaction.user.id != int(userId):
             return
 
@@ -259,7 +259,7 @@ class DevMiscCog(BasedCog):
 
     
     @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Edit_Field)
-    async def endEditField(self, interaction: Interaction, userId: str):
+    async def endEditField(self, interaction: Interaction, userId: str, *_):
         if userId and interaction.user.id != int(userId):
             return
 
@@ -298,7 +298,7 @@ class DevMiscCog(BasedCog):
 
 
     @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Edit_Text)
-    async def editEmbedText(self, interaction: Interaction, userId: str):
+    async def editEmbedText(self, interaction: Interaction, userId: str, *_):
         if userId and interaction.user.id != int(userId):
             return
 
@@ -353,7 +353,7 @@ class DevMiscCog(BasedCog):
 
 
     @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Edit_Images)
-    async def editEmbedImages(self, interaction: Interaction, userId: str):
+    async def editEmbedImages(self, interaction: Interaction, userId: str, *_):
         if userId and interaction.user.id != int(userId):
             return
 
@@ -475,6 +475,7 @@ class DevMiscCog(BasedCog):
         else:
             await interaction.followup.send(content=content, ephemeral=True, view=view)
 
+#endregion
 
 async def setup(bot: client.BasedClient):
-    await bot.add_cog(DevMiscCog(bot), guilds=cfg.developmentGuilds)
+    await bot.add_cog(DevMiscCog(bot), guilds=cfg.developmentGuilds) # type: ignore[reportGeneralTypeIssues]
