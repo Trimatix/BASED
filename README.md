@@ -101,7 +101,7 @@ Here is a minimal setup guide for your bot's database:
 2. Install Liquibase: https://www.liquibase.com/download
 3. Download the jar files that Liquibase needs, and place them somewhere accessible.<br>
    *If your classes are located within the repository, don't forget to exclude their directory from git.*
-   - BASED manages changelogs in yaml, so the snakeyaml jar is required: https://mvnrepository.com/artifact/org.yaml/snakeyaml/2.0
+   - BASED manages changelogs in yaml, so the snakeyaml jar is required: https://mvnrepository.com/artifact/org.yaml/snakeyaml/latest
    - Depending on your database, you may require a driver jar (e.g MySQL) - please check [the Liquibase documentation](https://docs.liquibase.com/start/tutorials/home.html). 
 4. Create a root changelog file in `db/changelogs/<your project name>` for your database schemas.
    Reference the BASED root changelog in this file, as described in `db/changelogs/readme.md`.
