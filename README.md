@@ -8,12 +8,12 @@
 <p align="center">
   <a href="https://github.com/Trimatix/BASED/actions"
     ><img
-      src="https://img.shields.io/github/workflow/status/Trimatix/BASED/BASED"
+      src="https://img.shields.io/github/actions/workflow/status/Trimatix/BASED/lint-app.yml?branch=main"
       alt="GitHub Actions workflow status"
   /></a>
   <a href="https://github.com/Trimatix/BASED/labels/bug"
     ><img
-      src="https://img.shields.io/github/issues-search?color=eb4034&label=bugs&query=repo%3ATrimatix%2FBASED%20is%3Aopen%20label%3Abug"
+      src="https://img.shields.io/github/issues-search?color=eb4034&label=bug%20reports&query=repo%3ATrimatix%2FBASED%20is%3Aopen%20label%3Abug"
       alt="GitHub open bug reports"
   /></a>
 </p>
