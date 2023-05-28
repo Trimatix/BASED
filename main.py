@@ -1,12 +1,12 @@
 import sys
-from bot.cfg import cfg
-import carica # type: ignore[import]
+from bot.cfg import configurator
 
 # Load config if one is given
 if len(sys.argv) > 1:
-    carica.loadCfg(cfg, sys.argv[1])
+    configurator.loadCfg(sys.argv[1])
 
-cfg.validateConfig()
+# initialize bot config
+configurator.init()
 
 # load and run bot
 from bot import bot

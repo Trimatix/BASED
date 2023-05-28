@@ -1,5 +1,3 @@
-discord.py[speed] >= 2.2.2
-emoji == 1.7.0
-carica >= 1.3.4
-aiohttp[speedups]
-sqlalchemy[asyncio] >= 2.0.13
+discord.py
+emoji
+toml

@@ -1,9 +1,7 @@
-from typing import Awaitable, Callable, List, Optional
-from discord import Message # type: ignore[import]
+from types import FunctionType
+from typing import List
+from discord import Message
 from ..lib.exceptions import IncorrectCommandCallContext
-
-
-COMMAND_FUNCTION_TYPE = Callable[[Message, str, bool], Awaitable[None]]
 
 
 class CommandRegistry:
@@ -12,7 +10,7 @@ class CommandRegistry:
     :var ident: The string command name by which this command is identified and called
     :vartype ident: str
     :var func: A reference to the function to call upon calling this CommandRegistry
-    :vartype func: COMMAND_FUNCTION_TYPE
+    :vartype func: FunctionType
     :var forceKeepArgsCasing: Whether to pass arguments to the function with their original casing.
                                 If False, arguments will be transformed to lower case before passing.
     :vartype forceKeepArgsCasing: bool
@@ -28,12 +26,12 @@ class CommandRegistry:
     :vartype longHelp: str
     """
 
-    def __init__(self, ident: str, func: COMMAND_FUNCTION_TYPE, forceKeepArgsCasing: bool, forceKeepCommandCasing: bool,
-                    allowDM: bool, allowHelp: bool, aliases: Optional[List[str]] = None, signatureStr: str = "", shortHelp: str = "",
+    def __init__(self, ident: str, func: FunctionType, forceKeepArgsCasing: bool, forceKeepCommandCasing: bool,
+                    allowDM: bool, allowHelp: bool, aliases: List[str] = None, signatureStr: str = "", shortHelp: str = "",
                     longHelp: str = "", helpSection: str = "miscellaneous"):
         """
         :param str ident: The string command name by which this command is identified and called
-        :param COMMAND_FUNCTION_TYPE func: A reference to the function to call upon calling this CommandRegistry
+        :param FunctionType func: A reference to the function to call upon calling this CommandRegistry
         :param bool forceKeepArgsCasing: Whether to pass arguments to the function with their original casing.
                                         If False, arguments will be transformed to lower case before passing.
         :param bool forceKeepCommandCasing: Whether the command must be called with exactly the correct casing
