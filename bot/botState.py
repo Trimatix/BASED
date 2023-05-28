@@ -1,18 +1,25 @@
+from typing import TYPE_CHECKING, cast
+if TYPE_CHECKING:
+    from .databases import userDB, guildDB, reactionMenuDB
+    from .scheduling import timedTask, timedTaskHeap
+    from . import logging
+    from .client import BasedClient
+
 class ShutDownState:
     restart = 0
     shutdown = 1
     update = 2
 
 
-client = None
+client = cast("BasedClient", None)
 shutdown = ShutDownState.restart
 
-usersDB = None
-guildsDB = None
-reactionMenusDB = None
+usersDB = cast("userDB.UserDB", None)
+guildsDB = cast("guildDB.GuildDB", None)
+inMemoryReactionMenusDB = cast("reactionMenuDB.ReactionMenuDB", None)
 
-dbSaveTT = None
-updatesCheckTT = None
+dbSaveTT = cast("timedTask.TimedTask", None)
+updatesCheckTT = cast("timedTask.TimedTask", None)
 
-taskScheduler = None
-logger = None
+taskScheduler = cast("timedTaskHeap.TimedTaskHeap", None)
+logger = cast("logging.Logger", None)

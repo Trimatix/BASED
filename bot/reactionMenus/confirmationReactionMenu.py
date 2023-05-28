@@ -1,17 +1,27 @@
+from datetime import datetime
 from . import reactionMenu
-from discord import Message, Member, User, Colour
-from typing import Union
+from discord import Embed, Member, User
+from typing import Optional, Union
 from ..cfg import cfg
+from ..client import BasedClient
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
-class InlineConfirmationMenu(reactionMenu.InlineReactionMenu):
-    def __init__(self, msg: Message, targetMember: Union[Member, User], timeoutSeconds: int,
-                 titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), footerTxt: str = "", img: str = "",
-                 thumb: str = "", icon: str = "", authorName: str = ""):
+class InMemoryConfirmationMenu(reactionMenu.InMemoryReactionMenu):
+    def __init__(self, client: BasedClient, menuId: int, channelId: int,
+                    ownerId: Optional[int] = None, expiryTime: Optional[datetime] = None,
+                    multipleChoice: Optional[bool] = None, embed: Optional[Embed] = None):
 
-        options = {cfg.defaultEmojis.accept: reactionMenu.DummyReactionMenuOption("Yes", cfg.defaultEmojis.accept),
-                    cfg.defaultEmojis.reject: reactionMenu.DummyReactionMenuOption("No", cfg.defaultEmojis.reject)}
+        options = [
+            reactionMenu.InMemoryReactionMenuOption("Yes", cfg.defaultEmojis.accept, onAdd=self.endMenu),
+            reactionMenu.InMemoryReactionMenuOption("No", cfg.defaultEmojis.reject, onAdd=self.endMenu)
+        ]
 
-        super().__init__(msg, targetMember, timeoutSeconds, options=options, img=img, thumb=thumb, icon=icon,
-                            authorName=authorName, returnTriggers=[cfg.defaultEmojis.accept, cfg.defaultEmojis.reject],
-                            titleTxt=titleTxt, desc=desc, col=col, footerTxt=footerTxt)
+        super().__init__(client, menuId, channelId, options,
+                            ownerId = ownerId, expiryTime = expiryTime,
+                            multipleChoice = multipleChoice, embed = embed)
+        
+
+    async def endMenu(self, client, user: Union[User, Member], session: Optional[AsyncSession] = None):
+        await self.end(client, session=session)

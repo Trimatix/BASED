@@ -55,7 +55,8 @@ BASED is a template project for creating advanced discord bots using python.
 1. Fork this repository.
 2. Install the project requirements with `pip install -r requirements.txt`.
 3. Provide your bot token (see the [Configuring Your Bot](https://github.com/Trimatix/BASED#configuring-your-bot) section below).
-4. Build your bot directly over BASED.
+4. Connect the bot to the database of your choice (see [Configuring Your Bot](https://github.com/Trimatix/BASED#configuring-your-bot)).
+5. Build your bot directly over BASED.
 
 The project is already working as is, with a connected client instance, dynamic commands importing and calling, scheduler and database initialization, and reactionMenu interaction using client events.<br>
 To test the base project, try running the bot, and calling the `.help` command.
@@ -67,8 +68,11 @@ BASED is *not* a library, it is a *template* to be used as a starting point for 
 
 # Configuring Your Bot
 
-BASED v0.3 adds the ability to configure all of the bot's cfg attributes externally with toml.<br>
-If a bot token is provided by the default config values (found in `cfg/cfg.py`), use of a config file is entirely optional.
+As of v2.0, BASED now uses [Carica](https://pypi.org/project/carica/) for configuration by default. This allows your bot to be configured with convenient, auto-generated toml configuration files, while receiving the configuration in code as strongly typed python objects.
+
+Any config variables added to the module as part of your application will automatically be read into the module from toml. For more information, including how to store and receive custom classes in config, see the [Carica repository](https://github.com/Trimatix/Carica).
+
+There is only one required config variable: Your bot's token. You can eliminate the need for a config file entirely by providing your bot token as a default config value (found in `cfg/cfg.py`).
 
 - All config variables are optional.
 - Generate a default config file with all variables and their defaults, by running `makeDefaultConfig.py`.
@@ -84,6 +88,42 @@ The bot token can now be given in a config variable, or in an environment variab
 - Give the name of the environment variable containing your token, in `botToken_envVarName`
 
 You must give exactly one of these variables, either in the default config values (`cfg/cfg.py`), or in a toml config file.
+
+## Connecting to your database
+
+BASED v2.0 allows you to use the database of your choice, by using database-agnostic technologies:
+- Liquibase for change management.
+- SQLAlchemy for the async ORM.
+
+Here is a minimal setup guide for your bot's database:
+
+1. Set up a new database.
+2. Install Liquibase: https://www.liquibase.com/download
+3. Download the jar files that Liquibase needs, and place them somewhere accessible.<br>
+   *If your classes are located within the repository, don't forget to exclude their directory from git.*
+   - BASED manages changelogs in yaml, so the snakeyaml jar is required: https://mvnrepository.com/artifact/org.yaml/snakeyaml/latest
+   - Depending on your database, you may require a driver jar (e.g MySQL) - please check [the Liquibase documentation](https://docs.liquibase.com/start/tutorials/home.html). 
+4. Create a root changelog file in `db/changelogs/<your project name>` for your database schemas.
+   Reference the BASED root changelog in this file, as described in `db/changelogs/readme.md`.
+5. Make a copy of `_liquibase.properties.template`, and call it `liquibase.properties`
+   1. Customize this file with the correct connection details for your database, and your root changelog file.
+      For more information on this file, see the Liquibase website: [[Liquibase: search path](https://docs.liquibase.com/concepts/changelogs/how-liquibase-finds-files.html)] [[Liquibase: liquibase.properties](https://docs.liquibase.com/concepts/connections/creating-config-properties.html?Highlight=liquibase.properties)]
+   2. If you have not created a changelog file, add a reference to the BASED root changelog file.
+6. Run `liquibase update` from the commandline to deploy the database schema to your database.
+7. Setting your database connection string is similar to providing your bot token. Either:
+   - Set the connection string in the `databaseConnectionString` variable of your toml config file, if you are using one.<br>
+     *It is not recommended to set sensitive information in python files.*
+   - Set the `databaseConnectionString_envVarName` variable, either in toml or directly in `cfg.py`, to have the bot retrieve your connection string from a named environment variable.
+
+For full details on the connection string format, please see [the SQLAlchemy documentation](https://docs.sqlalchemy.org/en/latest/tutorial/engine.html).<br>
+In summary, the connection string is given as a URL: `<dialect>+<DBAPI>://<user>:<password>@<host><:port?>/<database>`<br>
+For example, the below connection string connects to:
+- a **postgresql** database *(dialect)*
+- with the **psycopg3** library *(DBAPI)*
+- as user **postgres** (user), with password **root** *(password)*
+- hosted at **localhost:5432** *(host, port)*
+- defaulting to the **mybot** database *(database)*
+> `postgres+psycopg://postgres:root@localhost:5432/mybot`
 
 # Running Your Bot
 
