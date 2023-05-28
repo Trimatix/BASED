@@ -3,4 +3,3 @@ logo
 saveData
 **/__pycache__
 **/.DS_STORE
-liquibase.properties
