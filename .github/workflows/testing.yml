@@ -7,11 +7,11 @@ name: testing
 on:
   push:
     branches:
-      - main
+      - master
       - dev
   pull_request:
     branches:
-      - main
+      - master
       - dev
 
 jobs:
