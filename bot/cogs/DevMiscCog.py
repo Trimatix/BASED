@@ -1,5 +1,8 @@
 import traceback
 from typing import List, Optional, TYPE_CHECKING, Protocol, Union
+
+from bot.users.basedGuild import BasedGuild
+
 from .. import client, lib
 from ..lib.discordUtil import ZWSP, EMPTY_IMAGE, textChannel
 import discord
@@ -13,6 +16,12 @@ from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents, staticComponentCustomId
 from ..logging import LogCategory
+
+
+
+from ..reactionMenus.confirmationReactionMenu import InMemoryConfirmationMenu
+from ..users.basedUser import BasedUser
+from ..reactionMenus.testMenu import TestMenu, CustomOption
 
 EMBED_FIELD_INLINE_DEFAULT = "y"
 
@@ -134,7 +143,7 @@ class DevMiscCog(BasedCog):
         if interaction.message is not None: return interaction.message
         # await interaction.response.defer(thinking=False)
         try:
-            message = await interaction.original_message()
+            message = await interaction.original_response()
         except (HTTPException, ClientException, NotFound) as e:
             self.bot.logger.log(type(self).__name__, funcName,
                                 "on-message static component triggered for non-message-based interaction: " \
@@ -153,7 +162,8 @@ class DevMiscCog(BasedCog):
 #region static components
 
     @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Add_Field)
-    async def addField(self, interaction: Interaction, userId: str, *_):
+    async def addField(self, interaction: Interaction, args: str):
+        userId = args
         if userId and interaction.user.id != int(userId):
             return
 
@@ -171,11 +181,12 @@ class DevMiscCog(BasedCog):
         if await modal.wait(): return
         
         embed.add_field(name=modal.fieldName.value or ZWSP, value=modal.fieldValue.value or ZWSP, inline=(modal.fieldInline.value or EMBED_FIELD_INLINE_DEFAULT).lower() == "y")
-        await interaction.edit_original_message(embed=embed)
+        await interaction.edit_original_response(embed=embed)
 
 
     @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Remove_Field_Select)
-    async def startRemoveField(self, interaction: Interaction, userId: str, *_):
+    async def startRemoveField(self, interaction: Interaction, args: str):
+        userId = args
         if userId and interaction.user.id != int(userId):
             return
 
@@ -201,7 +212,8 @@ class DevMiscCog(BasedCog):
 
 
     @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Remove_Field)
-    async def endRemoveField(self, interaction: Interaction, userId: str, *_):
+    async def endRemoveField(self, interaction: Interaction, args: str):
+        userId = args
         if userId and interaction.user.id != int(userId):
             return
 
@@ -232,7 +244,8 @@ class DevMiscCog(BasedCog):
 
 
     @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Edit_Field_Select)
-    async def startEditField(self, interaction: Interaction, userId: str, *_):
+    async def startEditField(self, interaction: Interaction, args: str):
+        userId = args
         if userId and interaction.user.id != int(userId):
             return
 
@@ -259,7 +272,8 @@ class DevMiscCog(BasedCog):
 
     
     @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Edit_Field)
-    async def endEditField(self, interaction: Interaction, userId: str, *_):
+    async def endEditField(self, interaction: Interaction, args: str):
+        userId = args
         if userId and interaction.user.id != int(userId):
             return
 
@@ -294,12 +308,12 @@ class DevMiscCog(BasedCog):
         
             embed.set_field_at(selectedFieldIndex, name=modal.fieldName.value or ZWSP, value=modal.fieldValue.value or ZWSP, inline=(modal.fieldInline.value or EMBED_FIELD_INLINE_DEFAULT).lower() == "y")
 
-        await interaction.edit_original_message(embed=embed, view=view)
+        await interaction.edit_original_response(embed=embed, view=view)
 
 
     @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Edit_Text)
-    async def editEmbedText(self, interaction: Interaction, userId: str, *_):
-        if userId and interaction.user.id != int(userId):
+    async def editEmbedText(self, interaction: Interaction, args: str):
+        if args and interaction.user.id != int(args):
             return
 
         message = await self.messageForInteraction(interaction, "editEmbedText", StaticComponents.User_Embed_Edit_Text)
@@ -349,12 +363,12 @@ class DevMiscCog(BasedCog):
 
         if lib.discordUtil.embedEmpty(embed):
             embed.description = ZWSP
-        await interaction.edit_original_message(embed=embed)
+        await interaction.edit_original_response(embed=embed)
 
 
     @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Edit_Images)
-    async def editEmbedImages(self, interaction: Interaction, userId: str, *_):
-        if userId and interaction.user.id != int(userId):
+    async def editEmbedImages(self, interaction: Interaction, args: str):
+        if args and interaction.user.id != int(args):
             return
 
         message = await self.messageForInteraction(interaction, "editEmbedImages", StaticComponents.User_Embed_Edit_Images)
@@ -388,7 +402,7 @@ class DevMiscCog(BasedCog):
 
         if lib.discordUtil.embedEmpty(embed):
             embed.description = ZWSP
-        await interaction.edit_original_message(embed=embed)
+        await interaction.edit_original_response(embed=embed)
 
 #endregion
 #region commands
@@ -474,6 +488,7 @@ class DevMiscCog(BasedCog):
             await interaction.followup.send(content=content, embed=embed, ephemeral=True, view=view)
         else:
             await interaction.followup.send(content=content, ephemeral=True, view=view)
+
 
 #endregion
 

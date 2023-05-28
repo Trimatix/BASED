@@ -12,16 +12,21 @@ class CommonStaticComponentsCog(BasedCog):
 
 
     @BasedCog.staticComponentCallback(StaticComponents.Clear_View)
-    async def clearViewFromMessage(self, interaction: Interaction, *_):
+    async def clearViewFromMessage(self, interaction: Interaction, args: str):
         if interaction.response.is_done():
-            await interaction.edit_original_message(view=None)
+            await interaction.edit_original_response(view=None)
         else:
             await interaction.response.edit_message(view=None)
 
 
+    @BasedCog.staticComponentCallback(StaticComponents.Delete_Message)
+    async def deleteMessage(self, interaction: Interaction, args: str):
+        await interaction.message.delete() if interaction.message is not None else await interaction.delete_original_response()
+
+
     @BasedCog.staticComponentCallback(StaticComponents.Clone_Message)
-    async def cloneMessage(self, interaction: Interaction, userId: str, *_):
-        if userId and interaction.user.id != int(userId):
+    async def cloneMessage(self, interaction: Interaction, args: str):
+        if args and interaction.user.id != int(args):
             return
 
         message = interaction.message
@@ -35,7 +40,7 @@ class CommonStaticComponentsCog(BasedCog):
             await textChannel(interaction).send(content=message.content, embed=embed)
         else:
             await textChannel(interaction).send(content=message.content)
-        await self.clearViewFromMessage(interaction)
+        await self.clearViewFromMessage(interaction, args)
 
 
 async def setup(bot: client.BasedClient):

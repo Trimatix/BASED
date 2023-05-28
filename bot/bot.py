@@ -22,16 +22,18 @@ import asyncio
 import signal
 import aiohttp
 
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 
 # BASED Imports
 
 from . import lib, botState
 from .lib import BASED_version
+from .lib.sql import SessionSharer
 from .client import BasedClient
 from .logging import LogCategory
 from .users.basedGuild import BasedGuild
+from .interactions import basedComponent
 
 
 def setHelpEmbedThumbnails():
@@ -76,6 +78,7 @@ if cfg.databaseConnectionString_envVarName and cfg.databaseConnectionString_envV
 engine = create_async_engine(
     # mysql+asyncmy://root:{os.environ['BB_MYSQL_PASS']}@localhost:3306/bountybot
     cfg.databaseConnectionString if cfg.databaseConnectionString else os.environ[cfg.databaseConnectionString_envVarName],
+    # echo=True
 )
 
 botState.client = BasedClient(engine)
@@ -114,9 +117,10 @@ async def on_guild_join(guild: discord.Guild):
     :param discord.Guild guild: the guild just joined.
     """
     guildExists = True
-    if not await botState.client.guildsDB.exists(guild.id):
-        guildExists = False
-        await botState.client.guildsDB.create(guild.id)
+    async with botState.client.sessionMaker() as session:
+        if not await botState.client.guildsDB.exists(guild.id, session=session):
+            guildExists = False
+            await botState.client.guildsDB.create(BasedGuild(id=guild.id), session=session)
 
     botState.client.logger.log("Main", "guild_join", "I joined a new guild! " + guild.name + "#" + str(guild.id) +
                             ("\n -- The guild was added to botState.client.guildsDB" if not guildExists else ""),
@@ -131,9 +135,10 @@ async def on_guild_remove(guild: discord.Guild):
     :param discord.Guild guild: the guild just left.
     """
     guildExists = False
-    if await botState.client.guildsDB.exists(guild.id):
-        guildExists = True
-        await botState.client.guildsDB.delete(guild.id)
+    async with botState.client.sessionMaker() as session:
+        if await botState.client.guildsDB.exists(guild.id, session=session):
+            guildExists = True
+            await botState.client.guildsDB.delete(guild.id, session=session)
 
     botState.client.logger.log("Main", "guild_remove", "I left a guild! " + guild.name + "#" + str(guild.id) +
                             ("\n -- The guild was removed from botState.client.guildsDB" if guildExists else ""),
@@ -176,10 +181,7 @@ async def on_message(message: discord.Message):
         commandPrefix = cfg.defaultCommandPrefix
     else:
         isDM = False
-        storedGuild = await botState.client.guildsDB.get(message.guild.id, withOnlyFields=(BasedGuild.commandPrefix,))
-        commandPrefix = cfg.defaultCommandPrefix \
-                            if storedGuild is None or storedGuild.commandPrefix is None \
-                        else storedGuild.commandPrefix
+        commandPrefix = await botState.client.guildsDB.getCommandPrefix(message.guild.id) or cfg.defaultCommandPrefix
 
     # For any messages beginning with commandPrefix
     if message.content.startswith(commandPrefix) and len(message.content) > len(commandPrefix):
@@ -238,12 +240,15 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     _, user, emoji = await lib.discordUtil.reactionFromRaw(payload)
     if user is None or emoji is None or isinstance(user, ClientUser): return
 
-    menu = botState.client.inMemoryReactionMenusDB.get(payload.message_id, None) \
-            or \
-            await botState.client.databaseReactionMenusDB.get(payload.message_id)
-    
-    if menu is not None and menu.hasEmoji(emoji):
-        await menu.reactionAdded(emoji, user)
+    async with botState.client.sessionMaker() as session:
+        menu = botState.client.inMemoryReactionMenusDB.get(payload.message_id, None) \
+                or \
+                await botState.client.databaseReactionMenusDB.get(payload.message_id, session=session)
+        
+        if menu is not None:
+            hasEmoji = await menu.hasEmoji(emoji, session=session)
+            if not hasEmoji: return
+            await menu.reactionAdded(botState.client, emoji, user, session=session)
 
 
 @botState.client.event
@@ -259,21 +264,23 @@ async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
     _, user, emoji = await lib.discordUtil.reactionFromRaw(payload)
     if user is None or emoji is None or isinstance(user, ClientUser): return
 
-    menu = botState.client.inMemoryReactionMenusDB.get(payload.message_id, None) \
-            or \
-            await botState.client.databaseReactionMenusDB.get(payload.message_id)
-    
-    if menu is not None and menu.hasEmoji(emoji):
-        await menu.reactionRemoved(emoji, user)
+    async with botState.client.sessionMaker() as session:
+        menu = botState.client.inMemoryReactionMenusDB.get(payload.message_id, None) \
+                or \
+                await botState.client.databaseReactionMenusDB.get(payload.message_id, session)
+        
+        if menu is not None and await menu.hasEmoji(emoji, session=session):
+            await menu.reactionRemoved(botState.client, emoji, user, session=session)
 
 
-async def tryEndMenu(menuId: int):
-    menu = botState.client.inMemoryReactionMenusDB.get(menuId, None) \
-            or \
-            await botState.client.databaseReactionMenusDB.get(menuId)
-    
-    if menu is not None:
-        await menu.end(botState.client)
+async def tryEndMenu(menuId: int, session: Optional[AsyncSession]):
+    async with SessionSharer(session, botState.client.sessionMaker) as s:
+        menu = botState.client.inMemoryReactionMenusDB.get(menuId, None) \
+                or \
+                await botState.client.databaseReactionMenusDB.get(menuId, s.session)
+        
+        if menu is not None:
+            await menu.end(botState.client, session=session)
 
 
 @botState.client.event
@@ -285,7 +292,7 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
     """
     if not botState.client.loggedIn: return
         
-    await tryEndMenu(payload.message_id)
+    await tryEndMenu(payload.message_id, None)
 
 
 @botState.client.event
@@ -298,9 +305,10 @@ async def on_raw_bulk_message_delete(payload: discord.RawBulkMessageDeleteEvent)
     if not botState.client.loggedIn: return
 
     tasks = lib.discordUtil.BasicScheduler()
-        
-    for msgID in payload.message_ids:
-        tasks.add(tryEndMenu(msgID))
+    
+    async with botState.client.sessionMaker() as session:
+        for msgID in payload.message_ids:
+            tasks.add(tryEndMenu(msgID, session))
 
     await tasks.wait()
     tasks.logExceptions()
@@ -324,7 +332,6 @@ def loadExtensionCallback(extensionName: str):
     return loadExtension
 
 
-
 @botState.client.basedCommand(accessLevel=cfg.basicAccessLevels.developer, helpSection="extensions")
 @app_commands.command(name="reload-extension",
                         description="Unload and re-load a cog or other extension.")
@@ -336,7 +343,7 @@ async def dev_cmd_reload_extension(interaction: Interaction, extension_name: str
     except ExtensionNotLoaded:
         view = discord.ui.View()
         cancelButton = discord.ui.Button(style=discord.ButtonStyle.red, label="cancel")
-        cancelButton.callback = removeViewFromMessageCallback(await interaction.original_message())
+        cancelButton.callback = removeViewFromMessageCallback(await interaction.original_response())
         acceptButton = discord.ui.Button(style=discord.ButtonStyle.green, label="load")
         acceptButton.callback = loadExtensionCallback(extension_name)
         view.add_item(cancelButton).add_item(acceptButton)
@@ -415,6 +422,23 @@ async def dev_cmd_sync_app_commands(interaction: Interaction, guilds: Optional[s
         await interaction.followup.send(f"No syncing was performed: No guilds to sync to")
 
 botState.client.tree.add_command(dev_cmd_sync_app_commands, guilds=cfg.developmentGuilds)
+
+
+async def dev_cmd_initialSync(message: discord.Message, args: str, isDM: bool):
+    view = discord.ui.View()
+    deleteButton = discord.ui.Button(style=discord.ButtonStyle.red, emoji="🧺")
+    deleteButton = basedComponent.StaticComponents.Delete_Message(deleteButton)
+    view.add_item(deleteButton)
+
+    if message.guild is None or not any(g.id == message.guild.id for g in cfg.developmentGuilds):
+        await message.reply(":x: This command can only be used from a development guild.", view=view)
+        return
+
+    synced = await botState.client.tree.sync(guild=message.guild)
+
+    await message.reply(f"✅ Synced {len(synced)} command(s) to this guild")
+
+botCommands.register("initialSync", dev_cmd_initialSync, cfg.userAccessLevels.index(cfg.basicAccessLevels.developer), allowDM=False)
 
 
 async def runAsync():

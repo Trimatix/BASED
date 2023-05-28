@@ -269,7 +269,8 @@ class BasedEmoji(IBasedEmoji):
         :return: True of this emoji is semantically equal to the given emoji, False otherwise
         :rtype: bool
         """
-        return type(other) == BasedEmoji and self.sendable == other.sendable
+        return (isinstance(other, IBasedEmoji) and self.sendable == other.sendable) \
+            or (isinstance(other, str) and self.sendable == other)
 
 
     def __str__(self) -> str:

@@ -5,13 +5,13 @@ from typing import Optional, Union
 from ..cfg import cfg
 from ..client import BasedClient
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 class InMemoryConfirmationMenu(reactionMenu.InMemoryReactionMenu):
     def __init__(self, client: BasedClient, menuId: int, channelId: int,
                     ownerId: Optional[int] = None, expiryTime: Optional[datetime] = None,
                     multipleChoice: Optional[bool] = None, embed: Optional[Embed] = None):
-
-        self.client = client
 
         options = [
             reactionMenu.InMemoryReactionMenuOption("Yes", cfg.defaultEmojis.accept, onAdd=self.endMenu),
@@ -23,5 +23,5 @@ class InMemoryConfirmationMenu(reactionMenu.InMemoryReactionMenu):
                             multipleChoice = multipleChoice, embed = embed)
         
 
-    async def endMenu(self, user: Union[User, Member]):
-        await self.end(self.client)
+    async def endMenu(self, client, user: Union[User, Member], session: Optional[AsyncSession] = None):
+        await self.end(client, session=session)

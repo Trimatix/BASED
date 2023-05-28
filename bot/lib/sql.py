@@ -1,5 +1,6 @@
-from typing import Tuple, Type
+from typing import Any, Optional, Tuple, Type
 from sqlalchemy import Select, select, func
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
 from ..baseClasses.declarativeBaseProtocol import DeclarativeBaseProtocol
 
@@ -19,4 +20,32 @@ def count(table: Type[DeclarativeBaseProtocol]) -> Select[Tuple[int]]:
     :return: A selectable that retrieves a count
     :rtype: Select[Tuple[int]]
     """
-    return select(table).order_by(None).with_only_columns([func.count()])
+    return select(table).order_by(None).with_only_columns(func.count())
+
+
+class SessionSharer:
+    def __init__(self, session: Optional[AsyncSession], sessionMaker: async_sessionmaker[AsyncSession]) -> None:
+        self._session = session
+        self._sessionMaker = sessionMaker
+        self._newSession = session is None
+
+
+    async def __aenter__(self):
+        if self._session is None:
+            self._session = self._sessionMaker()
+            await self._session.__aenter__()
+
+        return self
+
+
+    async def __aexit__(self, type_: Any, value: Any, traceback: Any) -> None:
+        await self.session.commit()
+        if self._newSession:
+            await self.session.__aexit__(type_, value, traceback)
+
+
+    @property
+    def session(self):
+        if self._session is None:
+            raise RuntimeError("Cannot access session before __aenter__")
+        return self._session

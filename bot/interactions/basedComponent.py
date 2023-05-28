@@ -21,30 +21,30 @@ STATIC_COMPONENT_CALLBACK_ID_MAX_LENGTH = 2
 class DecoratedStaticComponentInstanceMethodCallbackType(Protocol):
     __static_component_meta__: "StaticComponentCallbackMeta"
     __qualname__: str
-    def __call__(funcSelf, self, interaction: Interaction, *args) -> Awaitable: ... # type: ignore[reportSelfClsParameterName]
+    def __call__(funcSelf, self, interaction: Interaction, args: str) -> Awaitable: ... # type: ignore[reportSelfClsParameterName]
 
 class DecoratedStaticComponentClassMethodCallbackType(Protocol):
     __static_component_meta__: "StaticComponentCallbackMeta"
     __qualname__: str
-    def __call__(funcSelf, cls, interaction: Interaction, *args) -> Awaitable: ... # type: ignore[reportSelfClsParameterName]
+    def __call__(funcSelf, cls, interaction: Interaction, args: str) -> Awaitable: ... # type: ignore[reportSelfClsParameterName]
 
 class DecoratedStaticComponentFunctionCallbackType(Protocol):
     __static_component_meta__: "StaticComponentCallbackMeta"
     __qualname__: str
-    def __call__(self, interaction: Interaction, *args) -> Awaitable: ...
+    def __call__(self, interaction: Interaction, args: str) -> Awaitable: ...
 
 
 class StaticComponentInstanceMethodCallbackType(Protocol):
     __qualname__: str
-    def __call__(funcSelf, self, interaction: Interaction, *args) -> Awaitable: ... # type: ignore[reportSelfClsParameterName]
+    def __call__(funcSelf, self, interaction: Interaction, args: str) -> Awaitable: ... # type: ignore[reportSelfClsParameterName]
 
 class StaticComponentClassMethodCallbackType(Protocol):
     __qualname__: str
-    def __call__(funcSelf, cls, interaction: Interaction, *args) -> Awaitable: ... # type: ignore[reportSelfClsParameterName]
+    def __call__(funcSelf, cls, interaction: Interaction, args: str) -> Awaitable: ... # type: ignore[reportSelfClsParameterName]
 
 class StaticComponentFunctionCallbackType(Protocol):
     __qualname__: str
-    def __call__(self, interaction: Interaction) -> Awaitable: ...
+    def __call__(self, interaction: Interaction, args: str) -> Awaitable: ...
 
 StaticComponentCallbackType = Union[StaticComponentInstanceMethodCallbackType, StaticComponentClassMethodCallbackType, StaticComponentFunctionCallbackType]
 DecoratedStaticComponentCallbackType = Union[DecoratedStaticComponentInstanceMethodCallbackType, DecoratedStaticComponentClassMethodCallbackType, DecoratedStaticComponentFunctionCallbackType]
@@ -109,13 +109,15 @@ class StaticComponents(StaticComponentIDsEnum):
     Help = 1
     Clear_View = 2
     Clone_Message = 3
-    User_Embed_Add_Field = 4
-    User_Embed_Remove_Field = 5
-    User_Embed_Remove_Field_Select = 6
-    User_Embed_Edit_Field = 7
-    User_Embed_Edit_Field_Select = 8
-    User_Embed_Edit_Text = 9
-    User_Embed_Edit_Images = 10
+    Delete_Message = 4
+
+    User_Embed_Add_Field = 5
+    User_Embed_Remove_Field = 6
+    User_Embed_Remove_Field_Select = 7
+    User_Embed_Edit_Field = 8
+    User_Embed_Edit_Field_Select = 9
+    User_Embed_Edit_Text = 10
+    User_Embed_Edit_Images = 11
 
 
 class StaticComponentMeta:
@@ -262,7 +264,7 @@ def staticComponentCustomId(ID: StaticComponents, args: str = "") -> str:
     :rtype: str
     """
     validateParam("args", args)
-    customId = "".join((STATIC_COMPONENT_CUSTOM_ID_PREFIX, ID.value, STATIC_COMPONENT_CUSTOM_ID_SEPARATOR, args))
+    customId = "".join((STATIC_COMPONENT_CUSTOM_ID_PREFIX, str(ID.value), STATIC_COMPONENT_CUSTOM_ID_SEPARATOR, args))
     validateCustomId(customId)
     return customId
 
@@ -323,7 +325,7 @@ async def maybeDefer(interaction: Interaction, ephemeral: bool = False, thinking
     :param thinking: Whether the deferral message should show the 'thinking' message, defaults to False
     :type thinking: bool, optional
     """
-    if not interaction.response._responded:
+    if not interaction.response.is_done():
         await interaction.response.defer(ephemeral=ephemeral, thinking=thinking)
 
 
@@ -336,10 +338,10 @@ async def editWithFallback(interaction: Interaction, msg: Message, *args, **kwar
     :param msg: A message to fallback onto editing, if `interaction` has been reseponded to
     :type msg: Message
     """
-    if interaction.response._responded:
+    if interaction.response.is_done():
         await msg.edit(*args, **kwargs)
     else:
-        await interaction.edit_original_message(*args, **kwargs)
+        await interaction.edit_original_response(*args, **kwargs)
 
 
 class Menu:

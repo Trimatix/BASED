@@ -3,19 +3,21 @@ from discord import ClientUser, HTTPException, Forbidden # type: ignore[import]
 from ..cfg import cfg
 from ..client import BasedClient
 
+from sqlalchemy.ext.asyncio import AsyncSession
 
-async def _findMenu(client: BasedClient, menuID: int):
+
+async def _findMenu(client: BasedClient, menuID: int, session: AsyncSession):
     menu = client.inMemoryReactionMenusDB.get(menuID, None)
     if menu is not None: return True, menu
 
-    return False, await client.databaseReactionMenusDB.get(menuID)
+    return False, await client.databaseReactionMenusDB.get(menuID, session=session)
 
 
-async def _deleteRecord(inMemory: bool, client: BasedClient, menuID: int):
+async def _deleteRecord(inMemory: bool, client: BasedClient, menuID: int, session: AsyncSession):
     if inMemory:
         client.inMemoryReactionMenusDB.pop(menuID, None)
     else:
-        await client.databaseReactionMenusDB.delete(menuID)
+        await client.databaseReactionMenusDB.delete(menuID, session=session)
 
 
 async def deleteReactionMenu(client: BasedClient, menuID: int):
@@ -23,17 +25,18 @@ async def deleteReactionMenu(client: BasedClient, menuID: int):
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
-    inMemory, menu = await _findMenu(client, menuID)
-    if menu is None: return
-    
-    msg = client.get_partial_messageable(menu.channelId).get_partial_message(menuID)
+    async with client.sessionMaker() as session:
+        inMemory, menu = await _findMenu(client, menuID, session)
+        if menu is None: return
+        
+        msg = client.get_partial_messageable(menu.channelId).get_partial_message(menuID)
 
-    try:
-        await msg.delete()
-    except HTTPException: # note: HttpException also covers NotFound and Forbidden
-        pass
-    
-    await _deleteRecord(inMemory, client, menuID)
+        try:
+            await msg.delete()
+        except HTTPException: # note: HttpException also covers NotFound and Forbidden
+            pass
+        
+        await _deleteRecord(inMemory, client, menuID, session)
 
 
 async def removeEmbedAndOptions(client: BasedClient, menuID: int):
@@ -42,17 +45,18 @@ async def removeEmbedAndOptions(client: BasedClient, menuID: int):
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
-    inMemory, menu = await _findMenu(client, menuID)
-    if menu is None: return
-    
-    msg = client.get_partial_messageable(menu.channelId).get_partial_message(menuID)
+    async with client.sessionMaker() as session:
+        inMemory, menu = await _findMenu(client, menuID, session)
+        if menu is None: return
+        
+        msg = client.get_partial_messageable(menu.channelId).get_partial_message(menuID)
 
-    await msg.edit(embed=None)
+        await msg.edit(embed=None)
 
-    for react in menu.options:
-        await msg.remove_reaction(react.emoji if isinstance(react.emoji, str) else react.emoji.sendable, cast(ClientUser, client.user))
+        for react in await menu.getOptions(session=session):
+            await msg.remove_reaction(react.emoji if isinstance(react.emoji, str) else react.emoji.sendable, cast(ClientUser, client.user))
 
-    await _deleteRecord(inMemory, client, menuID)
+        await _deleteRecord(inMemory, client, menuID, session)
 
 
 async def markExpiredMenu(client: BasedClient, menuID: int):
@@ -61,17 +65,18 @@ async def markExpiredMenu(client: BasedClient, menuID: int):
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
-    inMemory, menu = await _findMenu(client, menuID)
-    if menu is None: return
+    async with client.sessionMaker() as session:
+        inMemory, menu = await _findMenu(client, menuID, session)
+        if menu is None: return
 
-    msg = client.get_partial_messageable(menu.channelId).get_partial_message(menuID)
+        msg = client.get_partial_messageable(menu.channelId).get_partial_message(menuID)
 
-    try:
-        await msg.edit(content=cfg.expiredMenuMsg)
-    except HTTPException: # note: HttpException also covers NotFound and Forbidden
-        pass
+        try:
+            await msg.edit(content=cfg.expiredMenuMsg)
+        except HTTPException: # note: HttpException also covers NotFound and Forbidden
+            pass
 
-    await _deleteRecord(inMemory, client, menuID)
+        await _deleteRecord(inMemory, client, menuID, session)
 
 
 async def markExpiredMenuAndRemoveOptions(client: BasedClient, menuID: int):
@@ -80,24 +85,25 @@ async def markExpiredMenuAndRemoveOptions(client: BasedClient, menuID: int):
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
-    inMemory, menu = await _findMenu(client, menuID)
-    if menu is None: return
+    async with client.sessionMaker() as session:
+        inMemory, menu = await _findMenu(client, menuID, session)
+        if menu is None: return
 
-    msg = client.get_partial_messageable(menu.channelId).get_partial_message(menuID)
+        msg = client.get_partial_messageable(menu.channelId).get_partial_message(menuID)
 
-    try:
-        await msg.clear_reactions()
-    except Forbidden:
-        msg = await msg.fetch()
-        for reaction in msg.reactions:
-            try:
-                await reaction.remove(cast(ClientUser, client.user))
-            except HTTPException: # note: HttpException also covers NotFound and Forbidden
-                pass
+        try:
+            await msg.clear_reactions()
+        except Forbidden:
+            msg = await msg.fetch()
+            for reaction in msg.reactions:
+                try:
+                    await reaction.remove(cast(ClientUser, client.user))
+                except HTTPException: # note: HttpException also covers NotFound and Forbidden
+                    pass
 
-    try:
-        await msg.edit(content=cfg.expiredMenuMsg)
-    except HTTPException: # note: HttpException also covers NotFound and Forbidden
-        pass
+        try:
+            await msg.edit(content=cfg.expiredMenuMsg)
+        except HTTPException: # note: HttpException also covers NotFound and Forbidden
+            pass
 
-    await _deleteRecord(inMemory, client, menuID)
+        await _deleteRecord(inMemory, client, menuID, session)

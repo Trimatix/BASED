@@ -80,7 +80,7 @@ class BasedClient(ClientBaseClass):
                         httpClient: Optional[aiohttp.ClientSession] = None):
         
         self.databaseEngine = databaseEngine
-        self.sessionMaker = async_sessionmaker(self.databaseEngine)
+        self.sessionMaker = async_sessionmaker(self.databaseEngine, expire_on_commit=False)
 
         intents = discord.Intents.default()
         intents.message_content = True

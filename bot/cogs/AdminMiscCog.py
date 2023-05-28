@@ -28,7 +28,7 @@ class AdminMiscCog(basedApp.BasedCog):
         await interaction.response.send_message("Ping...")
         end = perf_counter()
         duration = (end - start) * 1000
-        msg = await interaction.original_message()
+        msg = await interaction.original_response()
         await msg.edit(content='Pong! {:.2f}ms'.format(duration))
 
 

@@ -22,7 +22,7 @@ class X:
     @w(1)
     async def clearViewFromMessage(self, interaction: Interaction):
         if interaction.response.is_done():
-            await interaction.edit_original_message(view=None)
+            await interaction.edit_original_response(view=None)
         else:
             await interaction.response.edit_message(view=None)
 

@@ -81,8 +81,10 @@ databaseChangeLog:
                   name:  menuId
                   type:  bigint unsigned
                   constraints:
-                    primaryKey:  true
                     nullable:  false
+                    references:  reactionMenu(id)
+                    foreignKeyName:  fk_reactionMenuOption_reactionMenu
+                    deleteCascade:  true
               -  column:
                   name:  emoji
                   type:  varchar(20)

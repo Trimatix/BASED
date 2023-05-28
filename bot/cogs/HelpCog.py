@@ -44,7 +44,7 @@ def formatSignature(command: Union[app_commands.Command, app_commands.Group]) ->
 
 def paramDescription(param: CommandParameter, meta: basedCommand.BasedCommandMeta) -> str:
     return meta.formattedParamDescs.get(param.name, '') if meta.formattedParamDescs is not None else '' \
-            or (param.description if param.description != '…' else '')
+            or str(param.description if param.description != '…' else '')
 
 
 def paramDescribable(param: CommandParameter, meta: basedCommand.BasedCommandMeta) -> bool:
@@ -176,7 +176,7 @@ class HelpCog(basedApp.BasedCog):
 
 
     @basedApp.BasedCog.staticComponentCallback(basedComponent.StaticComponents.Help)
-    async def showHelpPageStatic(self, interaction: Interaction, args: str, *_):
+    async def showHelpPageStatic(self, interaction: Interaction, args: str):
         category, page, accessLevelNum, showAll = unpackHelpPageArgs(args)
         pageNum = int(page) if page is not None else 1
         commandAccessLevel = accessLevels.defaultAccessLevel() if accessLevelNum is None else accessLevels.accessLevelWithIntLevel(accessLevelNum)
@@ -351,8 +351,8 @@ class HelpCog(basedApp.BasedCog):
             view = MISSING
         
         if interaction.type == InteractionType.component:
-            if interaction.response._responded:
-                await interaction.edit_original_message(embed=embed, view=view)
+            if interaction.response.is_done():
+                await interaction.edit_original_response(embed=embed, view=view)
             else:
                 # TODO: I'm not sure why I keep getting 'interaction already acknowledged' here. The interaction should be new for each button press?
                 try:

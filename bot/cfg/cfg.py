@@ -2,6 +2,7 @@ from ..lib.emojis import UninitializedBasedEmoji, BasedEmoji
 from ..lib.discordUtil import SerializableDiscordObject
 from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, SerializablePath
 from typing import List, cast
+from tomlkit.items import Item
 
 # All emojis used by the bot
 defaultEmojis = EmojisConfig(
@@ -29,18 +30,12 @@ defaultEmojis = EmojisConfig(
 )
 
 timeouts = TimeoutsConfig(
-    helpMenu = SerializableTimedelta(minutes=3),
     BASED_updateCheckFrequency = SerializableTimedelta(days=1),
     # The time to wait inbetween database autosaves.
     dataSaveFrequency = SerializableTimedelta(hours=1)
 )
 
 paths = PathsConfig(
-    # path to JSON files for database saves
-    usersDB = SerializablePath("saveData", "users.json"),
-    guildsDB = SerializablePath("saveData", "guilds.json"),
-    reactionMenusDB = SerializablePath("saveData", "reactionMenus.json"),
-
     # path to folder to save log txts to
     logsFolder = SerializablePath("saveData", "logs")
 )
@@ -117,6 +112,9 @@ databaseConnectionString_envVarName = ""
 
 
 def validateConfig():
+    global developmentGuilds
+    if len(developmentGuilds) > 0 and isinstance(developmentGuilds[0], Item):
+        developmentGuilds = [SerializableDiscordObject(int(i)) for i in developmentGuilds] # type: ignore[reportGeneralTypeIssues]
     for _, basicAccessLevel in basicAccessLevels._fieldItems():
         if basicAccessLevel not in userAccessLevels:
             raise ValueError(f"basic access level '{basicAccessLevel}' is missing from userAccessLevels")

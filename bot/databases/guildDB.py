@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from .snowflakeDb import SnowflakeDB
 from ..users.basedGuild import BasedGuild
+from ..lib.sql import SessionSharer
 
 class GuildDB(SnowflakeDB[BasedGuild]):
     def __init__(self, engine: AsyncEngine):
@@ -14,5 +15,5 @@ class GuildDB(SnowflakeDB[BasedGuild]):
     async def getCommandPrefix(self, recordId: int, session: Optional[AsyncSession] = None):
         query = select(BasedGuild).with_only_columns(BasedGuild.commandPrefix).where(BasedGuild.id == recordId)
 
-        async with session if session else self.sessionMaker() as _session:
-            return await _session.scalar(query)
+        async with SessionSharer(session, self.sessionMaker) as s:
+            return await s.session.scalar(query)

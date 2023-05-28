@@ -1,6 +1,6 @@
 from carica.models import SerializableDataClass, SerializableTimedelta, SerializablePath
 from carica.typeChecking import TypeOverride
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os
 from typing import Dict, List, Set, Tuple, Union, Any, cast
 
@@ -32,9 +32,9 @@ class EmojisConfig(SerializableDataClass):
     reject: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
     next: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
     previous: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
-    numbers: List[BasedEmoji] = TypeOverride(List[UninitializedBasedEmoji], [])
+    numbers: List[BasedEmoji] = field(default_factory=TypeOverride(List[UninitializedBasedEmoji], list))
     # The default emojis to list in a reaction menu
-    menuOptions: List[BasedEmoji] = TypeOverride(List[UninitializedBasedEmoji], [])
+    menuOptions: List[BasedEmoji] = field(default_factory=TypeOverride(List[UninitializedBasedEmoji], list))
 
 
     def initializeEmojis(self):
@@ -47,17 +47,12 @@ class EmojisConfig(SerializableDataClass):
 
 @dataclass
 class TimeoutsConfig(SerializableDataClass):
-    helpMenu: SerializableTimedelta
     BASED_updateCheckFrequency: SerializableTimedelta
     dataSaveFrequency: SerializableTimedelta
 
 
 @dataclass
 class PathsConfig(SerializableDataClass):
-    # path to JSON files for database saves
-    usersDB: SerializablePath
-    guildsDB: SerializablePath
-    reactionMenusDB: SerializablePath
     # path to folder to save log txts to
     logsFolder: SerializablePath
 

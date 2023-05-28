@@ -4,17 +4,26 @@ from typing import Any, Generic, Optional, Tuple, Type, TypeVar
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession, AsyncEngine
 from sqlalchemy import select, exists, delete, update
+from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.sql._typing import _ColumnsClauseArgument
 
 from ..baseClasses.dbSnowflake import DbSnowflake
-from ..lib.sql import count
+from ..lib.sql import count, SessionSharer
 
 TRecord = TypeVar("TRecord", bound=DbSnowflake)
 TField = TypeVar("TField", bound=Any)
 
+
+def idField(identifier: Type[DbSnowflake]) -> InstrumentedAttribute[int]:
+    """This method exists to isolate the `type: ignore` required for accessing the record's `~TRecord.id`:attr:.
+    """
+    return identifier.id # type: ignore[reportGeneralTypeIssues]
+
+
 class SnowflakeDB(Generic[TRecord]):
     """Helper for performing CRUD operations on the records database.
     """
+    sessionMaker: async_sessionmaker[AsyncSession]
     
     def __init__(self, recordType: Type[TRecord], engine: AsyncEngine):
         self.sessionMaker = async_sessionmaker(engine)
@@ -22,16 +31,16 @@ class SnowflakeDB(Generic[TRecord]):
 
 
     async def exists(self, recordId: int, session: Optional[AsyncSession] = None) -> bool:
-        """Check if a record is stored in the database with the given ID.
+        """Check if a record is stored in the database with the given `~TRecord.id`:attr:.
 
-        :param int recordId: integer discord ID for the TRecord to search for
+        :param int recordId: integer discord ID for the :class:`TRecord` to search for
         :return: True if recordId corresponds to a record in the database, false if no record is found with the id
         :rtype: bool
         """
-        query = select(exists(1).where(self._recordType.id == recordId)) # type: ignore[reportGeneralTypeIssues]
+        query = select(exists(1).where(idField(self._recordType) == recordId))
         
-        async with session if session else self.sessionMaker() as _session:
-            result = await _session.scalar(query)
+        async with SessionSharer(session, self.sessionMaker) as s:
+            result = await s.session.scalar(query)
         
         return result or False
     
@@ -44,75 +53,87 @@ class SnowflakeDB(Generic[TRecord]):
         """
         query = count(self._recordType)
         
-        async with session if session else self.sessionMaker() as _session:
-            result = await _session.scalar(query)
+        async with SessionSharer(session, self.sessionMaker) as s:
+            result = await s.session.scalar(query)
         
         return result or False
 
 
-    async def create(self, recordId: int, session: Optional[AsyncSession] = None) -> TRecord:
-        """Create a new TRecord object with the specified ID and add it to the database
+    async def create(self, record: TRecord, session: Optional[AsyncSession] = None):
+        """Create a new :class:`TRecord` object with the specified ID and add it to the database
 
-        :param int recordId: integer discord ID for the record to add
-        :raises IntegrityError: If a TRecord already exists in the database with the specified ID
-        :return: the newly created TRecord
-        :rtype: TRecord
+        :param TRecord record: The record to create
+        :raises IntegrityError: If a :class:`TRecord` already exists in the database with the specified :param:`~record.id`
         """
-        newRecord = self._recordType(id=recordId)
-
-        async with session if session else self.sessionMaker() as _session:
-            _session.add(newRecord)
-
-        return newRecord
+        async with SessionSharer(session, self.sessionMaker) as s:
+            s.session.add(record)
     
 
     async def get(self, recordId: int, session: Optional[AsyncSession] = None, withOnlyFields: Optional[Tuple[_ColumnsClauseArgument[TRecord]]] = None) -> Optional[TRecord]:
-        """Get the record with the given ID. Returns `None` if it does not exist.
+        """Get the record with the given :param:`recordId`. Returns ``None`` if it does not exist.
 
-        :param int recordId: integer discord ID for the TRecord to get
-        :return: The stored record, or None if no record is found with the id
+        :param int recordId: integer discord ID for the :class:`TRecord` to get
+        :return: The stored record, or ``None`` if no record is found with the :param:`recordId`
         :rtype: Optional[TRecord]
         """
-        query = select(self._recordType).where(self._recordType.id == recordId) # type: ignore[reportGeneralTypeIssues]
+        query = select(self._recordType).where(idField(self._recordType) == recordId)
         
         if withOnlyFields:
-            query = query.with_only_columns(*withOnlyFields)
+            query = query.with_only_columns(withOnlyFields)
 
-        async with session if session else self.sessionMaker() as _session:
-            result = await _session.execute(query)
+        async with SessionSharer(session, self.sessionMaker) as s:
+            result = await s.session.execute(query)
             row = result.one_or_none()
             return None if row is None else row.t[0]
     
 
-    async def getOrCreate(self, recordId: int, session: Optional[AsyncSession] = None) -> TRecord:
-        query = select(self._recordType).where(self._recordType.id == recordId) # type: ignore[reportGeneralTypeIssues]
+    async def getOrCreate(self, record: TRecord, session: Optional[AsyncSession] = None) -> TRecord:
+        """Get the record with the given :param:`~recordId.id`, or create it if it does not exist.
 
-        async with session if session else self.sessionMaker() as _session:
-            result = await _session.execute(query)
+        :param TRecord record: The :class:`TRecord` to get/create
+        :return: The stored record
+        :rtype: Optional[TRecord]
+        """
+        query = select(self._recordType).where(idField(self._recordType) == record.id)
+
+        async with SessionSharer(session, self.sessionMaker) as s:
+            result = await s.session.execute(query)
         
             row = result.one_or_none()
             if row is not None:
                 return row[0]
             
-            return await self.create(recordId, session=_session)
+            await self.create(record, session=s.session)
+            return record
         
 
     async def delete(self, recordId: int, session: Optional[AsyncSession] = None):
-        query = delete(self._recordType).where(self._recordType.id == recordId) # type: ignore[reportGeneralTypeIssues]
+        """Delete the record with the given :param:`recordId`.
 
-        async with session if session else self.sessionMaker() as _session:
-            await _session.execute(query)
+        :param int recordId: integer discord ID for the :class:`TRecord` to delete
+        """
+        query = delete(self._recordType).where(idField(self._recordType) == recordId)
+
+        async with SessionSharer(session, self.sessionMaker) as s:
+            await s.session.execute(query)
 
 
     async def update(self, recordId: int, session: Optional[AsyncSession] = None, **values):
-        query = update(self._recordType).where(self._recordType.id == recordId).values(**values) # type: ignore[reportGeneralTypeIssues]
+        """Update the record with the given :param:`recordId` to have the values specified in :param:`values`.
 
-        async with session if session else self.sessionMaker() as _session:
-            await _session.execute(query)
+        :param int recordId: integer discord ID for the :class:`TRecord` to update
+        """
+        query = update(self._recordType).where(idField(self._recordType) == recordId).values(**values)
+
+        async with SessionSharer(session, self.sessionMaker) as s:
+            await s.session.execute(query)
 
 
-    async def upsert(self, recordId: int, session: Optional[AsyncSession] = None, **values):
-        record = self._recordType(id=recordId, **values)
+    async def upsert(self, record: TRecord, session: Optional[AsyncSession] = None):
+        """Create :param:`record`, or update an existing record with :param:`record.id` to match
+        the values specified on :param:`record`.
 
-        async with session if session else self.sessionMaker() as _session:
-            await _session.merge(record)
+        :param TRecord record: the :class:`TRecord` values to upsert
+        """
+        async with SessionSharer(session, self.sessionMaker) as s:
+            await s.session.merge(record)
