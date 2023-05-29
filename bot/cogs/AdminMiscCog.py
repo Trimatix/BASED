@@ -14,7 +14,8 @@ class AdminMiscCog(basedApp.BasedCog):
         super().__init__(*args, **kwargs)
 
 
-    @basedCommand.basedCommand(accessLevel=basicAccessLevels.serverAdmin)
+    @basedCommand.basedCommand()
+    @app_commands.default_permissions(administrator=True)
     @app_commands.command(name="ping",
                             description="Measure the latency between the bot sending a message, and receiving a response from discord.")
     @app_commands.guilds(*cfg.developmentGuilds)
