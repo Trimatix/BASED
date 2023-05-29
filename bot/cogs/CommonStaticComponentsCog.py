@@ -1,6 +1,7 @@
+from discord import Interaction
+
 from .. import client, lib
 from ..lib.discordUtil import ZWSP, textChannel
-from discord import Interaction
 from ..cfg import cfg
 from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents

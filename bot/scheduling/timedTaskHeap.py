@@ -1,11 +1,10 @@
-from . import timedTask
-from heapq import heappop, heappush
-import inspect
 from typing import Any, List, Optional, Union
+from heapq import heappop, heappush
 import asyncio
-from datetime import datetime
+
 import discord
 
+from . import timedTask
 
 class TimedTaskHeap:
     """A min-heap of TimedTasks, sorted by task expiration time.
@@ -97,8 +96,9 @@ class TimedTaskHeap:
 
 
 def startSleeper(delay: int, loop: asyncio.AbstractEventLoop, result: Optional[bool] = None) -> asyncio.Task:
-    async def _start(delay, loop, result=None):
-        coro = asyncio.sleep(delay, result=result, loop=loop)
+    async def _start(delay: float, loop: asyncio.AbstractEventLoop, result: Optional[bool] = None):
+        # TODO: Pyright is fine with this locally, but fails when running in GH actions, with incorrect parameter types.
+        coro = asyncio.sleep(delay, result=result, loop=loop) # type: ignore[reportGeneralTypeIssues]
         task = asyncio.create_task(coro)
         try:
             return await task
@@ -153,7 +153,8 @@ class AutoCheckingTimedTaskHeap(TimedTaskHeap):
         while self.active:
             if len(self.tasksHeap) > 0:
                 sleepDelta = self.tasksHeap[0].expiryTime - discord.utils.utcnow()
-                coro = asyncio.sleep(sleepDelta.total_seconds(), loop=self.loop)
+                # TODO: Pyright is fine with this locally, but fails when running in GH actions, with incorrect parameter types.
+                coro = asyncio.sleep(sleepDelta.total_seconds(), loop=self.loop) # type: ignore[reportGeneralTypeIssues]
                 self.sleepTask = asyncio.create_task(coro)
 
                 try:

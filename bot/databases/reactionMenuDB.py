@@ -1,5 +1,4 @@
 from typing import Optional, Tuple, Type
-from ..reactionMenus import reactionMenu
 
 from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine
 from sqlalchemy.sql._typing import _ColumnsClauseArgument
@@ -7,6 +6,7 @@ from sqlalchemy import select
 
 from .snowflakeDb import SnowflakeDB
 from ..lib.sql import SessionSharer
+from ..reactionMenus import reactionMenu
 
 class ReactionMenuDB(SnowflakeDB[reactionMenu.DatabaseReactionMenu]):
     def __init__(self, engine: AsyncEngine):

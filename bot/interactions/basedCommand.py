@@ -1,6 +1,8 @@
+from typing import Callable, Dict, Optional, Tuple, Type, TypeVar, Union, Awaitable
+
 from discord import app_commands, Interaction
 from discord.utils import MISSING
-from typing import Callable, Dict, Optional, Tuple, Type, TypeVar, Union, Awaitable
+
 from .accessLevels import AccessLevelType, AccessLevel, accessLevelNamed, defaultAccessLevel
 from .commandChecks import requireAccess
 from .basedApp import basedApp, BasedAppType

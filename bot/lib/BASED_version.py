@@ -1,14 +1,15 @@
+from typing import Optional
 import os
-from ..cfg import cfg
-from .. import lib
 from datetime import datetime, timezone
 import aiohttp
-from carica import SerializableDataClass, PrimativeType # type: ignore[import]
+from carica import SerializableDataClass
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional, Type
 
-from discord.utils import utcnow # type: ignore[import]
+from discord.utils import utcnow
+
+from ..cfg import cfg
+from .. import lib
 
 # Path to the BASED version json descriptor file. File also contains the timestamp of the next scheduled version check.
 BASED_VERSIONFILE = str(Path(".BASED", "BASED_version.json"))

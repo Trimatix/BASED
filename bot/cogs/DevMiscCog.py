@@ -1,30 +1,21 @@
+from typing import List, Optional, Protocol, Union
 import traceback
-from typing import List, Optional, TYPE_CHECKING, Protocol, Union
 
-from bot.users.basedGuild import BasedGuild
-
-from .. import client, lib
-from ..lib.discordUtil import ZWSP, EMPTY_IMAGE, textChannel
-import discord
-from discord import ComponentType, Message, app_commands, Interaction, ButtonStyle, Embed, TextStyle, Colour, SelectOption
+from discord import Message, app_commands, Interaction, ButtonStyle, Embed, TextStyle, Colour, SelectOption
 from discord import HTTPException, ClientException, NotFound
 from discord.utils import utcnow, MISSING
 from discord.ui import View, Modal, TextInput, Button, Select
+
+from .. import client, lib
+from ..lib.discordUtil import ZWSP, textChannel
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
-from ..interactions.basedComponent import StaticComponents, staticComponentCustomId
+from ..interactions.basedComponent import StaticComponents
 from ..logging import LogCategory
 
-
-
-from ..reactionMenus.confirmationReactionMenu import InMemoryConfirmationMenu
-from ..users.basedUser import BasedUser
-from ..reactionMenus.testMenu import TestMenu, CustomOption
-
 EMBED_FIELD_INLINE_DEFAULT = "y"
-
 
 # I can't get this imported from discord, so I copy-pasted it.
 class _EmbedFieldProxy(Protocol):

@@ -1,15 +1,15 @@
 """https://gist.github.com/Rapptz/0ad5914e42aeaa1cecea334f6508b8d5"""
 
 from __future__ import annotations
-from typing import Dict, List, Optional, Tuple, Type, Union, cast
-from .. import client, lib
-from discord import AppCommandType, CategoryChannel, Colour, Embed, InteractionType, VoiceChannel, app_commands, Interaction, Object, ChannelType, Guild
-from discord.app_commands import Command
-from discord.ext import commands
-from discord.app_commands.transformers import CommandParameter, Range
+from typing import Dict, List, Optional, Tuple, Union
+
+from discord import AppCommandType, Colour, Embed, InteractionType, app_commands, Interaction, Object, ChannelType, Guild
+from discord.app_commands.transformers import CommandParameter
 from discord.utils import MISSING
 from discord.ui import View, Button
 from discord import HTTPException
+
+from .. import client, lib
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import accessLevels, basedCommand, commandChecks, basedApp, basedComponent

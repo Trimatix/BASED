@@ -1,21 +1,19 @@
 import asyncio
 from inspect import iscoroutinefunction
 import signal
-from typing import List, Optional, Dict, Tuple, Type, Union, cast, overload
-from pathlib import Path
+from typing import List, Optional, Dict, Type, Union, cast, overload
 import aiohttp
-import discord # type: ignore[import]
+import discord
 from discord import app_commands
-from discord.ext.commands import Bot as ClientBaseClass # type: ignore[import]
-from discord.ext import tasks # type: ignore[import]
-from discord.utils import MISSING # type: ignore[import]
+from discord.ext.commands import Bot as ClientBaseClass
+from discord.ext import tasks
+from discord.utils import MISSING
 from datetime import datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 from .interactions import accessLevels, commandChecks
 from .databases import userDB, guildDB, reactionMenuDB
-import os
 from . import lib
 from .cfg import cfg
 from . import logging

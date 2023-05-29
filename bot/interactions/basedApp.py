@@ -1,15 +1,12 @@
+from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, Optional, Type, TypeVar, TYPE_CHECKING
 from enum import Enum
 from inspect import iscoroutinefunction
-from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, List, Optional, Tuple, Type, TypeVar, TYPE_CHECKING, Union
 
 from discord.ext.commands.cog import Cog
-from discord import app_commands, Interaction, Component
+from discord import app_commands, Interaction
 
 from . import basedCommand, basedComponent
 from .. import client
-
-if TYPE_CHECKING:
-    from .basedCommand import CallBackType, TClass, TParams
 
 TAnyCallback = Callable[..., Awaitable[Any]]
 

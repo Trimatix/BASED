@@ -1,9 +1,9 @@
+from discord.ext import commands, tasks
+
 from ..cfg import cfg
 from .. import lib
 from ..lib.BASED_version import checkForUpdates, BASED_REPO_URL
 from .. import client
-
-from discord.ext import commands, tasks # type: ignore[import]
 
 
 class BASED_VersionCog(commands.Cog):

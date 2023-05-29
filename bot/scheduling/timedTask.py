@@ -1,17 +1,13 @@
-# Typing imports
 from __future__ import annotations
-from asyncio import Task, create_task
-import asyncio
-
-from datetime import datetime, timedelta
-import inspect
-import discord
 from typing import Any, Callable, Coroutine, Optional, Union
+from asyncio import Task, create_task
+from datetime import datetime, timedelta
+
+import discord
+
 from .. import botState, lib
 
-
 TTCallbackType = Union[Callable[[Any], Coroutine], Callable[[], Coroutine]]
-
 
 class TimedTask:
     """A fairly generic class that, at its core, tracks when a requested amount of time has passed.
@@ -60,14 +56,18 @@ class TimedTask:
                                                     will be fixed (Default False)
         """
         # Ensure that at least one of expiryTime or expiryDelta is specified
-        if expiryTime is None and expiryDelta is None:
-            raise ValueError("No expiry time given, both expiryTime and expiryDelta are None")
+        if expiryTime is not None:
+            self.expiryTime = expiryTime
+        else:
+            if expiryDelta is None:
+                raise ValueError("No expiry time given, both expiryTime and expiryDelta are None")
+            
+            # Calculate expiryTime as issueTime + expiryDelta if none is given
+            self.expiryTime = (self.issueTime + expiryDelta) if expiryTime is None else expiryTime
 
         # Calculate issueTime as now if none is given
         self.issueTime = discord.utils.utcnow() if issueTime is None else issueTime
-        # Calculate expiryTime as issueTime + expiryDelta if none is given
-        # Incorrect type here cannot happen as none expiryDelta is checked for above
-        self.expiryTime = (self.issueTime + expiryDelta) if expiryTime is None else expiryTime # type: ignore
+
         # Calculate expiryDelta as expiryTime - issueTime if none is given. This is needed for rescheduling.
         self.expiryDelta = (self.expiryTime - self.issueTime) if expiryDelta is None else expiryDelta
 

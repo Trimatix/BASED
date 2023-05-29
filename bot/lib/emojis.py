@@ -1,17 +1,18 @@
 from __future__ import annotations
-import emoji
+from typing import TypeVar, Union, TYPE_CHECKING, cast
 
-from .. import botState
-from ..lib.jsonHandler import JsonType
-from . import stringTyping, exceptions
+import emoji
 import traceback
 from carica import ISerializable, PrimativeType, SerializableType # type: ignore[import]
 from carica.typeChecking import objectIsShallowSerializable # type: ignore[import]
 from abc import ABC, abstractmethod
 
-from typing import TypeVar, Union, TYPE_CHECKING, cast
 if TYPE_CHECKING:
-    from discord import PartialEmoji, Emoji # type: ignore[import]
+    from discord import PartialEmoji, Emoji
+
+from .. import botState
+from ..lib.jsonHandler import JsonType
+from . import stringTyping, exceptions
 
 
 err_UnknownEmoji = "❓"

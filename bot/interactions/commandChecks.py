@@ -1,5 +1,7 @@
 from typing import Type, Union
+
 from discord import Interaction
+
 from ..cfg import cfg
 from . import accessLevels
 

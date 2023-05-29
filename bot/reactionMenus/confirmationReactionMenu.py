@@ -1,11 +1,13 @@
-from datetime import datetime
-from . import reactionMenu
-from discord import Embed, Member, User
 from typing import Optional, Union
-from ..cfg import cfg
-from ..client import BasedClient
+from datetime import datetime
+
+from discord import Embed, Member, User
 
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from . import reactionMenu
+from ..cfg import cfg
+from ..client import BasedClient
 
 
 class InMemoryConfirmationMenu(reactionMenu.InMemoryReactionMenu):
