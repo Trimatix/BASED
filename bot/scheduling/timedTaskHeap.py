@@ -1,11 +1,10 @@
-from . import timedTask
-from heapq import heappop, heappush
-import inspect
 from typing import Any, List, Optional, Union
+from heapq import heappop, heappush
 import asyncio
-from datetime import datetime
+
 import discord
 
+from . import timedTask
 
 class TimedTaskHeap:
     """A min-heap of TimedTasks, sorted by task expiration time.

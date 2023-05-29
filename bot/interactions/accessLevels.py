@@ -1,12 +1,13 @@
 from typing import Dict, Optional, Type, TypeVar, Union
+from abc import ABC, abstractmethod
+
+from discord import Interaction, Member, PartialMessageable
+from discord.utils import MISSING
+
 from ..cfg import cfg
 from ..cogs import helpUtil
 from .. import lib
 from . import basedComponent
-from abc import ABC, abstractmethod
-from discord import Interaction, Member, PartialMessageable
-from discord.utils import MISSING
-
 
 class _AccessLevelBase(ABC):
     """Base class for an access level.

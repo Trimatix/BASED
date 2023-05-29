@@ -1,6 +1,7 @@
+import importlib
+
 from ..commandsManager import heirarchicalCommandsDB
 from ..cfg import cfg
-import importlib
 
 commandsDB = heirarchicalCommandsDB.HeirarchicalCommandsDB(len(cfg.userAccessLevels))
 

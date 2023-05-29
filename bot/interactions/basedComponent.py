@@ -1,14 +1,13 @@
+from typing import Any, Awaitable, Optional, TypeVar, Union, Callable, Protocol, cast, Dict
+from enum import Enum, EnumMeta, _EnumDict
 from inspect import iscoroutinefunction
 import inspect
-from discord import ButtonStyle, Embed
-from discord import Message, Interaction
-from discord.ui import View, Button, Item, Select, TextInput
 
-from typing import Any, Awaitable, List, Optional, TypeVar, Union, Callable, Protocol, cast, overload, Dict
-from enum import Enum, EnumMeta, _EnumDict
+from discord import Embed
+from discord import Message, Interaction
+from discord.ui import View, Button, Select, TextInput
 
 from .. import lib
-from ..cfg import cfg
 from . import basedApp
 
 

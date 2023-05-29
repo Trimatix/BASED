@@ -1,7 +1,12 @@
-from typing import Dict, List, Optional, Union, overload
-import string
+from typing import List, Optional, Union
 
-_idToIndex = {c: i for i, c in enumerate(string.printable)}
+"""To generate this alphabet:
+import string
+string.printable
+"""
+_alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\x0b\x0c"
+
+_idToIndex = {c: i for i, c in enumerate(_alphabet)}
 _indexToID = {i: c for c, i in _idToIndex.items()}
 _numChars = len(_idToIndex)
 

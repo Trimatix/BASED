@@ -1,11 +1,13 @@
-from .cfg import cfg
 from os import path
 from datetime import datetime
 import traceback
 from typing import Dict, Optional, Tuple
-from .lib.exceptions import formatExceptionTrace
-import discord
 from enum import Enum
+
+import discord
+
+from .lib.exceptions import formatExceptionTrace
+from .cfg import cfg
 
 
 LOG_TIME_FORMAT = "(%d/%m/%H:%M)"

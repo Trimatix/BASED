@@ -1,17 +1,13 @@
-# Typing imports
 from __future__ import annotations
-from asyncio import Task, create_task
-import asyncio
-
-from datetime import datetime, timedelta
-import inspect
-import discord
 from typing import Any, Callable, Coroutine, Optional, Union
+from asyncio import Task, create_task
+from datetime import datetime, timedelta
+
+import discord
+
 from .. import botState, lib
 
-
 TTCallbackType = Union[Callable[[Any], Coroutine], Callable[[], Coroutine]]
-
 
 class TimedTask:
     """A fairly generic class that, at its core, tracks when a requested amount of time has passed.

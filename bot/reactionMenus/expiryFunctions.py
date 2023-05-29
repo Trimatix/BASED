@@ -1,9 +1,11 @@
 from typing import cast
-from discord import ClientUser, HTTPException, Forbidden # type: ignore[import]
-from ..cfg import cfg
-from ..client import BasedClient
+
+from discord import ClientUser, HTTPException, Forbidden
 
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..cfg import cfg
+from ..client import BasedClient
 
 
 async def _findMenu(client: BasedClient, menuID: int, session: AsyncSession):

@@ -1,26 +1,21 @@
 # Set up bot config
 
-from typing import List, Literal, Optional, Union, cast
-from .lib.emojis import UninitializedBasedEmoji
+from typing import Literal, Optional, cast
 from .cfg import cfg
 
 # Discord Imports
 
 import discord # type: ignore[import]
-from discord import ClientUser, Member, Object, app_commands, Interaction
+from discord import ClientUser, Member, app_commands, Interaction
 from discord.ext.commands import ExtensionNotLoaded
 from discord.abc import GuildChannel
-from .interactions import basedCommand
 
 
 # Util imports
 
-from datetime import datetime
 import os
 import traceback
 import asyncio
-import signal
-import aiohttp
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 

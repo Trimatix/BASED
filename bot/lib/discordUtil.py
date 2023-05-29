@@ -1,11 +1,13 @@
 from __future__ import annotations
-from abc import abstractmethod
 from typing import Any, Awaitable, Callable, Coroutine, Optional, Protocol, Set, Union, Tuple, Dict, cast
+from functools import wraps, partial
+import asyncio
+from carica import ISerializable
 
-import discord # type: ignore[import]
-from discord.errors import NotFound # type: ignore[import]
-from discord import PartialMessageable, User, Member, ClientUser, Guild, Message # type: ignore[import]
-from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent # type: ignore[import]
+import discord
+from discord.errors import NotFound
+from discord import PartialMessageable, User, Member, ClientUser, Guild, Message
+from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent
 from discord import DMChannel, GroupChannel, TextChannel
 from discord.abc import Messageable
 
@@ -13,10 +15,6 @@ from . import stringTyping, emojis, exceptions
 from .. import botState
 from ..cfg import cfg
 from ..logging import LogCategory
-
-from functools import wraps, partial
-import asyncio
-from carica import ISerializable # type: ignore[import]
 
 class AnyCoroutine(Protocol):
     def __call__(*args, **kwargs) -> Awaitable: ...

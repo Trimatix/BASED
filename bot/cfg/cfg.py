@@ -1,8 +1,9 @@
+from typing import List, cast
+from tomlkit.items import Item
+
 from ..lib.emojis import UninitializedBasedEmoji, BasedEmoji
 from ..lib.discordUtil import SerializableDiscordObject
 from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, SerializablePath
-from typing import List, cast
-from tomlkit.items import Item
 
 # All emojis used by the bot
 defaultEmojis = EmojisConfig(

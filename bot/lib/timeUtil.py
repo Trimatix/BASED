@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-
 def td_format_noYM(td_object: timedelta) -> str:
     """Create a string describing the attributes of a given datetime.timedelta object, in a
     human reader-friendly format.

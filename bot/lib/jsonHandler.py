@@ -1,7 +1,7 @@
-import json
-from carica import SerializableType, PrimativeType, SerializesToDict # type: ignore[import]
-from carica.exceptions import NonSerializableObject # type: ignore[import]
 from typing import Protocol, TypeVar, Type, Union, Mapping
+import json
+from carica import SerializableType, PrimativeType, SerializesToDict
+from carica.exceptions import NonSerializableObject
 from pathlib import Path
 
 TSelf = TypeVar("TSelf", bound="SerializesToDict")

@@ -1,8 +1,8 @@
+from typing import Dict, List, Set, Tuple, Union, Any, cast
 from carica.models import SerializableDataClass, SerializableTimedelta, SerializablePath
 from carica.typeChecking import TypeOverride
 from dataclasses import dataclass, field
 import os
-from typing import Dict, List, Set, Tuple, Union, Any, cast
 
 from ..lib.emojis import IBasedEmoji, UninitializedBasedEmoji, BasedEmoji
 
