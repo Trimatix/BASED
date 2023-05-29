@@ -8,7 +8,7 @@
 <p align="center">
   <a href="https://github.com/Trimatix/BASED/actions"
     ><img
-      src="https://img.shields.io/github/actions/workflow/status/Trimatix/BASED/lint-app.yml?branch=main"
+      src="https://img.shields.io/github/actions/workflow/status/Trimatix/BASED/testing.yml?branch=master"
       alt="GitHub Actions workflow status"
   /></a>
   <a href="https://github.com/Trimatix/BASED/labels/bug"
