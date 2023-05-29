@@ -96,7 +96,7 @@ class TimedTaskHeap:
 
 
 def startSleeper(delay: int, loop: asyncio.AbstractEventLoop, result: Optional[bool] = None) -> asyncio.Task:
-    async def _start(delay, loop, result=None):
+    async def _start(delay: float, loop: asyncio.AbstractEventLoop, result: Optional[bool] = None):
         coro = asyncio.sleep(delay, result=result, loop=loop)
         task = asyncio.create_task(coro)
         try:
