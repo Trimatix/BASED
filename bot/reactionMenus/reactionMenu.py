@@ -325,7 +325,7 @@ class DatabaseReactionMenu(ReactionMenu[DatabaseReactionMenuOption], Base, Gener
 
         async with SessionSharer(session, client.sessionMaker) as s:
             # Note that the options are not deleted here, we rely on CASCADE being set on the foreign key
-            await client.databaseReactionMenusDB.delete(self.id, session=session)
+            await client.databaseReactionMenusDB.delete(self.id, session=s.session)
             
         self._end(client, timedOut)
 
