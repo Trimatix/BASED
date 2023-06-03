@@ -466,7 +466,7 @@ async def runAsync():
         # Launch bot
         await botState.client.start(cfg.botToken if cfg.botToken else os.environ[cfg.botToken_envVarName])
     
-    return botState.client.shutdownState
+    return botState.client.shutDownState
 
 
 def run():

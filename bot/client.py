@@ -72,7 +72,7 @@ class BasedClient(ClientBaseClass):
     :vartype killer: GracefulKiller
     """
     _inMemoryReactionMenusRepository: Optional[Dict[int, "reactionMenu.InMemoryReactionMenu"]]
-    shutdownState: ShutDownState
+    shutDownState: ShutDownState
 
     def __init__(self, databaseEngine: AsyncEngine,
                         inMemoryReactionMenusDB: Optional[Dict[int, "reactionMenu.InMemoryReactionMenu"]] = None,
