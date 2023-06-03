@@ -1,8 +1,11 @@
+from typing import List, Optional, Dict, Type, Union, cast, overload
+
 import asyncio
 from inspect import iscoroutinefunction
 import signal
-from typing import List, Optional, Dict, Type, Union, cast, overload
 import aiohttp
+from enum import Enum
+
 import discord
 from discord import app_commands
 from discord.ext.commands import Bot as ClientBaseClass
@@ -13,7 +16,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 from .interactions import accessLevels, commandChecks
-from .databases import userDB, guildDB, reactionMenuDB
+from .repositories import guildRepository, reactionMenuRepository, userRepository
 from . import lib
 from .cfg import cfg
 from . import logging
@@ -22,7 +25,7 @@ from .interactions import basedCommand, basedComponent, basedApp
 from .reactionMenus import reactionMenu
 
 
-class ShutDownState:
+class ShutDownState(Enum):
     restart = 0
     shutdown = 1
     update = 2
@@ -68,12 +71,11 @@ class BasedClient(ClientBaseClass):
     :var killer: Indicator of when OS termination signals are received
     :vartype killer: GracefulKiller
     """
+    _inMemoryReactionMenusRepository: Optional[Dict[int, "reactionMenu.InMemoryReactionMenu"]]
+    shutDownState: ShutDownState
 
     def __init__(self, databaseEngine: AsyncEngine,
-                        usersDB: Optional[userDB.UserDB] = None,
-                        guildsDB: Optional[guildDB.GuildDB] = None,
                         inMemoryReactionMenusDB: Optional[Dict[int, "reactionMenu.InMemoryReactionMenu"]] = None,
-                        databaseReactionMenusDB: Optional[reactionMenuDB.ReactionMenuDB] = None,
                         logger: Optional[logging.Logger] = None,
                         httpClient: Optional[aiohttp.ClientSession] = None):
         
@@ -85,11 +87,8 @@ class BasedClient(ClientBaseClass):
         intents.members = True
         super().__init__(command_prefix="‎", intents=intents)
 
-        self._usersDB = usersDB
-        self._guildsDB = guildsDB
-        self._databaseReactionMenusDB = databaseReactionMenusDB
         self._inMemoryReactionMenusDB = inMemoryReactionMenusDB
-        self._dbsLoaded = None not in (usersDB, guildsDB, databaseReactionMenusDB, inMemoryReactionMenusDB)
+        self._dbsLoaded = inMemoryReactionMenusDB is not None
 
         self.loggedIn = False
         self.launchTime = discord.utils.utcnow()
@@ -359,48 +358,6 @@ class BasedClient(ClientBaseClass):
         if self._httpClient is None:
             self._httpClient = aiohttp.ClientSession()
 
-    
-    @property
-    def usersDB(self):
-        """The bot's database of users.
-        Databases are only available after on_ready.
-
-        :raises lib.exceptions.NotReady: Databases not loaded yet
-        :return: The bot's database of user metadata.
-        :rtype: databases.userDB.UserDB
-        """
-        if not self._dbsLoaded:
-            raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient.usersDB is only available after on_ready.")
-        return cast(userDB.UserDB, self._usersDB)
-
-
-    @property
-    def guildsDB(self):
-        """The bot's database of guilds.
-        Databases are only available after on_ready.
-
-        :raises lib.exceptions.NotReady: Databases not loaded yet
-        :return: The bot's database of user metadata.
-        :rtype: databases.guildDB.GuildDB
-        """
-        if not self._dbsLoaded:
-            raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient.usersDB is only available after on_ready.")
-        return cast(guildDB.GuildDB, self._guildsDB)
-
-
-    @property
-    def databaseReactionMenusDB(self):
-        """The bot's database of reaction menus.
-        Databases are only available after on_ready.
-
-        :raises lib.exceptions.NotReady: Databases not loaded yet
-        :return: The bot's database of user metadata.
-        :rtype: databases.reactionMenuDB.ReactionMenuDB
-        """
-        if not self._dbsLoaded:
-            raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient._databaseReactionMenusDB is only available after on_ready.")
-        return cast(reactionMenuDB.ReactionMenuDB, self._databaseReactionMenusDB)
-    
 
     @property
     def inMemoryReactionMenusDB(self):
@@ -413,7 +370,7 @@ class BasedClient(ClientBaseClass):
         """
         if not self._dbsLoaded:
             raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient.inMemoryReactionMenusDB is only available after on_ready.")
-        return cast(Dict[int, reactionMenu.InMemoryReactionMenu], self._inMemoryReactionMenusDB)
+        return cast(Dict[int, reactionMenu.InMemoryReactionMenu], self._inMemoryReactionMenusRepository)
 
 
     @property
@@ -434,18 +391,18 @@ class BasedClient(ClientBaseClass):
         """Save all savedata to file, and start the db saving task if it is not running.
         inMemoryReactionMenusDB is not affected.
         """
-        self._usersDB = userDB.UserDB(self.databaseEngine)
-        self._guildsDB = guildDB.GuildDB(self.databaseEngine)
-        self._databaseReactionMenusDB = reactionMenuDB.ReactionMenuDB(self.databaseEngine)
-        if self._inMemoryReactionMenusDB is None:
-            self._inMemoryReactionMenusDB = {}
+        if self._inMemoryReactionMenusRepository is None:
+            self._inMemoryReactionMenusRepository = {}
         
         async with self.sessionMaker() as session:
-            print(f"{await self._usersDB.countAllDocuments(session=session)} users loaded")                    
-            print(f"{await self._guildsDB.countAllDocuments(session=session)} guilds loaded")                  
-            print(f"{await self._databaseReactionMenusDB.countAllDocuments(session=session)} database reaction menus loaded")
+            users = userRepository.UserRepository(session)
+            guilds = guildRepository.GuildRepository(session)
+            dbMenus = reactionMenuRepository.ReactionMenuRepository(session)
+            print(f"{await users.countAllDocuments()} users loaded")                    
+            print(f"{await guilds.countAllDocuments()} guilds loaded")                  
+            print(f"{await dbMenus.countAllDocuments()} database reaction menus loaded")
 
-        print(f"{len(self._inMemoryReactionMenusDB)} in memory reaction menus loaded")
+        print(f"{len(self._inMemoryReactionMenusRepository)} in memory reaction menus loaded")
         
         self._dbsLoaded = True
 

@@ -24,6 +24,24 @@ def count(table: Type[DeclarativeBaseProtocol]) -> Select[Tuple[int]]:
 
 
 class SessionSharer:
+    """Create a new session and `with` it if one is not given.
+    Always calls `.commit` on exit, on the active session.
+    ```py
+    session = sessionMaker()
+    async with SessionSharer(session, sessionMaker) as s:
+        ...
+    ```
+    This does nothing except call `session.commit` on exit.
+    `session.__aenter__` and `session.__aexit__` are **not** called.
+    
+    --
+
+    ```py
+    async with SessionSharer(None, sessionMaker) as s:
+        ...
+    ```
+    This creates a new session with sessionMaker, and calls `__aenter__`, `__aexit__`, and `commit` on the new session.
+    """
     def __init__(self, session: Optional[AsyncSession], sessionMaker: async_sessionmaker[AsyncSession]) -> None:
         self._session = session
         self._sessionMaker = sessionMaker

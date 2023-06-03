@@ -6,20 +6,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..cfg import cfg
 from ..client import BasedClient
+from ..repositories.reactionMenuRepository import ReactionMenuRepository
 
 
-async def _findMenu(client: BasedClient, menuID: int, session: AsyncSession):
+async def _findMenu(client: BasedClient, menuID: int, repo: ReactionMenuRepository):
     menu = client.inMemoryReactionMenusDB.get(menuID, None)
     if menu is not None: return True, menu
 
-    return False, await client.databaseReactionMenusDB.get(menuID, session=session)
+    return False, await repo.get(menuID)
 
 
-async def _deleteRecord(inMemory: bool, client: BasedClient, menuID: int, session: AsyncSession):
+async def _deleteRecord(inMemory: bool, client: BasedClient, menuID: int, repo: ReactionMenuRepository):
     if inMemory:
         client.inMemoryReactionMenusDB.pop(menuID, None)
     else:
-        await client.databaseReactionMenusDB.delete(menuID, session=session)
+        await repo.delete(menuID)
 
 
 async def deleteReactionMenu(client: BasedClient, menuID: int):
@@ -28,7 +29,8 @@ async def deleteReactionMenu(client: BasedClient, menuID: int):
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
     async with client.sessionMaker() as session:
-        inMemory, menu = await _findMenu(client, menuID, session)
+        repo = ReactionMenuRepository(session)
+        inMemory, menu = await _findMenu(client, menuID, repo)
         if menu is None: return
         
         msg = client.get_partial_messageable(menu.channelId).get_partial_message(menuID)
@@ -38,7 +40,7 @@ async def deleteReactionMenu(client: BasedClient, menuID: int):
         except HTTPException: # note: HttpException also covers NotFound and Forbidden
             pass
         
-        await _deleteRecord(inMemory, client, menuID, session)
+        await _deleteRecord(inMemory, client, menuID, repo)
 
 
 async def removeEmbedAndOptions(client: BasedClient, menuID: int):
@@ -48,7 +50,8 @@ async def removeEmbedAndOptions(client: BasedClient, menuID: int):
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
     async with client.sessionMaker() as session:
-        inMemory, menu = await _findMenu(client, menuID, session)
+        repo = ReactionMenuRepository(session)
+        inMemory, menu = await _findMenu(client, menuID, repo)
         if menu is None: return
         
         msg = client.get_partial_messageable(menu.channelId).get_partial_message(menuID)
@@ -58,7 +61,7 @@ async def removeEmbedAndOptions(client: BasedClient, menuID: int):
         for react in await menu.getOptions(session=session):
             await msg.remove_reaction(react.emoji if isinstance(react.emoji, str) else react.emoji.sendable, cast(ClientUser, client.user))
 
-        await _deleteRecord(inMemory, client, menuID, session)
+        await _deleteRecord(inMemory, client, menuID, repo)
 
 
 async def markExpiredMenu(client: BasedClient, menuID: int):
@@ -68,7 +71,8 @@ async def markExpiredMenu(client: BasedClient, menuID: int):
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
     async with client.sessionMaker() as session:
-        inMemory, menu = await _findMenu(client, menuID, session)
+        repo = ReactionMenuRepository(session)
+        inMemory, menu = await _findMenu(client, menuID, repo)
         if menu is None: return
 
         msg = client.get_partial_messageable(menu.channelId).get_partial_message(menuID)
@@ -78,7 +82,7 @@ async def markExpiredMenu(client: BasedClient, menuID: int):
         except HTTPException: # note: HttpException also covers NotFound and Forbidden
             pass
 
-        await _deleteRecord(inMemory, client, menuID, session)
+        await _deleteRecord(inMemory, client, menuID, repo)
 
 
 async def markExpiredMenuAndRemoveOptions(client: BasedClient, menuID: int):
@@ -88,7 +92,8 @@ async def markExpiredMenuAndRemoveOptions(client: BasedClient, menuID: int):
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
     async with client.sessionMaker() as session:
-        inMemory, menu = await _findMenu(client, menuID, session)
+        repo = ReactionMenuRepository(session)
+        inMemory, menu = await _findMenu(client, menuID, repo)
         if menu is None: return
 
         msg = client.get_partial_messageable(menu.channelId).get_partial_message(menuID)
@@ -108,4 +113,4 @@ async def markExpiredMenuAndRemoveOptions(client: BasedClient, menuID: int):
         except HTTPException: # note: HttpException also covers NotFound and Forbidden
             pass
 
-        await _deleteRecord(inMemory, client, menuID, session)
+        await _deleteRecord(inMemory, client, menuID, repo)
