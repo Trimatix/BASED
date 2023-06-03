@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession
 from .. import lib
 from .. import client
 from ..lib.sql import SessionSharer
+from ..repositories.reactionMenuRepository import ReactionMenuRepository
 
 databaseMenuTypeNames: Dict[Type["DatabaseReactionMenu"], str] = {}
 databaseNameMenuTypes: Dict[str, Type["DatabaseReactionMenu"]] = {}
@@ -324,8 +325,9 @@ class DatabaseReactionMenu(ReactionMenu[DatabaseReactionMenuOption], Base, Gener
         await self.onEnd(timedOut)
 
         async with SessionSharer(session, client.sessionMaker) as s:
+            repo = ReactionMenuRepository(s.session)
             # Note that the options are not deleted here, we rely on CASCADE being set on the foreign key
-            await client.databaseReactionMenusDB.delete(self.id, session=s.session)
+            await repo.delete(self.id)
             
         self._end(client, timedOut)
 

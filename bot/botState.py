@@ -1,9 +1,6 @@
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
-    from .databases import userDB, guildDB, reactionMenuDB
-    from .scheduling import timedTask, timedTaskHeap
-    from . import logging
     from .client import BasedClient
 
 class ShutDownState:
@@ -13,14 +10,3 @@ class ShutDownState:
 
 
 client = cast("BasedClient", None)
-shutdown = ShutDownState.restart
-
-usersDB = cast("userDB.UserDB", None)
-guildsDB = cast("guildDB.GuildDB", None)
-inMemoryReactionMenusDB = cast("reactionMenuDB.ReactionMenuDB", None)
-
-dbSaveTT = cast("timedTask.TimedTask", None)
-updatesCheckTT = cast("timedTask.TimedTask", None)
-
-taskScheduler = cast("timedTaskHeap.TimedTaskHeap", None)
-logger = cast("logging.Logger", None)

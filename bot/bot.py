@@ -30,6 +30,9 @@ from .logging import LogCategory
 from .users.basedGuild import BasedGuild
 from .interactions import basedComponent
 
+from .repositories.guildRepository import GuildRepository
+from .repositories.reactionMenuRepository import ReactionMenuRepository
+
 
 def setHelpEmbedThumbnails():
     """Loads the bot application's profile picture into all help menu embeds as the embed thumbnail.
@@ -113,12 +116,13 @@ async def on_guild_join(guild: discord.Guild):
     """
     guildExists = True
     async with botState.client.sessionMaker() as session:
-        if not await botState.client.guildsDB.exists(guild.id, session=session):
+        guilds = GuildRepository(session)
+        if not await guilds.exists(guild.id):
             guildExists = False
-            await botState.client.guildsDB.create(BasedGuild(id=guild.id), session=session)
+            await guilds.create(BasedGuild(id=guild.id))
 
-    botState.client.logger.log("Main", "guild_join", "I joined a new guild! " + guild.name + "#" + str(guild.id) +
-                            ("\n -- The guild was added to botState.client.guildsDB" if not guildExists else ""),
+    botState.client.logger.log("Main", "guild_join", f"I joined a new guild! {guild.name}#{guild.id}" +
+                            ("\n -- The guild was added to the database" if not guildExists else ""),
                             category=LogCategory.guildsDB, eventType="NW_GLD")
 
 
@@ -131,12 +135,13 @@ async def on_guild_remove(guild: discord.Guild):
     """
     guildExists = False
     async with botState.client.sessionMaker() as session:
-        if await botState.client.guildsDB.exists(guild.id, session=session):
+        guilds = GuildRepository(session)
+        if await guilds.exists(guild.id):
             guildExists = True
-            await botState.client.guildsDB.delete(guild.id, session=session)
+            await guilds.delete(guild.id)
 
-    botState.client.logger.log("Main", "guild_remove", "I left a guild! " + guild.name + "#" + str(guild.id) +
-                            ("\n -- The guild was removed from botState.client.guildsDB" if guildExists else ""),
+    botState.client.logger.log("Main", "guild_remove", f"I left a guild! {guild.name}#{guild.id}" +
+                            ("\n -- The guild was removed from database" if guildExists else ""),
                             category=LogCategory.guildsDB, eventType="NW_GLD")
 
 
@@ -176,7 +181,9 @@ async def on_message(message: discord.Message):
         commandPrefix = cfg.defaultCommandPrefix
     else:
         isDM = False
-        commandPrefix = await botState.client.guildsDB.getCommandPrefix(message.guild.id) or cfg.defaultCommandPrefix
+        async with botState.client.sessionMaker() as session:
+            guilds = GuildRepository(session)
+            commandPrefix = await guilds.getCommandPrefix(message.guild.id) or cfg.defaultCommandPrefix
 
     # For any messages beginning with commandPrefix
     if message.content.startswith(commandPrefix) and len(message.content) > len(commandPrefix):
@@ -236,14 +243,17 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     if user is None or emoji is None or isinstance(user, ClientUser): return
 
     async with botState.client.sessionMaker() as session:
+        menusRepo = ReactionMenuRepository(session)
+
         menu = botState.client.inMemoryReactionMenusDB.get(payload.message_id, None) \
-                or \
-                await botState.client.databaseReactionMenusDB.get(payload.message_id, session=session)
+                or await menusRepo.get(payload.message_id)
         
-        if menu is not None:
-            hasEmoji = await menu.hasEmoji(emoji, session=session)
-            if not hasEmoji: return
-            await menu.reactionAdded(botState.client, emoji, user, session=session)
+        if menu is None: return
+        
+        hasEmoji = await menu.hasEmoji(emoji, session=session)
+        if not hasEmoji: return
+        
+        await menu.reactionAdded(botState.client, emoji, user, session=session)
 
 
 @botState.client.event
@@ -260,22 +270,20 @@ async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
     if user is None or emoji is None or isinstance(user, ClientUser): return
 
     async with botState.client.sessionMaker() as session:
+        menusRepo = ReactionMenuRepository(session)
         menu = botState.client.inMemoryReactionMenusDB.get(payload.message_id, None) \
-                or \
-                await botState.client.databaseReactionMenusDB.get(payload.message_id, session)
+                or await menusRepo.get(payload.message_id)
         
         if menu is not None and await menu.hasEmoji(emoji, session=session):
             await menu.reactionRemoved(botState.client, emoji, user, session=session)
 
 
-async def tryEndMenu(menuId: int, session: Optional[AsyncSession]):
-    async with SessionSharer(session, botState.client.sessionMaker) as s:
-        menu = botState.client.inMemoryReactionMenusDB.get(menuId, None) \
-                or \
-                await botState.client.databaseReactionMenusDB.get(menuId, s.session)
-        
-        if menu is not None:
-            await menu.end(botState.client, session=session)
+async def tryEndMenu(menuId: int, repository: ReactionMenuRepository):
+    menu = botState.client.inMemoryReactionMenusDB.get(menuId, None) \
+            or await repository.get(menuId)
+    
+    if menu is not None:
+        await menu.end(botState.client, session=repository.session)
 
 
 @botState.client.event
@@ -286,8 +294,10 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
     :param discord.RawMessageDeleteEvent payload: An event describing the message deleted.
     """
     if not botState.client.loggedIn: return
-        
-    await tryEndMenu(payload.message_id, None)
+    
+    async with botState.client.sessionMaker() as session:
+        menusRepo = ReactionMenuRepository(session)
+        await tryEndMenu(payload.message_id, menusRepo)
 
 
 @botState.client.event
@@ -302,8 +312,9 @@ async def on_raw_bulk_message_delete(payload: discord.RawBulkMessageDeleteEvent)
     tasks = lib.discordUtil.BasicScheduler()
     
     async with botState.client.sessionMaker() as session:
+        menusRepo = ReactionMenuRepository(session)
         for msgID in payload.message_ids:
-            tasks.add(tryEndMenu(msgID, session))
+            tasks.add(tryEndMenu(msgID, menusRepo))
 
     await tasks.wait()
     tasks.logExceptions()
@@ -455,7 +466,7 @@ async def runAsync():
         # Launch bot
         await botState.client.start(cfg.botToken if cfg.botToken else os.environ[cfg.botToken_envVarName])
     
-    return botState.shutdown
+    return botState.client.shutdownState
 
 
 def run():

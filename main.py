@@ -13,4 +13,4 @@ from bot import bot
 status = bot.run()
 
 # return exit status code for bot restarting
-sys.exit(status)
+sys.exit(status.value)
